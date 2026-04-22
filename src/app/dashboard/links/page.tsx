@@ -273,7 +273,7 @@ export default function LinksPage() {
                         {link.shortCode}
                       </Link>
                       <p className="text-xs text-slate-500 mt-1">
-                        {(typeof window !== 'undefined' ? window.location.host : 'ae-link-backend.vercel.app')}/{link.shortCode}
+                        {(typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app')}/{link.shortCode}
                       </p>
                     </td>
                     <td className="px-6 py-4">

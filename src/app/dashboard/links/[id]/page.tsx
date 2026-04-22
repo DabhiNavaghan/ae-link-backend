@@ -64,7 +64,7 @@ export default function LinkDetailPage() {
       setLink(linkData as unknown as Link);
 
       // Generate QR code
-      const deepLink = `allevents.app/${(linkData as unknown as Link).shortCode}`;
+      const deepLink = `aelink.vercel.app/${(linkData as unknown as Link).shortCode}`;
       const svg = generateQRCodeSVG(deepLink, 200);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
@@ -87,7 +87,7 @@ export default function LinkDetailPage() {
 
   async function handleCopy() {
     try {
-      await copyToClipboard(`allevents.app/${link?.shortCode}`);
+      await copyToClipboard(`aelink.vercel.app/${link?.shortCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -146,7 +146,7 @@ export default function LinkDetailPage() {
                 {link.shortCode}
               </h1>
               <p className="text-slate-600 font-mono">
-                allevents.app/{link.shortCode}
+                aelink.vercel.app/{link.shortCode}
               </p>
             </div>
             <div className="flex items-center gap-3">

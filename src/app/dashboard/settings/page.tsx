@@ -524,7 +524,7 @@ const SettingsPage: React.FC = () => {
 await AeLinkSdk.instance.init(
   config: AeLinkConfig(
     apiKey: '${settings.apiKey || 'YOUR_API_KEY'}',
-    baseUrl: 'https://ae-link.allevents.app',
+    baseUrl: 'https://aelink.vercel.app',
   ),
 );
 
@@ -541,7 +541,7 @@ AeLinkSdk.instance.onDeepLink.listen((link) {
               <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
                 <p className="text-sm text-slate-600 mb-2">Create a deep link:</p>
                 <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
-{`curl -X POST https://ae-link.allevents.app/api/v1/links \\
+{`curl -X POST https://aelink.vercel.app/api/v1/links \\
   -H "X-API-Key: ${settings.apiKey || 'YOUR_API_KEY'}" \\
   -H "Content-Type: application/json" \\
   -d '{

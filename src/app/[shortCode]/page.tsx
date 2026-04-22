@@ -155,7 +155,7 @@ export async function generateMetadata({ params }: { params: Params }) {
         title,
         description,
         type: 'website',
-        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://ae-link-backend.vercel.app'}/${params.shortCode}`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aelink.vercel.app'}/${params.shortCode}`,
       },
     };
   } catch (error) {
