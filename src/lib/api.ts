@@ -19,7 +19,7 @@ export class AeLinkApi {
   private baseUrl: string;
   private apiKey: string | null;
 
-  constructor(baseUrl: string = 'http://localhost:3000') {
+  constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
     // Get API key from localStorage (client-side only)
     if (typeof window !== 'undefined') {
