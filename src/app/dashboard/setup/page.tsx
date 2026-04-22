@@ -6,6 +6,7 @@ import { RegisterTenantDto } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useRouter } from 'next/navigation';
+import { useFieldHistory } from '@/lib/hooks/useFieldHistory';
 
 type SetupStep = 'welcome' | 'app-details' | 'platforms' | 'success';
 
@@ -203,10 +204,12 @@ function AppDetailsStep({
   onNext,
   onBack,
   loading,
+  suggestions,
 }: {
   onNext: (data: RegisterTenantDto) => void;
   onBack: () => void;
   loading: boolean;
+  suggestions: Record<string, string[]>;
 }) {
   const [formData, setFormData] = useState<RegisterTenantDto>({
     name: '',
@@ -269,6 +272,7 @@ function AppDetailsStep({
           placeholder="e.g., AllEvents Mobile App"
           helperText="A friendly name to identify this app in your dashboard."
           error={errors.name}
+          suggestions={suggestions['name']}
           required
         />
         <Input
@@ -279,6 +283,7 @@ function AppDetailsStep({
           placeholder="e.g., allevents.in"
           helperText="Your website domain — deep links will be hosted under this."
           error={errors.domain}
+          suggestions={suggestions['domain']}
           required
         />
         <Input
@@ -288,6 +293,7 @@ function AppDetailsStep({
           onChange={(e) => handleChange(e, 'settings.defaultFallbackUrl')}
           placeholder="https://allevents.in"
           helperText="Where to send users if the app is not installed and no store URL is set. (optional)"
+          suggestions={suggestions['settings.defaultFallbackUrl']}
         />
       </div>
 
@@ -309,11 +315,13 @@ function PlatformsStep({
   onBack,
   loading,
   initialData,
+  suggestions,
 }: {
   onNext: (data: RegisterTenantDto) => void;
   onBack: () => void;
   loading: boolean;
   initialData: RegisterTenantDto;
+  suggestions: Record<string, string[]>;
 }) {
   const [formData, setFormData] = useState(JSON.parse(JSON.stringify(initialData)));
   const [expandAndroid, setExpandAndroid] = useState(true);
@@ -365,6 +373,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.android.package')}
               placeholder="com.allevents.mobile"
               helperText="Android Studio > app/build.gradle > applicationId"
+              suggestions={suggestions['app.android.package']}
             />
             <Input
               label={<span className="flex items-center">SHA256 Fingerprint<Tooltip text="Your app's signing certificate SHA256. Run: ./gradlew signingReport in Android Studio terminal, or find it in Google Play Console > Setup > App Signing." /></span> as any}
@@ -373,6 +382,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.android.sha256')}
               placeholder="23:C6:3D:23:1E:87:..."
               helperText="Android Studio > Terminal > ./gradlew signingReport"
+              suggestions={suggestions['app.android.sha256']}
             />
             <Input
               label={<span className="flex items-center">Play Store URL<Tooltip text="The full URL to your app on Google Play Store. Copy it from your browser when viewing your app listing." /></span> as any}
@@ -381,6 +391,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.android.storeUrl')}
               placeholder="https://play.google.com/store/apps/details?id=..."
               helperText="Users without your app will be sent here."
+              suggestions={suggestions['app.android.storeUrl']}
             />
           </div>
         )}
@@ -411,6 +422,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.ios.bundleId')}
               placeholder="com.allevents.mobile"
               helperText="Xcode > Target > General > Bundle Identifier"
+              suggestions={suggestions['app.ios.bundleId']}
             />
             <Input
               label={<span className="flex items-center">Team ID<Tooltip text="Your Apple Developer Team ID. Go to developer.apple.com > Account > Membership — it's the 10-character alphanumeric string." /></span> as any}
@@ -419,6 +431,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.ios.teamId')}
               placeholder="e.g., 53V82MSR2T"
               helperText="developer.apple.com > Account > Membership"
+              suggestions={suggestions['app.ios.teamId']}
             />
             <Input
               label={<span className="flex items-center">App ID<Tooltip text="Your iOS App ID (the numeric ID). Find it at appstoreconnect.apple.com > Apps > your app > General > Apple ID." /></span> as any}
@@ -427,6 +440,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.ios.appId')}
               placeholder="e.g., 488116646"
               helperText="App Store Connect > App > General > Apple ID"
+              suggestions={suggestions['app.ios.appId']}
             />
             <Input
               label={<span className="flex items-center">App Store URL<Tooltip text="The full URL to your app on the Apple App Store. Copy it from your browser or App Store Connect." /></span> as any}
@@ -435,6 +449,7 @@ function PlatformsStep({
               onChange={(e) => handleChange(e, 'app.ios.storeUrl')}
               placeholder="https://apps.apple.com/app/id488116646"
               helperText="Users without your app will be sent here."
+              suggestions={suggestions['app.ios.storeUrl']}
             />
           </div>
         )}
@@ -553,6 +568,14 @@ export default function SetupPage() {
   const [appData, setAppData] = useState<RegisterTenantDto | null>(null);
   const [successData, setSuccessData] = useState<{ apiKey: string; appName: string } | null>(null);
   const router = useRouter();
+  const { getSuggestions, saveMany } = useFieldHistory();
+
+  const allFields = [
+    'name', 'domain', 'settings.defaultFallbackUrl',
+    'app.android.package', 'app.android.sha256', 'app.android.storeUrl',
+    'app.ios.bundleId', 'app.ios.teamId', 'app.ios.appId', 'app.ios.storeUrl',
+  ];
+  const suggestions = Object.fromEntries(allFields.map((f) => [f, getSuggestions(f)]));
 
   const handleWelcomeStep = async (apiKey: string) => {
     try {
@@ -591,6 +614,18 @@ export default function SetupPage() {
           JSON.stringify({ id: (result as any)?.tenantId || (result as any)?._id, name: appName, apiKey })
         );
       }
+      saveMany({
+        name: data.name,
+        domain: data.domain,
+        'settings.defaultFallbackUrl': data.settings?.defaultFallbackUrl || '',
+        'app.android.package': data.app?.android?.package || '',
+        'app.android.sha256': data.app?.android?.sha256 || '',
+        'app.android.storeUrl': data.app?.android?.storeUrl || '',
+        'app.ios.bundleId': data.app?.ios?.bundleId || '',
+        'app.ios.teamId': data.app?.ios?.teamId || '',
+        'app.ios.appId': data.app?.ios?.appId || '',
+        'app.ios.storeUrl': data.app?.ios?.storeUrl || '',
+      });
       setSuccessData({ apiKey, appName });
       setStep('success');
     } catch (err: any) {
@@ -654,10 +689,10 @@ export default function SetupPage() {
 
           {step === 'welcome' && <WelcomeStep onNext={handleWelcomeStep} loading={loading} />}
           {step === 'app-details' && (
-            <AppDetailsStep onNext={handleAppDetailsStep} onBack={() => setStep('welcome')} loading={loading} />
+            <AppDetailsStep onNext={handleAppDetailsStep} onBack={() => setStep('welcome')} loading={loading} suggestions={suggestions} />
           )}
           {step === 'platforms' && appData && (
-            <PlatformsStep initialData={appData} onNext={handlePlatformsStep} onBack={() => setStep('app-details')} loading={loading} />
+            <PlatformsStep initialData={appData} onNext={handlePlatformsStep} onBack={() => setStep('app-details')} loading={loading} suggestions={suggestions} />
           )}
           {step === 'success' && successData && (
             <SuccessStep apiKey={successData.apiKey} appName={successData.appName} />
