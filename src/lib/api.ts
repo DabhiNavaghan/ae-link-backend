@@ -2,12 +2,15 @@
 
 import {
   ITenant,
+  IApp,
   ICampaign,
   ILink,
   DashboardOverview,
   LinkAnalytics,
   CampaignAnalytics,
   RegisterTenantDto,
+  CreateAppDto,
+  UpdateAppDto,
   CreateCampaignDto,
   UpdateCampaignDto,
   CreateLinkDto,
@@ -112,11 +115,11 @@ export class AeLinkApi {
   }
 
   async updateTenant(
-    tenantId: string,
+    _tenantId: string,
     data: Partial<ITenant>
   ): Promise<ITenant> {
     const response = await this.request<ApiResponse<ITenant>>(
-      `/tenants/${tenantId}`,
+      '/tenants',
       {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -135,6 +138,59 @@ export class AeLinkApi {
       this.setApiKey(newKey);
     }
     return response.data as { apiKey: string };
+  }
+
+  // ============================================================================
+  // App Methods
+  // ============================================================================
+
+  async createApp(data: CreateAppDto): Promise<IApp> {
+    const response = await this.request<ApiResponse<IApp>>('/apps', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data as IApp;
+  }
+
+  async listApps(
+    params?: Record<string, any>
+  ): Promise<{ apps: IApp[]; total: number }> {
+    const queryString = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryString.append(key, String(value));
+        }
+      });
+    }
+    const endpoint = `/apps${queryString.toString() ? '?' + queryString.toString() : ''}`;
+    const response = await this.request<
+      ApiResponse<{ apps: IApp[]; total: number }>
+    >(endpoint, { method: 'GET' });
+    return response.data as { apps: IApp[]; total: number };
+  }
+
+  async getApp(id: string): Promise<IApp> {
+    const response = await this.request<ApiResponse<IApp>>(
+      `/apps/${id}`,
+      { method: 'GET' }
+    );
+    return response.data as IApp;
+  }
+
+  async updateApp(id: string, data: UpdateAppDto): Promise<IApp> {
+    const response = await this.request<ApiResponse<IApp>>(
+      `/apps/${id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data as IApp;
+  }
+
+  async deleteApp(id: string): Promise<void> {
+    await this.request(`/apps/${id}`, { method: 'DELETE' });
   }
 
   // ============================================================================

@@ -93,6 +93,16 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  try {
+    await connectDB();
+  } catch (error) {
+    const errorRes = new NextResponse(
+      JSON.stringify(Errors.INTERNAL_ERROR('Database connection failed')),
+      { status: 500 }
+    );
+    return applyCors(request, errorRes);
+  }
+
   const auth = await requireAuth(request);
 
   if (!auth) {
@@ -113,8 +123,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await connectDB();
-
     const tenant = await TenantModel.findById(auth.tenantId).select(
       '-apiSecret'
     );
@@ -137,6 +145,78 @@ export async function GET(request: NextRequest) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error({ message: err.message, stack: err.stack }, 'Get tenant error');
     console.error('GET TENANT ERROR:', err.message, err.stack);
+    const errorRes = new NextResponse(
+      JSON.stringify(Errors.INTERNAL_ERROR(err.message)),
+      { status: 500 }
+    );
+    return applyCors(request, errorRes);
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connectDB();
+  } catch (error) {
+    const errorRes = new NextResponse(
+      JSON.stringify(Errors.INTERNAL_ERROR('Database connection failed')),
+      { status: 500 }
+    );
+    return applyCors(request, errorRes);
+  }
+
+  const auth = await requireAuth(request);
+  if (!auth) {
+    const errorRes = new NextResponse(
+      JSON.stringify(Errors.UNAUTHORIZED()),
+      { status: 401 }
+    );
+    return applyCors(request, errorRes);
+  }
+
+  const { allowed } = checkRateLimit(request, auth.tenantId);
+  if (!allowed) {
+    const errorRes = new NextResponse(
+      JSON.stringify(Errors.RATE_LIMIT()),
+      { status: 429 }
+    );
+    return applyCors(request, errorRes);
+  }
+
+  try {
+    const body = await request.json();
+
+    const updateData: Record<string, any> = {};
+
+    // Only allow updating specific fields
+    if (body.name) updateData.name = body.name;
+    if (body.settings) updateData.settings = body.settings;
+    if (body.app) updateData.app = body.app;
+
+    const tenant = await TenantModel.findByIdAndUpdate(
+      auth.tenantId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-apiSecret');
+
+    if (!tenant) {
+      const errorRes = new NextResponse(
+        JSON.stringify(Errors.NOT_FOUND('Tenant')),
+        { status: 404 }
+      );
+      return applyCors(request, errorRes);
+    }
+
+    logger.info({ tenantId: auth.tenantId }, 'Tenant updated');
+
+    const response = NextResponse.json(
+      successResponse(tenant),
+      { status: 200 }
+    );
+
+    return applyCors(request, response);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error({ message: err.message, stack: err.stack }, 'Update tenant error');
     const errorRes = new NextResponse(
       JSON.stringify(Errors.INTERNAL_ERROR(err.message)),
       { status: 500 }

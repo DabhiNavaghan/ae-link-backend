@@ -49,6 +49,11 @@ const linkSchema = new Schema<ILink>(
       ref: 'Campaign',
       index: true,
     },
+    appId: {
+      type: Schema.Types.ObjectId,
+      ref: 'App',
+      index: true,
+    },
     shortCode: {
       type: String,
       required: true,

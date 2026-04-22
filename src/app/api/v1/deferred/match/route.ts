@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Get tenant settings for match threshold
     const tenant = await TenantModel.findById(auth.tenantId);
-    const matchThreshold = tenant?.settings?.matchThreshold || 70;
+    const matchThreshold = tenant?.settings?.matchThreshold || 60;
 
     // Find matching deferred link
     const deferredLink = await DeferredService.matchDeferredLink(

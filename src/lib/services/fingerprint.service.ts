@@ -12,7 +12,6 @@ export class FingerprintService {
   static createFingerprintHash(fingerprint: FingerprintData): string {
     const components = [
       fingerprint.ipAddress,
-      fingerprint.userAgent,
       `${fingerprint.screen?.width}x${fingerprint.screen?.height}`,
       fingerprint.language,
       fingerprint.timezone,
@@ -67,11 +66,15 @@ export class FingerprintService {
     });
 
     await newFingerprint.save();
-    logger.debug(
+    logger.info(
       {
         fingerprintId: newFingerprint._id,
         linkId,
-        hash: fingerprintHash,
+        tenantId,
+        ip: fingerprint.ipAddress,
+        screen: fingerprint.screen,
+        language: fingerprint.language,
+        timezone: fingerprint.timezone,
       },
       'Fingerprint stored'
     );
@@ -82,31 +85,32 @@ export class FingerprintService {
   /**
    * Find best matching fingerprint using scoring algorithm
    *
-   * Scoring:
-   * - IP match: 40 points
-   * - UA hash match: 30 points
-   * - Screen resolution: 10 points
-   * - Language match: 5 points
-   * - Timezone match: 5 points
-   * - Time proximity: up to 10 points (10 - hours since click)
-   * - Threshold: 70+ points
+   * IMPORTANT: In deferred deep linking, the browser UA (Chrome/Safari)
+   * will NEVER match the app UA (Dart HTTP client). So UA is excluded
+   * from scoring. Instead we weight signals that persist across
+   * web-click → app-install:
+   *
+   * Scoring (total 100):
+   * - IP match:              40 points  (same network = strong signal)
+   * - Screen resolution:     20 points  (same device = same screen)
+   * - Timezone match:        15 points  (geographic signal)
+   * - Language/locale match: 10 points  (device locale persists)
+   * - Time proximity:        15 points  (closer = more likely same user)
+   *
+   * Default threshold: 60 points
+   * IP + screen alone = 60 (solid match)
+   * IP + timezone + language + proximity = 40+15+10+15 = 80 (strong match)
    */
   static async findMatchingFingerprint(
     tenantId: string,
     incomingFingerprint: FingerprintData,
-    matchThreshold: number = 70,
+    matchThreshold: number = 60,
     linkId?: string
   ): Promise<{
     fingerprint: IFingerprint | null;
     matchScore: number;
     matchDetails: IMatchDetails;
   }> {
-    const incomingHash = this.createFingerprintHash(incomingFingerprint);
-    const incomingUaHash = crypto
-      .createHash('sha256')
-      .update(incomingFingerprint.userAgent || '')
-      .digest('hex');
-
     // Query for pending fingerprints within TTL
     const query: Record<string, any> = {
       tenantId,
@@ -114,6 +118,7 @@ export class FingerprintService {
       expiresAt: { $gt: new Date() },
     };
 
+    // If we have the linkId, narrow the search for better accuracy
     if (linkId) {
       query.linkId = linkId;
     }
@@ -124,8 +129,8 @@ export class FingerprintService {
       .lean();
 
     if (!candidates.length) {
-      logger.debug(
-        { tenantId, linkId },
+      logger.info(
+        { tenantId, linkId, ip: incomingFingerprint.ipAddress },
         'No candidate fingerprints found'
       );
       return {
@@ -135,6 +140,11 @@ export class FingerprintService {
       };
     }
 
+    logger.info(
+      { tenantId, linkId, candidateCount: candidates.length },
+      'Evaluating fingerprint candidates'
+    );
+
     let bestMatch: IFingerprint | null = null;
     let bestScore = 0;
     let bestDetails: IMatchDetails = {};
@@ -142,8 +152,6 @@ export class FingerprintService {
     for (const candidate of candidates) {
       const { score, details } = this.calculateMatchScore(
         incomingFingerprint,
-        incomingHash,
-        incomingUaHash,
         candidate
       );
 
@@ -153,7 +161,7 @@ export class FingerprintService {
         bestDetails = details;
       }
 
-      // Short-circuit if we found a perfect match
+      // Short-circuit on perfect match
       if (score >= 100) {
         break;
       }
@@ -165,8 +173,9 @@ export class FingerprintService {
           fingerprintId: bestMatch._id,
           score: bestScore,
           details: bestDetails,
+          threshold: matchThreshold,
         },
-        'Fingerprint matched'
+        'Fingerprint matched successfully'
       );
 
       return {
@@ -176,13 +185,14 @@ export class FingerprintService {
       };
     }
 
-    logger.debug(
+    logger.info(
       {
-        incomingTenantId: tenantId,
+        tenantId,
         bestScore,
         threshold: matchThreshold,
+        bestDetails,
       },
-      'No matching fingerprint found'
+      'No fingerprint met threshold'
     );
 
     return {
@@ -193,64 +203,104 @@ export class FingerprintService {
   }
 
   /**
-   * Calculate match score between two fingerprints
+   * Calculate match score between incoming (app) and stored (web) fingerprints.
+   *
+   * Designed for CROSS-PLATFORM matching (browser → native app).
+   * UA hash is intentionally excluded since browser and app UAs never match.
    */
   private static calculateMatchScore(
     incoming: FingerprintData,
-    incomingHash: string,
-    incomingUaHash: string,
     candidate: any
   ): { score: number; details: IMatchDetails } {
     let score = 0;
     const details: IMatchDetails = {};
 
-    // IP match: 40 points
-    const ipMatch = incoming.ipAddress === candidate.ipAddress;
-    if (ipMatch) {
-      score += 40;
-      details.ipMatch = true;
-      details.ipScore = 40;
+    // ── IP match: 40 points ──
+    // Same public IP = very likely same device/network
+    if (incoming.ipAddress && candidate.ipAddress) {
+      const ipMatch = incoming.ipAddress === candidate.ipAddress;
+      if (ipMatch) {
+        score += 40;
+        details.ipMatch = true;
+        details.ipScore = 40;
+      }
     }
 
-    // User agent hash match: 30 points
-    const uaHashMatch = incomingUaHash === candidate.userAgentHash;
-    if (uaHashMatch) {
-      score += 30;
-      details.uaHashMatch = true;
-      details.uaHashScore = 30;
+    // ── Screen resolution match: 20 points ──
+    // Screen size persists between browser and native app on same device
+    if (incoming.screen?.width && incoming.screen?.height &&
+        candidate.screen?.width && candidate.screen?.height) {
+      const exactMatch =
+        incoming.screen.width === candidate.screen.width &&
+        incoming.screen.height === candidate.screen.height;
+
+      if (exactMatch) {
+        score += 20;
+        details.screenMatch = true;
+        details.screenScore = 20;
+      } else {
+        // Fuzzy screen match: within 10% tolerance (browser may report
+        // CSS pixels vs native reporting physical pixels)
+        const widthRatio = incoming.screen.width / candidate.screen.width;
+        const heightRatio = incoming.screen.height / candidate.screen.height;
+        if (widthRatio > 0.9 && widthRatio < 1.1 &&
+            heightRatio > 0.9 && heightRatio < 1.1) {
+          score += 12;
+          details.screenMatch = true;
+          details.screenScore = 12;
+        }
+      }
     }
 
-    // Screen resolution match: 10 points
-    const screenMatch =
-      incoming.screen?.width === candidate.screen?.width &&
-      incoming.screen?.height === candidate.screen?.height;
-    if (screenMatch) {
-      score += 10;
-      details.screenMatch = true;
-      details.screenScore = 10;
+    // ── Timezone match: 15 points ──
+    // Same timezone = geographic proximity
+    if (incoming.timezone && candidate.timezone) {
+      const tzMatch = incoming.timezone === candidate.timezone;
+      if (tzMatch) {
+        score += 15;
+        details.timezoneMatch = true;
+        details.timezoneScore = 15;
+      }
     }
 
-    // Language match: 5 points
-    const languageMatch =
-      incoming.language && incoming.language === candidate.language;
-    if (languageMatch) {
-      score += 5;
-      details.languageMatch = true;
-      details.languageScore = 5;
+    // ── Language/locale match: 10 points ──
+    // Device language persists between browser and app
+    if (incoming.language && candidate.language) {
+      // Normalize: "en-US" and "en_US" should match, "en" prefix match is partial
+      const inLang = incoming.language.toLowerCase().replace('_', '-');
+      const candLang = candidate.language.toLowerCase().replace('_', '-');
+
+      if (inLang === candLang) {
+        score += 10;
+        details.languageMatch = true;
+        details.languageScore = 10;
+      } else if (inLang.split('-')[0] === candLang.split('-')[0]) {
+        // Partial match (same base language, e.g., "en" vs "en-US")
+        score += 5;
+        details.languageMatch = true;
+        details.languageScore = 5;
+      }
     }
 
-    // Timezone match: 5 points
-    const timezoneMatch =
-      incoming.timezone && incoming.timezone === candidate.timezone;
-    if (timezoneMatch) {
-      score += 5;
-      details.timezoneMatch = true;
-      details.timezoneScore = 5;
-    }
+    // ── Time proximity: up to 15 points ──
+    // More recent clicks are more likely to be the same user
+    const createdAt = candidate.createdAt instanceof Date
+      ? candidate.createdAt.getTime()
+      : new Date(candidate.createdAt).getTime();
+    const hoursSince = (Date.now() - createdAt) / (1000 * 60 * 60);
 
-    // Time proximity: up to 10 points
-    const hoursSince = (Date.now() - candidate.createdAt.getTime()) / (1000 * 60 * 60);
-    const proximityScore = Math.max(0, 10 - Math.floor(hoursSince));
+    let proximityScore = 0;
+    if (hoursSince <= 1) {
+      proximityScore = 15;       // Within 1 hour: full points
+    } else if (hoursSince <= 6) {
+      proximityScore = 12;       // Within 6 hours: high confidence
+    } else if (hoursSince <= 24) {
+      proximityScore = 8;        // Within 24 hours: moderate
+    } else if (hoursSince <= 48) {
+      proximityScore = 4;        // Within 48 hours: low
+    } else {
+      proximityScore = 1;        // Beyond 48 hours: minimal
+    }
     score += proximityScore;
     details.proximityScore = proximityScore;
 

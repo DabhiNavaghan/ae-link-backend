@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
 import TenantModel from '@/lib/models/Tenant';
+import AppModel from '@/lib/models/App';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { Logger } from '@/lib/logger';
 import RedirectPage from '@/components/RedirectPage';
@@ -45,12 +46,30 @@ export default async function ResolvePage({ params }: { params: Params }) {
     const deviceInfo = detector.detect();
     const isMobile = detector.isMobile();
 
-    // Get tenant for store URLs
+    // Get store URLs — prefer App model if link has appId, fallback to tenant config
     const tenant = await TenantModel.findById(link.tenantId).lean();
-    const storeUrls = {
-      android: tenant?.app?.android?.storeUrl || 'https://play.google.com/store/apps/details?id=com.amitech.allevents',
-      ios: tenant?.app?.ios?.storeUrl || 'https://apps.apple.com/app/id488116646',
+    let storeUrls = {
+      android: 'https://play.google.com/store/apps/details?id=com.amitech.allevents',
+      ios: 'https://apps.apple.com/app/id488116646',
     };
+
+    // If link references a specific App, use its store URLs
+    const linkObj = link.toObject ? link.toObject() : (link as any);
+    if (linkObj.appId) {
+      const app = await AppModel.findById(linkObj.appId).lean();
+      if (app) {
+        storeUrls = {
+          android: app.android?.storeUrl || storeUrls.android,
+          ios: app.ios?.storeUrl || storeUrls.ios,
+        };
+      }
+    } else if (tenant?.app) {
+      // Legacy: fallback to tenant-level app config
+      storeUrls = {
+        android: tenant.app.android?.storeUrl || storeUrls.android,
+        ios: tenant.app.ios?.storeUrl || storeUrls.ios,
+      };
+    }
 
     // Record click
     let clickId: string | undefined = undefined;
@@ -136,7 +155,7 @@ export async function generateMetadata({ params }: { params: Params }) {
         title,
         description,
         type: 'website',
-        url: `https://ae-link.allevents.app/${params.shortCode}`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://ae-link-backend.vercel.app'}/${params.shortCode}`,
       },
     };
   } catch (error) {

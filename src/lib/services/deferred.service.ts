@@ -52,7 +52,7 @@ export class DeferredService {
   static async matchDeferredLink(
     tenantId: string,
     incomingFingerprint: FingerprintData,
-    matchThreshold: number = 70,
+    matchThreshold: number = 60,
     linkId?: string
   ): Promise<IDeferredLink | null> {
     const { fingerprint, matchScore, matchDetails } =

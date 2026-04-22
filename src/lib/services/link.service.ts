@@ -31,6 +31,7 @@ export class LinkService {
     const link = new LinkModel({
       tenantId,
       campaignId: dto.campaignId ? new Types.ObjectId(dto.campaignId) : undefined,
+      appId: dto.appId ? new Types.ObjectId(dto.appId) : undefined,
       shortCode,
       destinationUrl: dto.destinationUrl,
       linkType: dto.linkType,

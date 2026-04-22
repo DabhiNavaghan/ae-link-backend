@@ -2,88 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import { aeLinkApi } from '@/lib/api';
-import { ITenant } from '@/types';
+import { IApp } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Link from 'next/link';
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-primary-600 hover:text-primary-700 text-sm font-medium transition"
-    >
-      {copied ? 'Copied!' : 'Copy'}
-    </button>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="card p-6 bg-gradient-to-br from-primary-50 to-white">
-      <p className="text-slate-600 text-sm font-medium mb-2">{label}</p>
-      <h3 className="text-3xl font-bold text-slate-900">{value}</h3>
-    </div>
-  );
-}
-
 export default function AppDetailPage({ params }: { params: { id: string } }) {
-  const [app, setApp] = useState<ITenant | null>(null);
+  const [app, setApp] = useState<IApp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
-
-  const handleRegenerateKey = async () => {
-    setRegenerating(true);
-    try {
-      const result = await aeLinkApi.regenerateApiKey();
-      // Update the local app state with new key
-      if (app) {
-        setApp({ ...app, apiKey: result.apiKey } as ITenant);
-      }
-      setShowApiKey(true);
-      setShowRegenerateConfirm(false);
-      alert('API key regenerated successfully! The new key is now shown above.');
-    } catch (err) {
-      alert('Failed to regenerate API key. Please try again.');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   useEffect(() => {
     const fetchApp = async () => {
       try {
         setLoading(true);
-        const tenant = await aeLinkApi.getTenant();
-        setApp(tenant);
+        const result = await aeLinkApi.getApp(params.id);
+        setApp(result);
       } catch (err: any) {
         setError(err.message || 'Failed to load app details');
       } finally {
         setLoading(false);
       }
     };
-
     fetchApp();
   }, [params.id]);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-10 bg-slate-200 rounded animate-pulse w-1/3"></div>
-        <div className="grid grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="card p-6 h-24 animate-pulse bg-slate-100"></div>
+        <div className="h-10 bg-slate-200 rounded animate-pulse w-1/3" />
+        <div className="grid grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="card p-6 h-48 animate-pulse bg-slate-100" />
           ))}
         </div>
       </div>
@@ -108,7 +58,7 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">{app.name}</h1>
-          <p className="text-slate-600 mt-1">{app.domain}</p>
+          <p className="text-xs text-slate-400 mt-1 font-mono">ID: {String((app as any)._id)}</p>
         </div>
         <Link href="/dashboard/apps">
           <Button variant="ghost">Back to Apps</Button>
@@ -125,216 +75,108 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
         </span>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-6">
-        <StatCard label="Total Links" value={0} />
-        <StatCard label="Total Clicks" value={0} />
-        <StatCard label="Total Conversions" value={0} />
-      </div>
-
-      {/* API Configuration */}
-      <div className="card p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">API Configuration</h2>
-
-        <div className="space-y-4">
-          {/* API Key */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">API Key</label>
-            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              {showApiKey ? (
-                <>
-                  <code className="font-mono text-sm flex-1 break-all text-slate-900">
-                    {app.apiKey}
-                  </code>
-                  <CopyButton text={app.apiKey} />
-                </>
-              ) : (
-                <>
-                  <code className="text-slate-400 font-mono">••••••••••••••••••••••••••••••••</code>
-                  <button
-                    onClick={() => setShowApiKey(true)}
-                    className="text-primary-600 hover:text-primary-700 text-sm font-medium whitespace-nowrap"
-                  >
-                    Reveal
-                  </button>
-                </>
-              )}
-            </div>
-            <p className="text-xs text-slate-600 mt-2">
-              Use this key to authenticate API requests. Keep it secret.
-            </p>
-          </div>
-
-          {/* Base URL */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Base URL</label>
-            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <code className="font-mono text-sm flex-1 text-slate-900">
-                https://api.aelink.io/v1
-              </code>
-              <CopyButton text="https://api.aelink.io/v1" />
-            </div>
-          </div>
-
-          {/* Regenerate Key Button */}
-          <div className="pt-4 border-t border-slate-200">
-            {!showRegenerateConfirm ? (
-              <div>
-                <Button variant="danger" size="md" onClick={() => setShowRegenerateConfirm(true)}>
-                  Regenerate API Key
-                </Button>
-                <p className="text-xs text-slate-500 mt-2">
-                  This will invalidate the current API key. Update your app and integrations after regenerating.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-danger-50 border border-danger-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-danger-800 mb-2">Are you sure?</p>
-                <p className="text-sm text-danger-700 mb-4">
-                  The current API key will stop working immediately. Your Flutter SDK and any integrations will need the new key.
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={handleRegenerateKey}
-                    isLoading={regenerating}
-                  >
-                    Yes, Regenerate
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowRegenerateConfirm(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Platform Configuration */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Android */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Android Configuration</h2>
+          <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.523 15.341c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.901.402.901.902-.401.902-.901.902zm-11.046 0c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.902.402.902.902-.402.902-.902.902zm11.4-6.052l1.997-3.46a.416.416 0 00-.152-.567.416.416 0 00-.568.152L17.12 8.93c-1.46-.67-3.1-1.044-5.12-1.044s-3.66.374-5.12 1.044L4.846 5.414a.416.416 0 00-.568-.152.416.416 0 00-.152.567l1.997 3.46C2.688 11.186.343 14.654 0 18.76h24c-.343-4.106-2.688-7.574-6.123-9.471z" />
+            </svg>
+            Android
+          </h2>
           <div className="space-y-3">
-            {app.app?.android ? (
+            {app.android?.package || app.android?.sha256 || app.android?.storeUrl ? (
               <>
                 <div>
                   <p className="text-sm font-medium text-slate-700">Package Name</p>
-                  <p className="text-slate-900 mt-1">{app.app.android.package}</p>
+                  <p className="text-slate-900 mt-1 font-mono text-sm">{app.android?.package || 'Not set'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">SHA256 Fingerprint</p>
                   <code className="text-xs bg-slate-100 p-2 rounded mt-1 block overflow-x-auto">
-                    {app.app.android.sha256}
+                    {app.android?.sha256 || 'Not set'}
                   </code>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">Store URL</p>
-                  <a
-                    href={app.app.android.storeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-600 hover:text-primary-700 text-sm mt-1 break-all"
-                  >
-                    {app.app.android.storeUrl}
-                  </a>
+                  {app.android?.storeUrl ? (
+                    <a href={app.android.storeUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-primary-600 hover:text-primary-700 text-sm mt-1 break-all">
+                      {app.android.storeUrl}
+                    </a>
+                  ) : (
+                    <p className="text-slate-400 text-sm mt-1">Not set</p>
+                  )}
                 </div>
               </>
             ) : (
-              <p className="text-slate-600">Not configured</p>
+              <p className="text-slate-500 text-sm italic">Not configured</p>
             )}
           </div>
         </div>
 
         {/* iOS */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">iOS Configuration</h2>
+          <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+            </svg>
+            iOS
+          </h2>
           <div className="space-y-3">
-            {app.app?.ios ? (
+            {app.ios?.bundleId || app.ios?.teamId || app.ios?.appId || app.ios?.storeUrl ? (
               <>
                 <div>
                   <p className="text-sm font-medium text-slate-700">Bundle ID</p>
-                  <p className="text-slate-900 mt-1">{app.app.ios.bundleId}</p>
+                  <p className="text-slate-900 mt-1 font-mono text-sm">{app.ios?.bundleId || 'Not set'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">Team ID</p>
-                  <p className="text-slate-900 mt-1">{app.app.ios.teamId}</p>
+                  <p className="text-slate-900 mt-1 font-mono text-sm">{app.ios?.teamId || 'Not set'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">App ID</p>
-                  <p className="text-slate-900 mt-1">{app.app.ios.appId}</p>
+                  <p className="text-slate-900 mt-1 font-mono text-sm">{app.ios?.appId || 'Not set'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">Store URL</p>
-                  <a
-                    href={app.app.ios.storeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-600 hover:text-primary-700 text-sm mt-1 break-all"
-                  >
-                    {app.app.ios.storeUrl}
-                  </a>
+                  {app.ios?.storeUrl ? (
+                    <a href={app.ios.storeUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-primary-600 hover:text-primary-700 text-sm mt-1 break-all">
+                      {app.ios.storeUrl}
+                    </a>
+                  ) : (
+                    <p className="text-slate-400 text-sm mt-1">Not set</p>
+                  )}
                 </div>
               </>
             ) : (
-              <p className="text-slate-600">Not configured</p>
+              <p className="text-slate-500 text-sm italic">Not configured</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Integration Guide */}
+      {/* App ID for link creation */}
       <div className="card p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Flutter SDK Integration</h2>
-        <p className="text-slate-600 mb-4">
-          Initialize the AE-LINK SDK in your Flutter app with the following code:
+        <h2 className="text-xl font-semibold text-slate-900 mb-3">Using this App in Links</h2>
+        <p className="text-slate-600 text-sm mb-4">
+          When creating a deep link, select this app so the link knows which app store URLs to use for redirects.
+          The App ID below can also be used directly in the API.
         </p>
-        <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto text-sm">
-{`import 'package:ae_link_flutter/ae_link.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  await AELink.initialize(
-    apiKey: '${app.apiKey}',
-    domain: '${app.domain}',
-  );
-  
-  runApp(MyApp());
-}`}
-        </pre>
-      </div>
-
-      {/* Settings */}
-      <div className="card p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Settings</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm font-medium text-slate-700 mb-2">Fingerprint TTL</p>
-              <p className="text-slate-900 font-semibold">
-                {app.settings?.fingerprintTtlHours || 72} hours
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-700 mb-2">Match Threshold</p>
-              <p className="text-slate-900 font-semibold">
-                {app.settings?.matchThreshold || 80}%
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-700 mb-2">Default Fallback</p>
-              <p className="text-slate-900 font-semibold text-sm truncate">
-                {app.settings?.defaultFallbackUrl || '-'}
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <code className="font-mono text-sm flex-1 text-slate-900 select-all">
+            {String((app as any)._id)}
+          </code>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(String((app as any)._id));
+            }}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          >
+            Copy
+          </button>
         </div>
       </div>
     </div>

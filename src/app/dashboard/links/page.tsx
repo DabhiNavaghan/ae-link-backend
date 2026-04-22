@@ -95,7 +95,8 @@ export default function LinksPage() {
 
   async function handleCopyLink(shortCode: string) {
     try {
-      await copyToClipboard(`allevents.app/${shortCode}`);
+      const domain = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);
     } catch (err) {
@@ -272,7 +273,7 @@ export default function LinksPage() {
                         {link.shortCode}
                       </Link>
                       <p className="text-xs text-slate-500 mt-1">
-                        allevents.app/{link.shortCode}
+                        {(typeof window !== 'undefined' ? window.location.host : 'ae-link-backend.vercel.app')}/{link.shortCode}
                       </p>
                     </td>
                     <td className="px-6 py-4">

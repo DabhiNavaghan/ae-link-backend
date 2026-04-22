@@ -51,6 +51,46 @@ export interface ITenant extends Document {
 }
 
 // ============================================================================
+// App Types
+// ============================================================================
+
+export interface IAndroidConfig {
+  package: string;
+  sha256: string;
+  storeUrl: string;
+}
+
+export interface IIosConfig {
+  bundleId: string;
+  teamId: string;
+  appId: string;
+  storeUrl: string;
+}
+
+export interface IApp extends Document {
+  tenantId: Types.ObjectId;
+  name: string;
+  android?: IAndroidConfig;
+  ios?: IIosConfig;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateAppDto {
+  name: string;
+  android?: Partial<IAndroidConfig>;
+  ios?: Partial<IIosConfig>;
+}
+
+export interface UpdateAppDto {
+  name?: string;
+  android?: Partial<IAndroidConfig>;
+  ios?: Partial<IIosConfig>;
+  isActive?: boolean;
+}
+
+// ============================================================================
 // Campaign Types
 // ============================================================================
 
@@ -106,6 +146,7 @@ export interface IPlatformOverrides {
 export interface ILink extends Document {
   tenantId: Types.ObjectId;
   campaignId?: Types.ObjectId;
+  appId?: Types.ObjectId;
   shortCode: string;
   destinationUrl: string;
   linkType: LinkType;
@@ -270,6 +311,7 @@ export interface IConversion extends Document {
 
 export interface CreateLinkDto {
   campaignId?: string;
+  appId?: string;
   destinationUrl: string;
   linkType: LinkType;
   params?: ILinkParams;

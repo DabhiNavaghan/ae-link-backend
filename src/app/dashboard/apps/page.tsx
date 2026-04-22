@@ -2,355 +2,337 @@
 
 import { useState, useEffect } from 'react';
 import { aeLinkApi } from '@/lib/api';
-import { ITenant, RegisterTenantDto, IAppConfig, ITenantSettings } from '@/types';
+import { IApp, CreateAppDto, UpdateAppDto } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Input from '@/components/ui/Input';
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
+/* ─── Icons ─── */
+const AndroidIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.523 15.341c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.901.402.901.902-.401.902-.901.902zm-11.046 0c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.902.402.902.902-.402.902-.902.902zm11.4-6.052l1.997-3.46a.416.416 0 00-.152-.567.416.416 0 00-.568.152L17.12 8.93c-1.46-.67-3.1-1.044-5.12-1.044s-3.66.374-5.12 1.044L4.846 5.414a.416.416 0 00-.568-.152.416.416 0 00-.152.567l1.997 3.46C2.688 11.186.343 14.654 0 18.76h24c-.343-4.106-2.688-7.574-6.123-9.471z" />
+  </svg>
+);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+const AppleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+  </svg>
+);
 
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-primary-600 hover:text-primary-700 text-sm font-medium transition"
-    >
-      {copied ? 'Copied!' : 'Copy'}
-    </button>
-  );
-}
+const PlusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
+);
 
+const PencilIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+  </svg>
+);
+
+/* ─── App Card ─── */
 function AppCard({
   app,
   onEdit,
   onDelete,
 }: {
-  app: ITenant;
-  onEdit: (app: ITenant) => void;
-  onDelete: (app: ITenant) => void;
+  app: IApp;
+  onEdit: (app: IApp) => void;
+  onDelete: (app: IApp) => void;
 }) {
-  const [showApiKey, setShowApiKey] = useState(false);
+  const hasAndroid = app.android && (app.android.package || app.android.storeUrl);
+  const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
     <div className="card p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-xl font-semibold text-slate-900">{app.name}</h3>
-          <p className="text-sm text-slate-600 mt-1">{app.domain}</p>
+          <h3 className="text-lg font-semibold text-slate-900">{app.name}</h3>
+          <p className="text-xs text-slate-400 mt-0.5 font-mono">
+            ID: {String((app as any)._id).slice(-8)}
+          </p>
         </div>
         <Badge status={app.isActive ? 'active' : 'archived'}>
           {app.isActive ? 'Active' : 'Inactive'}
         </Badge>
       </div>
 
-      <div className="space-y-4 mb-6 border-t border-b border-slate-200 py-4">
-        {/* Android Info */}
-        {app.app?.android && (
-          <div className="text-sm">
-            <p className="font-semibold text-slate-700 mb-1">Android</p>
-            <p className="text-slate-600">Package: {app.app.android.package}</p>
-            <p className="text-slate-600 text-xs">SHA256: {app.app.android.sha256}</p>
-          </div>
+      {/* Platform badges */}
+      <div className="flex gap-2 mb-4">
+        {hasAndroid && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+            <AndroidIcon /> Android
+          </span>
         )}
-
-        {/* iOS Info */}
-        {app.app?.ios && (
-          <div className="text-sm">
-            <p className="font-semibold text-slate-700 mb-1">iOS</p>
-            <p className="text-slate-600">Bundle ID: {app.app.ios.bundleId}</p>
-            <p className="text-slate-600">Team ID: {app.app.ios.teamId}</p>
-          </div>
+        {hasIos && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+            <AppleIcon /> iOS
+          </span>
         )}
-
-        {/* API Key */}
-        <div className="text-sm bg-slate-50 p-3 rounded-lg">
-          <p className="font-semibold text-slate-700 mb-2">API Key</p>
-          {showApiKey ? (
-            <div className="flex items-center gap-2">
-              <code className="bg-white px-2 py-1 rounded text-xs font-mono border border-slate-200 flex-1 overflow-x-auto">
-                {app.apiKey}
-              </code>
-              <CopyButton text={app.apiKey} />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <code className="text-slate-400">••••••••••••••••</code>
-              <button
-                onClick={() => setShowApiKey(true)}
-                className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-              >
-                Reveal
-              </button>
-            </div>
-          )}
-        </div>
+        {!hasAndroid && !hasIos && (
+          <span className="text-xs text-slate-400 italic">No platforms configured</span>
+        )}
       </div>
 
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onEdit(app)}
-          className="flex-1"
-        >
-          Edit
+      {/* Platform details */}
+      <div className="space-y-3 border-t border-slate-100 pt-4 mb-5">
+        {hasAndroid && (
+          <div className="text-sm">
+            <p className="font-medium text-slate-700 mb-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" /> Android
+            </p>
+            <div className="pl-3.5 space-y-0.5 text-xs text-slate-500">
+              {app.android?.package && <p>Package: <span className="font-mono text-slate-700">{app.android.package}</span></p>}
+              {app.android?.sha256 && <p>SHA256: <span className="font-mono text-slate-700">{app.android.sha256.substring(0, 20)}...</span></p>}
+              {app.android?.storeUrl && <p>Store: <a href={app.android.storeUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Play Store</a></p>}
+            </div>
+          </div>
+        )}
+        {hasIos && (
+          <div className="text-sm">
+            <p className="font-medium text-slate-700 mb-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-slate-500" /> iOS
+            </p>
+            <div className="pl-3.5 space-y-0.5 text-xs text-slate-500">
+              {app.ios?.bundleId && <p>Bundle ID: <span className="font-mono text-slate-700">{app.ios.bundleId}</span></p>}
+              {app.ios?.teamId && <p>Team ID: <span className="font-mono text-slate-700">{app.ios.teamId}</span></p>}
+              {app.ios?.appId && <p>App ID: <span className="font-mono text-slate-700">{app.ios.appId}</span></p>}
+              {app.ios?.storeUrl && <p>Store: <a href={app.ios.storeUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">App Store</a></p>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => onEdit(app)} className="flex-1">
+          <span className="flex items-center justify-center gap-1.5"><PencilIcon /> Edit</span>
         </Button>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => onDelete(app)}
-          className="flex-1"
-        >
-          Delete
+        <Button variant="danger" size="sm" onClick={() => onDelete(app)} className="flex-1">
+          <span className="flex items-center justify-center gap-1.5"><TrashIcon /> Delete</span>
         </Button>
       </div>
     </div>
   );
 }
 
-function AddAppForm({ onSuccess }: { onSuccess: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
+/* ─── App Form Modal ─── */
+function AppFormModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  editApp,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  editApp?: IApp | null;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isEdit = !!editApp;
 
-  const [formData, setFormData] = useState<RegisterTenantDto>({
-    name: '',
-    domain: '',
-    app: {
-      android: {
-        package: '',
-        sha256: '',
-        storeUrl: '',
-      },
-      ios: {
-        bundleId: '',
-        teamId: '',
-        appId: '',
-        storeUrl: '',
-      },
-    },
-    settings: {
-      fingerprintTtlHours: 72,
-      matchThreshold: 80,
-      defaultFallbackUrl: '',
-    },
-  });
+  const [name, setName] = useState('');
+  const [androidPackage, setAndroidPackage] = useState('');
+  const [androidSha256, setAndroidSha256] = useState('');
+  const [androidStoreUrl, setAndroidStoreUrl] = useState('');
+  const [iosBundleId, setIosBundleId] = useState('');
+  const [iosTeamId, setIosTeamId] = useState('');
+  const [iosAppId, setIosAppId] = useState('');
+  const [iosStoreUrl, setIosStoreUrl] = useState('');
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    path: string
-  ) => {
-    const value = e.target.value;
-    const keys = path.split('.');
-    let obj: any = formData;
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
-      if (!obj[key]) obj[key] = {};
-      obj = obj[key];
+  // Populate fields when editing
+  useEffect(() => {
+    if (editApp) {
+      setName(editApp.name || '');
+      setAndroidPackage(editApp.android?.package || '');
+      setAndroidSha256(editApp.android?.sha256 || '');
+      setAndroidStoreUrl(editApp.android?.storeUrl || '');
+      setIosBundleId(editApp.ios?.bundleId || '');
+      setIosTeamId(editApp.ios?.teamId || '');
+      setIosAppId(editApp.ios?.appId || '');
+      setIosStoreUrl(editApp.ios?.storeUrl || '');
+    } else {
+      setName('');
+      setAndroidPackage('');
+      setAndroidSha256('');
+      setAndroidStoreUrl('');
+      setIosBundleId('');
+      setIosTeamId('');
+      setIosAppId('');
+      setIosStoreUrl('');
     }
-
-    obj[keys[keys.length - 1]] = value;
-    setFormData({ ...formData });
-  };
+    setError(null);
+  }, [editApp, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      setError('App name is required');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      await aeLinkApi.registerTenant(formData);
+      const appData = {
+        name: name.trim(),
+        android: {
+          package: androidPackage.trim(),
+          sha256: androidSha256.trim(),
+          storeUrl: androidStoreUrl.trim(),
+        },
+        ios: {
+          bundleId: iosBundleId.trim(),
+          teamId: iosTeamId.trim(),
+          appId: iosAppId.trim(),
+          storeUrl: iosStoreUrl.trim(),
+        },
+      };
 
-      setIsOpen(false);
-      setFormData({
-        name: '',
-        domain: '',
-        app: {
-          android: { package: '', sha256: '', storeUrl: '' },
-          ios: { bundleId: '', teamId: '', appId: '', storeUrl: '' },
-        },
-        settings: {
-          fingerprintTtlHours: 72,
-          matchThreshold: 80,
-          defaultFallbackUrl: '',
-        },
-      });
+      if (isEdit) {
+        await aeLinkApi.updateApp(String((editApp as any)._id), appData as UpdateAppDto);
+      } else {
+        await aeLinkApi.createApp(appData as CreateAppDto);
+      }
 
       onSuccess();
+      onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create app');
+      setError(err.message || `Failed to ${isEdit ? 'update' : 'create'} app`);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) {
-    return (
-      <Button variant="primary" size="lg" onClick={() => setIsOpen(true)}>
-        Add New App
-      </Button>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-6 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Add New App</h2>
+            <h2 className="text-xl font-bold text-slate-900">
+              {isEdit ? 'Edit App' : 'Add New App'}
+            </h2>
             <button
-              onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-slate-600 text-2xl"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
             >
-              ×
+              &times;
             </button>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg">
+            <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {/* Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Basic Information</h3>
+          <div>
             <Input
               label="App Name"
               type="text"
-              value={formData.name}
-              onChange={(e) => handleChange(e, 'name')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g., AllEvents Mobile App"
-              required
-            />
-            <Input
-              label="Domain"
-              type="text"
-              value={formData.domain}
-              onChange={(e) => handleChange(e, 'domain')}
-              placeholder="e.g., allevents.in"
               required
             />
           </div>
 
           {/* Android */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Android Configuration</h3>
+            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center">
+                <AndroidIcon />
+              </div>
+              Android Configuration
+            </h3>
             <Input
               label="Package Name"
               type="text"
-              value={formData.app?.android?.package || ''}
-              onChange={(e) => handleChange(e, 'app.android.package')}
-              placeholder="e.g., com.allevents.mobile"
+              value={androidPackage}
+              onChange={(e) => setAndroidPackage(e.target.value)}
+              placeholder="com.allevents.mobile"
+              helperText="Android Studio > app/build.gradle > applicationId"
             />
             <Input
               label="SHA256 Fingerprint"
               type="text"
-              value={formData.app?.android?.sha256 || ''}
-              onChange={(e) => handleChange(e, 'app.android.sha256')}
-              placeholder="Your app's certificate SHA256"
+              value={androidSha256}
+              onChange={(e) => setAndroidSha256(e.target.value)}
+              placeholder="23:C6:3D:23:1E:87:..."
+              helperText="Terminal: ./gradlew signingReport"
             />
             <Input
               label="Play Store URL"
               type="text"
-              value={formData.app?.android?.storeUrl || ''}
-              onChange={(e) => handleChange(e, 'app.android.storeUrl')}
+              value={androidStoreUrl}
+              onChange={(e) => setAndroidStoreUrl(e.target.value)}
               placeholder="https://play.google.com/store/apps/details?id=..."
+              helperText="Users without your app will be sent here"
             />
           </div>
 
           {/* iOS */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">iOS Configuration</h3>
+            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-slate-100 text-slate-600 flex items-center justify-center">
+                <AppleIcon />
+              </div>
+              iOS Configuration
+            </h3>
             <Input
               label="Bundle ID"
               type="text"
-              value={formData.app?.ios?.bundleId || ''}
-              onChange={(e) => handleChange(e, 'app.ios.bundleId')}
-              placeholder="e.g., com.allevents.mobile"
+              value={iosBundleId}
+              onChange={(e) => setIosBundleId(e.target.value)}
+              placeholder="com.allevents.mobile"
+              helperText="Xcode > Target > General > Bundle Identifier"
             />
             <Input
               label="Team ID"
               type="text"
-              value={formData.app?.ios?.teamId || ''}
-              onChange={(e) => handleChange(e, 'app.ios.teamId')}
-              placeholder="Your Apple Team ID"
+              value={iosTeamId}
+              onChange={(e) => setIosTeamId(e.target.value)}
+              placeholder="e.g., 53V82MSR2T"
+              helperText="developer.apple.com > Account > Membership"
             />
             <Input
               label="App ID"
               type="text"
-              value={formData.app?.ios?.appId || ''}
-              onChange={(e) => handleChange(e, 'app.ios.appId')}
-              placeholder="Your App ID from Apple Connect"
+              value={iosAppId}
+              onChange={(e) => setIosAppId(e.target.value)}
+              placeholder="e.g., 488116646"
+              helperText="App Store Connect > App > General > Apple ID"
             />
             <Input
               label="App Store URL"
               type="text"
-              value={formData.app?.ios?.storeUrl || ''}
-              onChange={(e) => handleChange(e, 'app.ios.storeUrl')}
-              placeholder="https://apps.apple.com/app/id..."
-            />
-          </div>
-
-          {/* Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Settings</h3>
-            <Input
-              label="Fingerprint TTL (hours)"
-              type="number"
-              value={formData.settings?.fingerprintTtlHours || 72}
-              onChange={(e) =>
-                handleChange({ ...e, target: { ...e.target, value: e.target.value } } as any, 'settings.fingerprintTtlHours')
-              }
-              min="1"
-              max="720"
-            />
-            <Input
-              label="Match Threshold (1-100)"
-              type="number"
-              value={formData.settings?.matchThreshold || 80}
-              onChange={(e) =>
-                handleChange({ ...e, target: { ...e.target, value: e.target.value } } as any, 'settings.matchThreshold')
-              }
-              min="1"
-              max="100"
-            />
-            <Input
-              label="Default Fallback URL"
-              type="text"
-              value={formData.settings?.defaultFallbackUrl || ''}
-              onChange={(e) => handleChange(e, 'settings.defaultFallbackUrl')}
-              placeholder="https://allevents.in"
+              value={iosStoreUrl}
+              onChange={(e) => setIosStoreUrl(e.target.value)}
+              placeholder="https://apps.apple.com/app/id488116646"
+              helperText="Users without your app will be sent here"
             />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-slate-200">
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setIsOpen(false)}
-              type="button"
-              className="flex-1"
-            >
+            <Button variant="secondary" size="lg" onClick={onClose} type="button" className="flex-1">
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              size="lg"
-              type="submit"
-              isLoading={loading}
-              className="flex-1"
-            >
-              Create App
+            <Button variant="primary" size="lg" type="submit" isLoading={loading} className="flex-1">
+              {isEdit ? 'Save Changes' : 'Create App'}
             </Button>
           </div>
         </form>
@@ -359,49 +341,59 @@ function AddAppForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+/* ─── Main Apps Page ─── */
 export default function AppsPage() {
-  const [apps, setApps] = useState<ITenant[]>([]);
+  const [apps, setApps] = useState<IApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editApp, setEditApp] = useState<IApp | null>(null);
 
-  useEffect(() => {
-    const fetchApps = async () => {
-      try {
-        setLoading(true);
-        const tenant = await aeLinkApi.getTenant();
-        setApps([tenant]);
-      } catch (err: any) {
-        if (err.status === 401) {
-          setError('No apps registered. Create your first app to get started.');
-        } else {
-          setError(err.message || 'Failed to load apps');
-        }
-      } finally {
-        setLoading(false);
+  const fetchApps = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { apps: appList } = await aeLinkApi.listApps();
+      setApps(appList);
+    } catch (err: any) {
+      if (err.status === 401) {
+        setError('Not authenticated. Please set up your API key first.');
+      } else {
+        setError(err.message || 'Failed to load apps');
       }
-    };
-
-    fetchApps();
-  }, [refreshKey]);
-
-  const handleDelete = async (app: ITenant) => {
-    if (confirm(`Are you sure you want to delete ${app.name}?`)) {
-      try {
-        // Will implement delete endpoint
-        alert('Delete functionality coming soon');
-      } catch (err) {
-        alert('Failed to delete app');
-      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = (app: ITenant) => {
-    alert('Edit functionality coming soon');
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const handleEdit = (app: IApp) => {
+    setEditApp(app);
+    setModalOpen(true);
   };
 
-  const handleSuccess = () => {
-    setRefreshKey((k) => k + 1);
+  const handleDelete = async (app: IApp) => {
+    if (!confirm(`Are you sure you want to delete "${app.name}"? This will deactivate the app.`)) {
+      return;
+    }
+    try {
+      await aeLinkApi.deleteApp(String((app as any)._id));
+      fetchApps();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete app');
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditApp(null);
+    setModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    fetchApps();
   };
 
   return (
@@ -409,50 +401,83 @@ export default function AppsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Apps Management</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Apps</h1>
           <p className="text-slate-600 mt-1">
-            Manage your registered apps and their configurations
+            Manage your Android and iOS app configurations
           </p>
         </div>
-        <AddAppForm onSuccess={handleSuccess} />
+        <Button variant="primary" size="lg" onClick={handleAddNew}>
+          <span className="flex items-center gap-2"><PlusIcon /> Add App</span>
+        </Button>
       </div>
 
+      {/* Error / empty state */}
       {error && !loading && apps.length === 0 && (
         <div className="card bg-warning-50 border-warning-200 p-8 text-center">
-          <h3 className="text-lg font-semibold text-warning-900 mb-2">Get Started</h3>
+          <h3 className="text-lg font-semibold text-warning-900 mb-2">No Apps Yet</h3>
           <p className="text-warning-700 mb-4">{error}</p>
           <p className="text-warning-600 text-sm">
-            Register your app to start creating deep links and tracking analytics.
+            Add your first app to start creating deep links.
           </p>
         </div>
       )}
 
-      {/* Apps Grid */}
-      {loading ? (
+      {!error && !loading && apps.length === 0 && (
+        <div className="card p-12 text-center">
+          <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <PlusIcon />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">Add Your First App</h3>
+          <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+            Register your Android or iOS app to start creating deep links and tracking installs.
+          </p>
+          <Button variant="primary" size="lg" onClick={handleAddNew}>
+            <span className="flex items-center gap-2"><PlusIcon /> Add App</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="card p-6 space-y-3">
-              <div className="h-6 bg-slate-200 rounded animate-pulse"></div>
-              <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4"></div>
-              <div className="pt-4 space-y-2">
-                <div className="h-4 bg-slate-100 rounded animate-pulse"></div>
-                <div className="h-4 bg-slate-100 rounded animate-pulse"></div>
+              <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2" />
+              <div className="h-4 bg-slate-100 rounded animate-pulse w-1/4" />
+              <div className="flex gap-2 pt-2">
+                <div className="h-6 bg-slate-100 rounded-full animate-pulse w-20" />
+                <div className="h-6 bg-slate-100 rounded-full animate-pulse w-16" />
+              </div>
+              <div className="pt-4 border-t border-slate-100 space-y-2">
+                <div className="h-3 bg-slate-100 rounded animate-pulse" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4" />
               </div>
             </div>
           ))}
         </div>
-      ) : apps.length > 0 ? (
+      )}
+
+      {/* Apps grid */}
+      {!loading && apps.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {apps.map((app) => (
             <AppCard
-              key={String(app._id)}
+              key={String((app as any)._id)}
               app={app}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
           ))}
         </div>
-      ) : null}
+      )}
+
+      {/* Form modal */}
+      <AppFormModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={handleModalSuccess}
+        editApp={editApp}
+      />
     </div>
   );
 }

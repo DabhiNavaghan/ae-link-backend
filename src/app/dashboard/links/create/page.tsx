@@ -13,7 +13,13 @@ interface Campaign {
   name: string;
 }
 
+interface AppOption {
+  _id: string;
+  name: string;
+}
+
 interface FormData {
+  appId: string;
   campaignId: string;
   destinationUrl: string;
   linkType: 'event' | 'ticket' | 'profile' | 'category' | 'custom';
@@ -56,6 +62,7 @@ export default function CreateLinkPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [apps, setApps] = useState<AppOption[]>([]);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [customParamKey, setCustomParamKey] = useState('');
   const [customParamValue, setCustomParamValue] = useState('');
@@ -68,6 +75,7 @@ export default function CreateLinkPage() {
   });
 
   const [formData, setFormData] = useState<FormData>({
+    appId: '',
     campaignId: campaignIdFromUrl || '',
     destinationUrl: '',
     linkType: 'event',
@@ -94,6 +102,7 @@ export default function CreateLinkPage() {
 
   useEffect(() => {
     fetchCampaigns();
+    fetchApps();
   }, []);
 
   useEffect(() => {
@@ -106,6 +115,15 @@ export default function CreateLinkPage() {
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
     } catch (err) {
       console.error('Failed to load campaigns', err);
+    }
+  }
+
+  async function fetchApps() {
+    try {
+      const data = await api.listApps();
+      setApps((data.apps || []) as unknown as AppOption[]);
+    } catch (err) {
+      console.error('Failed to load apps', err);
     }
   }
 
@@ -249,6 +267,7 @@ export default function CreateLinkPage() {
           }),
           ...(formData.webUrl && { web: { url: formData.webUrl } }),
         },
+        ...(formData.appId && { appId: formData.appId }),
         ...(formData.campaignId && { campaignId: formData.campaignId }),
         ...(formData.shortCode && { shortCode: formData.shortCode }),
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
@@ -312,6 +331,32 @@ export default function CreateLinkPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                    App
+                  </label>
+                  <select
+                    value={formData.appId}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        appId: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">No App (Optional)</option>
+                    {apps.map((app) => (
+                      <option key={app._id} value={app._id}>
+                        {app.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Select an app to use its store URLs for mobile redirects
+                  </p>
                 </div>
 
                 <div>
@@ -879,7 +924,7 @@ export default function CreateLinkPage() {
                     </p>
                     <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                       <p className="text-sm font-mono text-primary-600 break-all">
-                        allevents.app/{formData.shortCode || 'abc123'}
+                        {typeof window !== 'undefined' ? window.location.host : 'ae-link-backend.vercel.app'}/{formData.shortCode || '<auto>'}
                       </p>
                     </div>
                   </div>

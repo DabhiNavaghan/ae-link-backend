@@ -614,6 +614,19 @@ export default function SetupPage() {
           JSON.stringify({ id: (result as any)?.tenantId || (result as any)?._id, name: appName, apiKey })
         );
       }
+
+      // Also create an App record with the platform config
+      try {
+        await aeLinkApi.createApp({
+          name: data.name,
+          android: data.app?.android || undefined,
+          ios: data.app?.ios || undefined,
+        });
+      } catch (appErr) {
+        // Non-blocking — tenant is already created, app can be added later
+        console.error('Failed to create app record:', appErr);
+      }
+
       saveMany({
         name: data.name,
         domain: data.domain,
