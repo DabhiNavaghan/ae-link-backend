@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       locale,
       timezone,
       isFirstLaunch,
+      isExistingUser,
     } = body;
 
     if (!deviceId || !platform) {
@@ -132,7 +133,10 @@ export async function POST(request: NextRequest) {
     let installType: 'first_install' | 'reinstall' | 'return_user';
 
     if (!existingInstall) {
-      if (isFirstLaunch) {
+      if (isExistingUser) {
+        // Host app explicitly told us this is an existing user
+        installType = 'return_user';
+      } else if (isFirstLaunch) {
         // SDK says first launch + no DB record = genuine new install
         installType = 'first_install';
       } else {
