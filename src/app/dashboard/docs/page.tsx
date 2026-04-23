@@ -371,7 +371,6 @@ Future<DeepLinkData?> initAeLink({
   required GlobalKey<NavigatorState> navigatorKey,
 }) async {
   aeLink = AeLinkService(
-    apiBaseUrl: '${appUrl}',
     apiKey: 'YOUR_API_KEY',  // From dashboard Settings
     debug: true,  // false in production
     onDeepLink: (data) {

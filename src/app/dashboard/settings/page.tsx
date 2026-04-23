@@ -523,7 +523,6 @@ const SettingsPage: React.FC = () => {
 
 // Create service with your API key
 final aeLink = AeLinkService(
-  apiBaseUrl: '${typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app'}',
   apiKey: '${settings.apiKey || 'YOUR_API_KEY'}',
   onDeepLink: (data) {
     // Route based on event ID, action, params
