@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import DeferredService from '@/lib/services/deferred.service';
 import TenantModel from '@/lib/models/Tenant';
+import InstallModel from '@/lib/models/Install';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
@@ -106,6 +107,24 @@ export async function POST(request: NextRequest) {
       normalizedFingerprint,
       matchThreshold
     );
+
+    // Update install record with match result
+    const deviceId = fingerprint.device_id || fingerprint.deviceId;
+    if (deviceId) {
+      try {
+        await InstallModel.updateOne(
+          { tenantId: auth.tenantId, deviceId },
+          {
+            matchResult: deferredLink ? 'matched' : 'organic',
+            matchScore: deferredLink?.matchScore || 0,
+            deferredLinkId: deferredLink?._id,
+          }
+        );
+      } catch (e) {
+        // Non-blocking — install tracking should not break matching
+        logger.debug({ deviceId }, 'Failed to update install record');
+      }
+    }
 
     if (!deferredLink) {
       const response = NextResponse.json(
