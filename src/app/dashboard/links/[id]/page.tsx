@@ -64,7 +64,8 @@ export default function LinkDetailPage() {
       setLink(linkData as unknown as Link);
 
       // Generate QR code
-      const deepLink = `aelink.vercel.app/${(linkData as unknown as Link).shortCode}`;
+      const host = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
+      const deepLink = `${host}/${(linkData as unknown as Link).shortCode}`;
       const svg = generateQRCodeSVG(deepLink, 200);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
@@ -87,7 +88,8 @@ export default function LinkDetailPage() {
 
   async function handleCopy() {
     try {
-      await copyToClipboard(`aelink.vercel.app/${link?.shortCode}`);
+      const host = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
+      await copyToClipboard(`${host}/${link?.shortCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -146,7 +148,7 @@ export default function LinkDetailPage() {
                 {link.shortCode}
               </h1>
               <p className="text-slate-600 font-mono">
-                aelink.vercel.app/{link.shortCode}
+                {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/{link.shortCode}
               </p>
             </div>
             <div className="flex items-center gap-3">

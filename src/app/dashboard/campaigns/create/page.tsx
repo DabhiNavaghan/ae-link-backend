@@ -156,7 +156,7 @@ export default function CreateCampaignPage() {
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-600 font-medium">
-                    aelink.vercel.app/c/
+                    {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/c/
                   </span>
                   <input
                     type="text"
@@ -362,7 +362,7 @@ export default function CreateCampaignPage() {
                     <div className="border-t border-slate-200 pt-3">
                       <p className="text-xs text-slate-500">URL Path</p>
                       <p className="text-sm font-mono text-primary-600 break-all">
-                        aelink.vercel.app/c/{formData.slug || 'slug'}
+                        {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/c/{formData.slug || 'slug'}
                       </p>
                     </div>
 

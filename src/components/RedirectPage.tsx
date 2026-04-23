@@ -27,6 +27,7 @@ interface BrowserFingerprint {
   screen: { width: number; height: number };
   language: string;
   timezone: string;
+  timezoneOffset: string;
   deviceMemory?: number;
   connectionType?: string;
   platform: string;
@@ -116,6 +117,13 @@ export default function RedirectPage({
   const collectFingerprint = (): BrowserFingerprint => {
     const nav = navigator as any;
 
+    // Compute timezone offset in ±HH:MM format for cross-format matching
+    const tzOffsetMin = new Date().getTimezoneOffset();
+    const tzSign = tzOffsetMin <= 0 ? '+' : '-';
+    const tzHours = String(Math.floor(Math.abs(tzOffsetMin) / 60)).padStart(2, '0');
+    const tzMins = String(Math.abs(tzOffsetMin) % 60).padStart(2, '0');
+    const timezoneOffset = `${tzSign}${tzHours}:${tzMins}`;
+
     return {
       screen: {
         width: window.screen.width,
@@ -123,6 +131,7 @@ export default function RedirectPage({
       },
       language: navigator.language,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneOffset,
       deviceMemory: nav.deviceMemory,
       connectionType: (nav.connection || nav.mozConnection || nav.webkitConnection)
         ?.effectiveType,

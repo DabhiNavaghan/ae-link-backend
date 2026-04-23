@@ -50,6 +50,7 @@ const fingerprintSchema = new Schema<IFingerprint>(
     },
     language: String,
     timezone: String,
+    timezoneOffset: String,
     deviceMemory: Number,
     connectionType: String,
     platform: String,

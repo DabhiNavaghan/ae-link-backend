@@ -52,6 +52,7 @@ export class FingerprintService {
       screen: fingerprint.screen,
       language: fingerprint.language,
       timezone: fingerprint.timezone,
+      timezoneOffset: (fingerprint as any).timezoneOffset,
       deviceMemory: fingerprint.deviceMemory,
       connectionType: fingerprint.connectionType,
       platform: fingerprint.platform,
@@ -254,12 +255,42 @@ export class FingerprintService {
 
     // ── Timezone match: 15 points ──
     // Same timezone = geographic proximity
+    // Handles mixed formats: browser sends IANA name ("Asia/Kolkata"),
+    // Flutter may send name, abbreviation ("IST"), or offset ("+05:30")
     if (incoming.timezone && candidate.timezone) {
-      const tzMatch = incoming.timezone === candidate.timezone;
-      if (tzMatch) {
+      const inTz = incoming.timezone;
+      const candTz = candidate.timezone;
+      const inOffset = (incoming as any).timezoneOffset || (incoming as any).timezone_offset;
+      const candOffset = (candidate as any).timezoneOffset || (candidate as any).timezone_offset;
+
+      // Direct match (both same format)
+      if (inTz === candTz) {
         score += 15;
         details.timezoneMatch = true;
         details.timezoneScore = 15;
+      }
+      // Offset-based fallback: if either side sent an offset, compare those
+      else if (inOffset && candOffset && inOffset === candOffset) {
+        score += 15;
+        details.timezoneMatch = true;
+        details.timezoneScore = 15;
+      }
+      // Partial match: same UTC offset (convert known IANA names to offset)
+      else {
+        try {
+          const inDate = new Date().toLocaleString('en-US', { timeZone: inTz });
+          const candDate = new Date().toLocaleString('en-US', { timeZone: candTz });
+          // If we can resolve both to valid dates and they produce same local time,
+          // they're in the same timezone
+          if (inDate && candDate && inDate === candDate) {
+            score += 12;
+            details.timezoneMatch = true;
+            details.timezoneScore = 12;
+          }
+        } catch {
+          // One of the timezone names is not a valid IANA name (e.g., abbreviation)
+          // No points awarded
+        }
       }
     }
 

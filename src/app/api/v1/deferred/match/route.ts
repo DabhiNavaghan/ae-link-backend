@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Normalize incoming fingerprint — Flutter SDK sends snake_case,
     // server stores camelCase. Map fields to match stored format.
-    const normalizedFingerprint: FingerprintData = {
+    const normalizedFingerprint: FingerprintData & { timezoneOffset?: string } = {
       ipAddress: fingerprint.ip_address || fingerprint.ipAddress || ip,
       userAgent: fingerprint.user_agent || fingerprint.userAgent || userAgent,
       screen: fingerprint.screen || {
@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
       touchSupport: fingerprint.touch_support ?? fingerprint.touchSupport ?? true,
       colorDepth: fingerprint.color_depth || fingerprint.colorDepth || 24,
       pixelRatio: fingerprint.pixel_ratio || fingerprint.pixelRatio || fingerprint.screen_density || 1,
+      // Pass through timezone offset for cross-format matching
+      timezoneOffset: fingerprint.timezone_offset || fingerprint.timezoneOffset,
     };
 
     // Get tenant settings for match threshold

@@ -123,6 +123,8 @@ const navItems = [
 export default function DocsPage() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('overview');
+  const appHost = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
 
   const scrollTo = (id: string) => {
     setActiveSection(id);
@@ -337,7 +339,7 @@ export default function DocsPage() {
               <p>
                 AE-LINK automatically serves the <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">/.well-known/apple-app-site-association</code> file
                 for your domain. Make sure your Xcode project has the <strong>Associated Domains</strong> capability
-                enabled with <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">applinks:aelink.vercel.app</code>.
+                enabled with <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">applinks:{appHost}</code>.
               </p>
             </div>
           </DocSection>
@@ -365,7 +367,7 @@ void main() async {
   await AeLinkSdk.instance.init(
     config: AeLinkConfig(
       apiKey: 'YOUR_API_KEY',
-      baseUrl: 'https://aelink.vercel.app',
+      baseUrl: '${appUrl}',
     ),
   );
 
@@ -408,7 +410,7 @@ AeLinkSdk.instance.onDeepLink.listen((deepLink) {
           <DocSection id="api-reference" title="API Reference">
             <p>
               All API endpoints require authentication via the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">X-API-Key</code> header.
-              The base URL is <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">https://aelink.vercel.app/api/v1</code>.
+              The base URL is <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{appUrl}/api/v1</code>.
             </p>
 
             <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -457,7 +459,7 @@ AeLinkSdk.instance.onDeepLink.listen((deepLink) {
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">Example: Create a deep link</p>
-              <CodeBlock code={`curl -X POST https://aelink.vercel.app/api/v1/links \\
+              <CodeBlock code={`curl -X POST ${appUrl}/api/v1/links \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -476,7 +478,7 @@ AeLinkSdk.instance.onDeepLink.listen((deepLink) {
           <DocSection id="deep-links" title="Creating Deep Links">
             <p>
               Deep links are URLs that route users to specific content in your app. In AE-LINK,
-              each link has a short code (e.g., <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">aelink.vercel.app/abc123</code>)
+              each link has a short code (e.g., <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{appHost}/abc123</code>)
               that resolves to your app or web fallback.
             </p>
 
@@ -577,7 +579,7 @@ AeLinkSdk.instance.onDeepLink.listen((deepLink) {
               Create campaigns from the dashboard's Campaigns page. Each campaign gets its own
               analytics view showing total clicks, installs, and conversions across all its links.
             </p>
-            <CodeBlock code={`curl -X POST https://aelink.vercel.app/api/v1/campaigns \\
+            <CodeBlock code={`curl -X POST ${appUrl}/api/v1/campaigns \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -617,7 +619,7 @@ AeLinkSdk.instance.onDeepLink.listen((deepLink) {
               {[
                 {
                   q: 'Deep links are not opening my app',
-                  a: 'Verify your Android package name + SHA256 (or iOS Bundle ID + Team ID) are correctly configured in Settings. On Android, ensure App Links verification passes. On iOS, check that Associated Domains is enabled in Xcode with "applinks:aelink.vercel.app".',
+                  a: `Verify your Android package name + SHA256 (or iOS Bundle ID + Team ID) are correctly configured in Settings. On Android, ensure App Links verification passes. On iOS, check that Associated Domains is enabled in Xcode with "applinks:${appHost}".`,
                 },
                 {
                   q: 'Deferred deep links are not matching',

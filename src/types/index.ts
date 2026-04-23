@@ -211,6 +211,7 @@ export interface IFingerprint extends Document {
   screen: IScreenInfo;
   language?: string;
   timezone?: string;
+  timezoneOffset?: string;
   deviceMemory?: number;
   connectionType?: string;
   platform?: string;
@@ -231,6 +232,7 @@ export interface FingerprintData {
   screen: { width: number; height: number };
   language?: string;
   timezone?: string;
+  timezoneOffset?: string;
   deviceMemory?: number;
   connectionType?: string;
   platform?: string;
