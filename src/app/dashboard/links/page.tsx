@@ -40,6 +40,7 @@ export default function LinksPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const itemsPerPage = 10;
@@ -84,12 +85,17 @@ export default function LinksPage() {
   }
 
   async function handleDelete(id: string) {
+    setDeleting(true);
     try {
       await api.deleteLink(id);
       setLinks(links.filter((l) => l._id !== id));
       setDeleteConfirm(null);
+      setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to delete link');
+      setDeleteConfirm(null);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -375,12 +381,19 @@ export default function LinksPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-sm">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Delete Link?
-            </h3>
-            <p className="text-slate-600 mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !deleting && setDeleteConfirm(null)}>
+          <div className="bg-card rounded-xl shadow-xl p-6 max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-danger-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Delete Link?
+              </h3>
+            </div>
+            <p className="text-slate-600 mb-6 text-sm">
               This action cannot be undone. The link will become inactive but
               historical data will be preserved.
             </p>
@@ -389,6 +402,7 @@ export default function LinksPage() {
                 variant="ghost"
                 fullWidth
                 onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
               >
                 Cancel
               </Button>
@@ -396,8 +410,9 @@ export default function LinksPage() {
                 variant="danger"
                 fullWidth
                 onClick={() => handleDelete(deleteConfirm)}
+                disabled={deleting}
               >
-                Delete
+                {deleting ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>

@@ -51,9 +51,9 @@ const AnalyticsDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const apiKey = localStorage.getItem('apiKey');
+      const apiKey = localStorage.getItem('ae-link-api-key');
       if (!apiKey) {
-        setError('API key not found');
+        setError('API key not found. Please go to Settings to configure your API key.');
         setLoading(false);
         return;
       }
@@ -68,7 +68,7 @@ const AnalyticsDashboard: React.FC = () => {
       const response = await fetch(
         `/api/v1/analytics/overview?${params}`,
         {
-          headers: { 'Authorization': `Bearer ${apiKey}` },
+          headers: { 'X-API-Key': apiKey },
         }
       );
 

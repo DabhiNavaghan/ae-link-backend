@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -18,7 +18,20 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Persist collapsed state in sessionStorage
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  // Save collapsed state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('sidebar-collapsed', String(isCollapsed));
+    }
+  }, [isCollapsed]);
 
   const navItems: SidebarItem[] = [
     {
@@ -124,44 +137,53 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     return pathname.startsWith(href);
   };
 
+  const sidebarWidth = isCollapsed ? 'w-20' : 'w-64';
+
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-40 bg-white border-r border-slate-200 transition-all duration-300 lg:static lg:translate-x-0 ${
-          isOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:w-64'
-        } ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+        className={`fixed left-0 top-0 bottom-0 z-40 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col
+          lg:static lg:translate-x-0
+          ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
+          lg:${sidebarWidth}`}
+        style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : undefined }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 flex-shrink-0">
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                 AE
               </div>
               <span className="font-bold text-slate-900">AE-LINK</span>
             </Link>
           )}
           {isCollapsed && (
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto">
               AE
             </div>
           )}
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:block text-slate-600 hover:text-slate-900 transition-colors duration-200"
-            aria-label="Toggle sidebar"
+            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-200"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -173,17 +195,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="px-4 py-6 space-y-2">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => onClose?.()}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                 isActive(item.href)
                   ? 'bg-primary-50 text-primary-600 font-semibold'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+              } ${isCollapsed ? 'justify-center' : ''}`}
               title={isCollapsed ? item.label : undefined}
             >
               <span className={`flex-shrink-0 ${isActive(item.href) ? 'text-primary-600' : ''}`}>
@@ -191,9 +213,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
               </span>
               {!isCollapsed && (
                 <>
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1 text-sm">{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto bg-danger-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-danger-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                       {item.badge}
                     </span>
                   )}
@@ -205,10 +227,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
         {/* Footer */}
         {!isCollapsed && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
-            <div className="card p-4 bg-gradient-to-br from-primary-50 to-secondary-50">
+          <div className="flex-shrink-0 p-4 border-t border-slate-200">
+            <div className="rounded-lg p-3 bg-gradient-to-br from-primary-50 to-secondary-50">
               <h4 className="text-sm font-semibold text-slate-900 mb-1">Need help?</h4>
-              <p className="text-xs text-slate-600 mb-3">
+              <p className="text-xs text-slate-600 mb-2">
                 Check our documentation for guides and tutorials.
               </p>
               <Link

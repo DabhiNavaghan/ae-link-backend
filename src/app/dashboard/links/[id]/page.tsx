@@ -64,8 +64,8 @@ export default function LinkDetailPage() {
       setLink(linkData as unknown as Link);
 
       // Generate QR code
-      const host = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
-      const deepLink = `${host}/${(linkData as unknown as Link).shortCode}`;
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
+      const deepLink = `${origin}/${(linkData as unknown as Link).shortCode}`;
       const svg = generateQRCodeSVG(deepLink, 200);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
@@ -88,8 +88,8 @@ export default function LinkDetailPage() {
 
   async function handleCopy() {
     try {
-      const host = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
-      await copyToClipboard(`${host}/${link?.shortCode}`);
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
+      await copyToClipboard(`${origin}/${link?.shortCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
