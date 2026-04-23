@@ -101,7 +101,7 @@ export default function LinksPage() {
 
   async function handleCopyLink(shortCode: string) {
     try {
-      const domain = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const domain = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
       await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);
