@@ -1,252 +1,213 @@
 # AE-LINK Backend
 
-Production-grade deferred deep linking platform for AllEvents, built with Next.js 14, TypeScript, MongoDB, and Mongoose.
+Deferred deep linking platform built with Next.js 14, TypeScript, MongoDB, and Mongoose. Deployed on Vercel.
 
-## Overview
+**Live:** Your deployment domain (e.g., `https://aelink.vercel.app`)
+**Repos:** [Backend](https://github.com/DabhiNavaghan/ae-link-backend) · [Flutter SDK](https://github.com/DabhiNavaghan/ae-link)
 
-AE-LINK enables seamless deep linking with intelligent device fingerprinting and deferred matching. When users click a short link from a browser, the system collects device fingerprints and intelligently matches them when the app is installed later.
+## What It Does
 
-## Key Features
+AE-LINK creates short links that intelligently route users based on their platform. When a mobile user clicks a link but doesn't have the app installed, the system collects a device fingerprint, redirects to the app store, and later matches that fingerprint when the app is launched for the first time — delivering the original link's context (event ID, UTM params, coupon codes, etc.) into the app.
 
-- **Smart Deep Linking**: Automatically routes users to the appropriate platform (app, web, or store)
-- **Deferred Deep Linking**: Matches app installs to prior clicks using device fingerprinting
-- **Campaign Tracking**: Built-in campaign management and attribution
-- **Analytics Dashboard**: Real-time insights into link performance, conversions, and traffic
-- **Multi-Tenant**: Support for multiple organizations with isolated data
-- **Device Detection**: Automatic OS, browser, and device type detection
-- **Rate Limiting**: Built-in rate limiting for API endpoints
-- **Vercel Ready**: Optimized for serverless deployment on Vercel
+## How the Flow Works
+
+```
+Email/SMS/Social → User clicks aelink.vercel.app/TG5hid0
+                         ↓
+              Redirect page (SSR + client JS)
+              ├── Records click
+              ├── Collects browser fingerprint
+              ├── Creates DeferredLink record
+              └── Redirects based on platform:
+                  ├── Desktop → web destination URL
+                  ├── Android → Play Store
+                  └── iOS → App Store
+                         ↓
+              User installs app, launches it
+                         ↓
+              Flutter SDK collects device fingerprint
+              → POST /api/v1/deferred/match
+              → Server matches against stored browser fingerprints
+              → Returns original link data (event, params, UTMs)
+                         ↓
+              App navigates to the right screen
+              → POST /api/v1/deferred/confirm
+```
+
+## Fingerprint Matching Algorithm
+
+The matching algorithm scores device signals that persist between browser and native app. User-Agent is intentionally excluded since browser UA (Chrome/Safari) never matches the app UA (Dart HTTP client).
+
+| Signal | Points | Notes |
+|--------|--------|-------|
+| IP address | 40 | Same network = strong signal. Server enriches from request headers |
+| Screen resolution | 20 | Physical pixels. Fuzzy match (±10%) scores 12 |
+| Timezone | 15 | IANA name match, offset fallback, or resolved local time comparison |
+| Language/locale | 10 | Normalized (`en-US` / `en_US` both match). Partial base match = 5 |
+| Time proximity | 15 | ≤1h = 15, ≤6h = 12, ≤24h = 8, ≤48h = 4, >48h = 1 |
+| **Total** | **100** | **Threshold: 60 points** (IP + screen alone meets it) |
 
 ## Tech Stack
 
-- **Next.js 14** with App Router
-- **TypeScript** for type safety
-- **MongoDB + Mongoose** for persistent storage
-- **UA Parser** for device detection
-- **Vercel** for deployment
+- **Next.js 14** App Router with API routes
+- **TypeScript** strict mode
+- **MongoDB + Mongoose** with TTL indexes for auto-cleanup
+- **Pino** structured logging
+- **Vercel** serverless deployment
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- MongoDB Atlas account (or local MongoDB)
-- Vercel account for deployment
-
-### Installation
-
 ```bash
-# Clone and install
 npm install
-
-# Copy environment variables
 cp .env.example .env.local
-
-# Update .env.local with your MongoDB URI and settings
-```
-
-### Development
-
-```bash
+# Edit .env.local with your MONGODB_URI
 npm run dev
-# Server runs on http://localhost:3000
+# → http://localhost:3000
 ```
-
-### Build & Deploy
-
-```bash
-npm run build
-npm start
-
-# Or deploy to Vercel:
-vercel deploy
-```
-
-## API Endpoints
-
-### Public Endpoints (No Auth Required)
-
-#### Resolve Short Link
-```
-GET /:shortCode
-```
-SSR page that resolves the link and performs device-aware redirect.
-
-#### Collect Fingerprint
-```
-POST /api/v1/fingerprint
-Body: { linkId, ipAddress, userAgent, fingerprint: {...} }
-```
-
-#### Match Deferred Link
-```
-POST /api/v1/deferred/match
-Body: { tenantId, fingerprint: {...} }
-Response: { deferredLinkId, linkId, params, destinationUrl, matchScore }
-```
-
-#### Confirm Deferred Link
-```
-POST /api/v1/deferred/confirm
-Body: { deferredLinkId, deviceId }
-```
-
-#### Health Check
-```
-GET /api/health
-```
-
-### Authenticated Endpoints (API Key Required)
-
-All authenticated endpoints require:
-- Header: `X-API-Key: {api_key}`
-- For sensitive ops: `X-Signature: {hmac_signature}`
-
-#### Links
-
-```
-GET    /api/v1/links                    # List links
-POST   /api/v1/links                    # Create link
-GET    /api/v1/links/:id                # Get single link
-PUT    /api/v1/links/:id                # Update link
-DELETE /api/v1/links/:id                # Delete link
-```
-
-#### Campaigns
-
-```
-GET    /api/v1/campaigns                # List campaigns
-POST   /api/v1/campaigns                # Create campaign
-GET    /api/v1/campaigns/:id            # Get single campaign
-PUT    /api/v1/campaigns/:id            # Update campaign
-DELETE /api/v1/campaigns/:id            # Delete campaign
-```
-
-#### Analytics
-
-```
-GET /api/v1/analytics/overview          # Dashboard stats
-GET /api/v1/analytics/links/:linkId     # Link analytics
-GET /api/v1/analytics/campaigns/:campaignId  # Campaign analytics
-```
-
-#### Tenant Management
-
-```
-POST /api/v1/tenants                    # Register tenant
-GET  /api/v1/tenants                    # Get tenant info
-```
-
-## Database Schema
-
-### Tenant
-Represents an organization/account using the platform.
-
-### Campaign
-Logical grouping of links for tracking and organization.
-
-### Link
-A short link that redirects with device awareness.
-
-### Click
-Records each time a link is clicked, including device/geo data.
-
-### Fingerprint
-Device fingerprint data collected from web visitors.
-
-### DeferredLink
-Represents a link that was clicked before app install, awaiting match.
-
-### Conversion
-Tracks conversions: app opens, registrations, purchases, etc.
-
-## Architecture Highlights
-
-### Link Resolution Flow
-1. User clicks short link → GET /:shortCode
-2. Server detects device from UA and IP
-3. Records click event
-4. Renders RedirectPage component
-5. Component attempts app deep link (mobile) or direct redirect (desktop)
-6. If app not installed → collects fingerprint → redirects to store
-7. If desktop → redirects to web destination
-
-### Deferred Matching Flow
-1. User installs app after clicking link
-2. App calls POST /api/v1/deferred/match with device fingerprint
-3. Service finds best matching fingerprint using scoring algorithm
-4. Returns matched link params (event_id, action, UTMs, etc.)
-5. App confirms match with POST /api/v1/deferred/confirm
-6. System tracks as successful deferred link
-
-### Fingerprint Scoring Algorithm
-- IP match: 40 points
-- User agent hash: 30 points
-- Screen resolution: 10 points
-- Language: 5 points
-- Timezone: 5 points
-- Time proximity: up to 10 points
-- **Threshold: 70+ points for match**
-
-## Deployment
-
-### Vercel Deployment
-
-1. Connect your GitHub repo to Vercel
-2. Set environment variables in Vercel dashboard:
-   - MONGODB_URI
-   - NODE_ENV=production
-3. Deploy: `vercel deploy --prod`
 
 ### Environment Variables
 
-See `.env.example` for complete list. Critical variables:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `NODE_ENV` | Yes | `development` or `production` |
+| `NEXT_PUBLIC_APP_URL` | Yes | Your deployment URL (e.g., `https://aelink.vercel.app`) |
+| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins |
 
-- `MONGODB_URI`: MongoDB connection string
-- `NODE_ENV`: production/development
-- `NEXT_PUBLIC_APP_URL`: Your app's public URL
-- `ALLOWED_ORIGINS`: CORS-allowed origins
+## Project Structure
 
-## Performance Considerations
+```
+src/
+├── app/
+│   ├── [shortCode]/page.tsx          # SSR redirect page
+│   ├── api/v1/
+│   │   ├── links/route.ts            # CRUD links
+│   │   ├── campaigns/route.ts        # CRUD campaigns
+│   │   ├── apps/route.ts             # CRUD apps (Android/iOS config)
+│   │   ├── fingerprint/route.ts      # Store browser fingerprint
+│   │   ├── deferred/
+│   │   │   ├── match/route.ts        # Match device fingerprint
+│   │   │   └── confirm/route.ts      # Confirm deferred link shown
+│   │   ├── analytics/                # Overview, per-link, per-campaign
+│   │   └── tenants/route.ts          # Register/get tenant
+│   └── dashboard/                    # Full admin dashboard
+│       ├── page.tsx                   # Home with stats
+│       ├── apps/                     # App management (Android/iOS)
+│       ├── links/                    # Link management + detail
+│       ├── campaigns/                # Campaign management
+│       ├── analytics/                # Analytics views
+│       ├── settings/                 # API keys, app config
+│       ├── docs/                     # Integration docs
+│       └── setup/                    # First-time setup wizard
+├── components/
+│   ├── RedirectPage.tsx              # Client component (fingerprinting + redirect)
+│   └── ui/                           # Shared UI components
+├── lib/
+│   ├── models/                       # Mongoose models
+│   │   ├── Tenant.ts
+│   │   ├── App.ts                    # Per-app Android/iOS config
+│   │   ├── Campaign.ts
+│   │   ├── Link.ts                   # Links with optional appId reference
+│   │   ├── Click.ts
+│   │   ├── Fingerprint.ts            # Browser fingerprints with TTL
+│   │   ├── DeferredLink.ts           # Pending matches with TTL
+│   │   └── Conversion.ts
+│   ├── services/
+│   │   ├── link.service.ts
+│   │   ├── fingerprint.service.ts    # Scoring algorithm
+│   │   ├── deferred.service.ts       # Create/match/confirm deferred links
+│   │   ├── campaign.service.ts
+│   │   ├── analytics.service.ts
+│   │   └── device-detector.ts        # UA parsing
+│   ├── middleware/
+│   │   ├── auth.ts                   # X-API-Key authentication
+│   │   ├── rate-limit.ts
+│   │   └── cors.ts
+│   └── api.ts                        # Client-side API helper (aeLinkApi)
+└── types/index.ts                    # All TypeScript interfaces
+```
 
-- **MongoDB Connection Pooling**: Single connection instance cached in serverless
-- **Rate Limiting**: In-memory Map-based limiter (100 req/min public, 1000 req/min auth)
-- **TTL Indexes**: Automatic cleanup of expired fingerprints and deferred links
-- **Aggregation Pipeline**: MongoDB aggregation for efficient analytics
-- **Short Code Index**: Unique index on shortCode for fast resolution
+## API Reference
+
+### Public (No Auth)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:shortCode` | Resolve short link, collect fingerprint, redirect |
+| POST | `/api/v1/fingerprint` | Store browser fingerprint + create DeferredLink |
+
+### Authenticated (X-API-Key header)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/tenants` | Register new tenant |
+| GET | `/api/v1/tenants` | Get tenant info |
+| POST | `/api/v1/tenants/regenerate-key` | Regenerate API key |
+| GET/POST | `/api/v1/links` | List / create links |
+| GET/PUT/DELETE | `/api/v1/links/:id` | Get / update / delete link |
+| GET/POST | `/api/v1/apps` | List / create apps |
+| GET/PUT/DELETE | `/api/v1/apps/:id` | Get / update / soft-delete app |
+| GET/POST | `/api/v1/campaigns` | List / create campaigns |
+| GET/PUT/DELETE | `/api/v1/campaigns/:id` | Get / update / delete campaign |
+| POST | `/api/v1/deferred/match` | Match device fingerprint (Flutter SDK) |
+| POST | `/api/v1/deferred/confirm` | Confirm deferred link shown |
+| GET | `/api/v1/analytics/overview` | Dashboard stats |
+| GET | `/api/v1/analytics/links/:id` | Per-link analytics |
+| GET | `/api/v1/analytics/campaigns/:id` | Per-campaign analytics |
+
+### Example: Create a Link
+
+```bash
+curl -X POST https://aelink.vercel.app/api/v1/links \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Summer Festival",
+    "destinationUrl": "https://allevents.in/event/summer-fest",
+    "linkType": "event",
+    "params": {
+      "eventId": "12345",
+      "action": "view_event",
+      "utmSource": "email",
+      "utmCampaign": "summer-promo"
+    }
+  }'
+```
+
+## Database Models
+
+| Model | Purpose | TTL |
+|-------|---------|-----|
+| **Tenant** | Organization/account with API key | — |
+| **App** | Per-app Android/iOS store URLs and config | — |
+| **Campaign** | Groups links for organized tracking | — |
+| **Link** | Short link with destination, params, optional appId | Optional expiry |
+| **Click** | Each link click with device/geo data | — |
+| **Fingerprint** | Browser fingerprint from redirect page | 72h (configurable) |
+| **DeferredLink** | Links fingerprint → link data, awaiting app match | 72h (configurable) |
+| **Conversion** | App-side conversion events | — |
+
+## Deployment
+
+```bash
+# Vercel (recommended)
+vercel deploy --prod
+
+# Set env vars in Vercel dashboard:
+# MONGODB_URI, NEXT_PUBLIC_APP_URL, ALLOWED_ORIGINS
+```
+
+The dashboard dynamically uses `window.location.host` for all link URLs, so it works on any domain without code changes.
 
 ## Security
 
-- API key authentication for management endpoints
-- HMAC-SHA256 signature verification for sensitive operations
-- CORS middleware for cross-origin requests
-- Rate limiting on public endpoints
-- Input validation on all requests
-- Mongoose schema validation
-
-## Monitoring
-
-- Structured logging with Pino
-- Log levels: debug, info, warn, error
-- Analytics tracking for all link clicks and conversions
-- Click/conversion rate monitoring
-
-## Troubleshooting
-
-### MongoDB Connection Issues
-- Verify MONGODB_URI in .env.local
-- Check MongoDB Atlas IP whitelist
-- Ensure network connectivity
-
-### Short Link Not Resolving
-- Check shortCode exists in database
-- Verify link is active (isActive: true)
-- Check expiration date
-
-### Fingerprint Not Matching
-- Ensure fingerprint is sent within TTL window (default 72h)
-- Check matching score with matchDetails in DeferredLink
+- API key authentication for all management endpoints
+- CORS middleware with configurable allowed origins
+- Rate limiting (100 req/min public, 1000 req/min authenticated)
+- Mongoose schema validation on all inputs
+- TTL indexes auto-delete expired fingerprints and deferred links
+- No PII stored in fingerprints (hashed UA, no cookies)
 
 ## License
 
-Proprietary - AllEvents 2024
+Proprietary — AllEvents 2024–2026
