@@ -346,63 +346,146 @@ export default function DocsPage() {
 
           {/* Flutter SDK */}
           <DocSection id="flutter-sdk" title="Flutter SDK Integration">
-            <p>The AE-LINK Flutter SDK handles deep link resolution and deferred deep link matching inside your app.</p>
+            <p>The AE-LINK Flutter SDK handles everything: device fingerprinting, deferred deep link matching, and direct app link handling. Use the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">AeLinkService</code> wrapper for the simplest integration.</p>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">1. Installation</p>
-              <p>Add to your <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">pubspec.yaml</code>:</p>
-              <CodeBlock language="yaml" code={`dependencies:
-  ae_link_sdk:
-    path: ./ae_link_sdk   # or from pub/git`} />
+              <p className="font-semibold text-slate-800">1. Add dependency</p>
+              <CodeBlock language="yaml" code={`# pubspec.yaml
+dependencies:
+  ae_link:
+    git:
+      url: https://github.com/DabhiNavaghan/ae-link.git`} />
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">2. Initialize the SDK</p>
-              <p>In your app's entry point (e.g., <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">main.dart</code>):</p>
-              <CodeBlock language="dart" code={`import 'package:ae_link_sdk/ae_link_sdk.dart';
+              <p className="font-semibold text-slate-800">2. Create a service file</p>
+              <p>Create <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">lib/services/aelink_service.dart</code> — a single file that manages the entire AE-LINK lifecycle:</p>
+              <CodeBlock language="dart" code={`import 'package:ae_link/ae_link.dart';
+import 'package:flutter/material.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+/// Global AE-LINK service instance
+late AeLinkService aeLink;
 
-  await AeLinkSdk.instance.init(
-    config: AeLinkConfig(
-      apiKey: 'YOUR_API_KEY',
-      baseUrl: '${appUrl}',
-    ),
+/// Initialize AE-LINK — call once in main()
+Future<DeepLinkData?> initAeLink({
+  required GlobalKey<NavigatorState> navigatorKey,
+}) async {
+  aeLink = AeLinkService(
+    apiBaseUrl: '${appUrl}',
+    apiKey: 'YOUR_API_KEY',  // From dashboard Settings
+    debug: true,  // false in production
+    onDeepLink: (data) {
+      _handleDeepLink(data, navigatorKey);
+    },
+    onError: (message, error) {
+      debugPrint('AE-LINK error: $message — $error');
+    },
   );
 
-  runApp(MyApp());
+  // Initialize SDK + check deferred link + start listening
+  return await aeLink.initialize();
+}
+
+/// Route deep links to the correct screen
+void _handleDeepLink(DeepLinkData data, GlobalKey<NavigatorState> navKey) {
+  final navigator = navKey.currentState;
+  if (navigator == null) return;
+
+  debugPrint('Deep link: eventId=\${data.eventId}, '
+      'action=\${data.action}, deferred=\${data.isDeferred}');
+
+  // Route based on the link data
+  if (data.eventId != null) {
+    navigator.pushNamed('/event/\${data.eventId}');
+  } else if (data.destinationUrl != null) {
+    navigator.pushNamed('/webview', arguments: data.destinationUrl);
+  }
+
+  // Access UTM params, coupon codes, etc.
+  final utmSource = data.linkParams?.utmSource;
+  final coupon = data.couponCode;
+  if (coupon != null) {
+    debugPrint('Coupon code: $coupon');
+  }
 }`} />
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">3. Listen for deep links</p>
-              <CodeBlock language="dart" code={`// In your widget's initState or a bloc:
-AeLinkSdk.instance.onDeepLink.listen((deepLink) {
-  final path = deepLink.path;     // e.g., "/event/12345"
-  final params = deepLink.params; // e.g., {"source": "email"}
+              <p className="font-semibold text-slate-800">3. Initialize in main.dart</p>
+              <CodeBlock language="dart" code={`import 'package:flutter/material.dart';
+import 'services/aelink_service.dart';
 
-  // Navigate to the right screen
-  Navigator.pushNamed(context, path);
-});`} />
+final navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize AE-LINK (handles everything)
+  final deferredLink = await initAeLink(navigatorKey: navigatorKey);
+
+  runApp(MyApp(
+    navigatorKey: navigatorKey,
+    initialDeepLink: deferredLink,
+  ));
+}
+
+class MyApp extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+  final DeepLinkData? initialDeepLink;
+
+  const MyApp({
+    super.key,
+    required this.navigatorKey,
+    this.initialDeepLink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      // If there's a deferred link, go to that screen
+      initialRoute: initialDeepLink?.eventId != null
+          ? '/event/\${initialDeepLink!.eventId}'
+          : '/',
+      routes: {
+        '/': (context) => const HomeScreen(),
+        // ... your routes
+      },
+    );
+  }
+}`} />
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">4. Handle deferred deep links</p>
-              <p>
-                Deferred deep links work automatically. When a new user installs your app after
-                clicking an AE-LINK URL, the SDK will match the device fingerprint and deliver the
-                original link parameters via the same <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">onDeepLink</code> stream.
-              </p>
-              <CodeBlock language="dart" code={`// Deferred links arrive through the same stream:
-AeLinkSdk.instance.onDeepLink.listen((deepLink) {
-  if (deepLink.isDeferred) {
-    // This user came from a link click before install
-    print('Deferred link matched: \${deepLink.path}');
-  }
-  // Route normally — same handling for both
-  navigateTo(deepLink.path, deepLink.params);
-});`} />
+              <p className="font-semibold text-slate-800">4. What happens automatically</p>
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-2">
+                <p className="text-sm text-slate-700"><strong>First launch after install:</strong> SDK collects device fingerprint, calls the backend to match against stored browser fingerprints, and delivers the original link data via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code>.</p>
+                <p className="text-sm text-slate-700"><strong>Direct app links:</strong> When the app is already installed and the user clicks an AE-LINK URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
+                <p className="text-sm text-slate-700"><strong>Auto-confirmation:</strong> Deferred links are automatically confirmed as delivered, tracking the conversion in your analytics.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="font-semibold text-slate-800">5. Available data in DeepLinkData</p>
+              <CodeBlock language="dart" code={`onDeepLink: (data) {
+  data.eventId;          // "12345"
+  data.action;           // "view_event", "buy_ticket"
+  data.destinationUrl;   // "https://allevents.in/event/..."
+  data.isDeferred;       // true if from deferred matching
+  data.deferredLinkId;   // ID for tracking
+  data.linkId;           // Original link ID
+
+  // UTM and tracking params
+  data.linkParams?.utmSource;    // "email"
+  data.linkParams?.utmCampaign;  // "summer-promo"
+  data.linkParams?.utmMedium;    // "newsletter"
+
+  // Special params
+  data.couponCode;       // "SAVE20"
+  data.referralCode;     // "REF123"
+  data.userEmail;        // "user@example.com"
+  data.customParams;     // Any custom key-value pairs
+}`} />
             </div>
           </DocSection>
 

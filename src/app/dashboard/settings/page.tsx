@@ -517,21 +517,28 @@ const SettingsPage: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Flutter SDK</h3>
               <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
-                <p className="text-sm text-slate-600 mb-2">Initialize in your main.dart:</p>
+                <p className="text-sm text-slate-600 mb-2">Create <code className="bg-slate-200 px-1 py-0.5 rounded text-xs">lib/services/aelink_service.dart</code> and initialize in main.dart:</p>
                 <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
-{`import 'package:ae_link_sdk/ae_link_sdk.dart';
+{`import 'package:ae_link/ae_link.dart';
 
-await AeLinkSdk.instance.init(
-  config: AeLinkConfig(
-    apiKey: '${settings.apiKey || 'YOUR_API_KEY'}',
-    baseUrl: '${typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app'}',
-  ),
+// Create service with your API key
+final aeLink = AeLinkService(
+  apiBaseUrl: '${typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app'}',
+  apiKey: '${settings.apiKey || 'YOUR_API_KEY'}',
+  onDeepLink: (data) {
+    // Route based on event ID, action, params
+    if (data.eventId != null) {
+      navigateTo('/event/\${data.eventId}');
+    }
+  },
 );
 
-// Listen for deep links (including deferred)
-AeLinkSdk.instance.onDeepLink.listen((link) {
-  navigateTo(link.path, link.params);
-});`}
+// In main():
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final deferred = await aeLink.initialize();
+  runApp(MyApp(initialLink: deferred));
+}`}
                 </pre>
               </div>
             </div>
