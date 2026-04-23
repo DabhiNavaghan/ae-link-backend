@@ -132,13 +132,13 @@ export async function POST(request: NextRequest) {
     let installType: 'first_install' | 'reinstall' | 'return_user';
 
     if (!existingInstall) {
-      // Never seen this device — new install
       if (isFirstLaunch) {
+        // SDK says first launch + no DB record = genuine new install
         installType = 'first_install';
       } else {
-        // SDK says not first launch but we have no record — reinstall
-        // (user cleared data or we lost the record)
-        installType = 'first_install';
+        // SDK says NOT first launch but no DB record = existing user
+        // (app was installed before we started tracking)
+        installType = 'return_user';
       }
 
       await InstallModel.create({
