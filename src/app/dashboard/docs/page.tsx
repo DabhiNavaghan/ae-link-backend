@@ -287,12 +287,27 @@ export default function DocsPage() {
               </p>
             </div>
 
+            <div className="space-y-3">
+              <p className="font-semibold text-slate-800">Add to your AndroidManifest.xml:</p>
+              <p>Inside your <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">&lt;activity&gt;</code> tag in <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">android/app/src/main/AndroidManifest.xml</code>:</p>
+              <CodeBlock language="xml" code={`<!-- AE-LINK App Links — opens app when link is clicked -->
+<intent-filter android:autoVerify="true">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="https" android:host="${appHost}" />
+</intent-filter>`} />
+              <p className="text-sm text-slate-600">
+                This tells Android to open your app when a user clicks any <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appHost}</code> link.
+                Android verifies ownership via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> which AE-LINK serves automatically from your registered app config.
+              </p>
+            </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
-              <p className="font-semibold mb-1">App Links verification</p>
+              <p className="font-semibold mb-1">Verify it works</p>
               <p>
-                AE-LINK automatically serves the <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> file
-                for your domain, enabling automatic Android App Links verification. No manual file
-                hosting needed.
+                After deploying, check: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/assetlinks.json</code>.
+                On device: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">adb shell pm get-app-links your.package.name</code>
               </p>
             </div>
           </DocSection>
@@ -334,12 +349,20 @@ export default function DocsPage() {
               </p>
             </div>
 
+            <div className="space-y-3">
+              <p className="font-semibold text-slate-800">Add Associated Domains in Xcode:</p>
+              <p>Go to your target → <strong>Signing &amp; Capabilities</strong> → click <strong>+ Capability</strong> → add <strong>Associated Domains</strong>, then add:</p>
+              <CodeBlock code={`applinks:${appHost}`} />
+              <p className="text-sm text-slate-600">
+                iOS checks <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> to verify your app is authorized.
+                AE-LINK serves this file automatically from your registered iOS config (Team ID + Bundle ID).
+              </p>
+            </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
-              <p className="font-semibold mb-1">Universal Links</p>
+              <p className="font-semibold mb-1">Verify it works</p>
               <p>
-                AE-LINK automatically serves the <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">/.well-known/apple-app-site-association</code> file
-                for your domain. Make sure your Xcode project has the <strong>Associated Domains</strong> capability
-                enabled with <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">applinks:{appHost}</code>.
+                Visit <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> — you should see your app&apos;s Team ID and Bundle ID in the JSON.
               </p>
             </div>
           </DocSection>
