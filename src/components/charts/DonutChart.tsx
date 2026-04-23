@@ -52,6 +52,27 @@ const DonutChart: React.FC<DonutChartProps> = ({
   ];
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
+
+  // If all values are 0, show empty state
+  if (total === 0) {
+    return (
+      <div className="w-full">
+        {title && <h3 className="text-sm font-semibold text-slate-900 mb-4">{title}</h3>}
+        <div className="flex flex-col items-center">
+          <svg width={size} height={size} className="mx-auto">
+            <circle cx={size / 2} cy={size / 2} r={size * 0.475} fill="none" stroke="#E2E8F0" strokeWidth={size * 0.15} />
+            {centerText && (
+              <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="600" fill="#94A3B8">{centerText}</text>
+            )}
+          </svg>
+          <div className="mt-4">
+            <p className="text-sm text-slate-400 text-center">No data yet</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const radius = size / 2;
   const innerRadius = radius * 0.6;
   const outerRadius = radius * 0.95;

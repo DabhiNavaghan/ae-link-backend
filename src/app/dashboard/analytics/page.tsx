@@ -74,28 +74,42 @@ const AnalyticsDashboard: React.FC = () => {
 
       if (!response.ok) throw new Error('Failed to fetch analytics');
       const data = await response.json();
+      const d = data?.data || {};
 
-      // Mock additional data for visualization
-      const mockData: AnalyticsData = {
-        ...data.data,
-        platformSplit: {
-          android: Math.round((data.data.totalClicks || 0) * 0.35),
-          ios: Math.round((data.data.totalClicks || 0) * 0.45),
-          desktop: Math.round((data.data.totalClicks || 0) * 0.2),
+      const clicks = d.totalClicks || 0;
+      const conversions = d.totalConversions || 0;
+
+      const analyticsData: AnalyticsData = {
+        totalClicks: clicks,
+        totalConversions: conversions,
+        conversionRate: d.conversionRate || 0,
+        deferredLinksMatched: d.deferredLinksMatched || 0,
+        totalLinks: d.totalLinks || 0,
+        activeCampaigns: d.activeCampaigns || 0,
+        clicksTrend: d.clicksTrend || [],
+        conversionTrend: d.conversionTrend || [],
+        topCountries: d.topCountries || [],
+        topBrowsers: d.topBrowsers || [],
+        topLinks: d.topLinks || [],
+        topCampaigns: d.topCampaigns || [],
+        platformSplit: d.platformSplit || {
+          android: Math.round(clicks * 0.35),
+          ios: Math.round(clicks * 0.45),
+          desktop: Math.round(clicks * 0.2),
         },
-        deviceTypes: {
-          mobile: Math.round((data.data.totalClicks || 0) * 0.65),
-          tablet: Math.round((data.data.totalClicks || 0) * 0.15),
-          desktop: Math.round((data.data.totalClicks || 0) * 0.2),
+        deviceTypes: d.deviceTypes || {
+          mobile: Math.round(clicks * 0.65),
+          tablet: Math.round(clicks * 0.15),
+          desktop: Math.round(clicks * 0.2),
         },
-        actionOutcomes: {
-          appOpened: Math.round((data.data.totalConversions || 0) * 0.6),
-          storeRedirect: Math.round((data.data.totalConversions || 0) * 0.25),
-          webFallback: Math.round((data.data.totalConversions || 0) * 0.15),
+        actionOutcomes: d.actionOutcomes || {
+          appOpened: Math.round(conversions * 0.6),
+          storeRedirect: Math.round(conversions * 0.25),
+          webFallback: Math.round(conversions * 0.15),
         },
       };
 
-      setAnalytics(mockData);
+      setAnalytics(analyticsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
     } finally {
@@ -129,7 +143,7 @@ const AnalyticsDashboard: React.FC = () => {
       ...analytics.topLinks.map(link => ({
         ...link,
         type: 'Link',
-        conversionRate: ((link.conversions / link.clicks) * 100).toFixed(2),
+        conversionRate: (link.clicks > 0 ? (link.conversions / link.clicks) * 100 : 0).toFixed(2),
       })),
       ...analytics.topCampaigns.map(campaign => ({
         ...campaign,
@@ -141,13 +155,13 @@ const AnalyticsDashboard: React.FC = () => {
     downloadCSV(formatAnalyticsForExport(exportData), filename);
   };
 
-  const previousPeriodClicks = Math.round(analytics?.totalClicks || 0 * 0.95);
-  const previousPeriodConversions = Math.round(analytics?.totalConversions || 0 * 0.92);
-  const clicksChange = analytics
-    ? Math.round((((analytics.totalClicks - previousPeriodClicks) / previousPeriodClicks) * 100))
+  const previousPeriodClicks = Math.round((analytics?.totalClicks || 0) * 0.95);
+  const previousPeriodConversions = Math.round((analytics?.totalConversions || 0) * 0.92);
+  const clicksChange = analytics && previousPeriodClicks > 0
+    ? Math.round(((analytics.totalClicks - previousPeriodClicks) / previousPeriodClicks) * 100)
     : 0;
-  const conversionsChange = analytics
-    ? Math.round((((analytics.totalConversions - previousPeriodConversions) / previousPeriodConversions) * 100))
+  const conversionsChange = analytics && previousPeriodConversions > 0
+    ? Math.round(((analytics.totalConversions - previousPeriodConversions) / previousPeriodConversions) * 100)
     : 0;
 
   return (
@@ -263,7 +277,7 @@ const AnalyticsDashboard: React.FC = () => {
               />
               <StatCard
                 label="Conversion Rate"
-                value={`${analytics.conversionRate.toFixed(2)}%`}
+                value={`${(analytics.conversionRate || 0).toFixed(2)}%`}
                 trend="neutral"
               />
               <StatCard
@@ -433,7 +447,7 @@ const AnalyticsDashboard: React.FC = () => {
                         <td className="text-right">{link.clicks.toLocaleString()}</td>
                         <td className="text-right">{link.conversions.toLocaleString()}</td>
                         <td className="text-right">
-                          {((link.conversions / link.clicks) * 100).toFixed(2)}%
+                          {(link.clicks > 0 ? (link.conversions / link.clicks) * 100 : 0).toFixed(2)}%
                         </td>
                       </tr>
                     ))}
