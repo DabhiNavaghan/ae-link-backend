@@ -15,14 +15,35 @@ interface Params {
   shortCode: string;
 }
 
+// Paths that must never be treated as short codes.
+// Browsers request these automatically on every page load.
+const SYSTEM_PATHS = new Set([
+  'favicon.ico',
+  'favicon.png',
+  'robots.txt',
+  'sitemap.xml',
+  'manifest.json',
+  'sw.js',
+  'service-worker.js',
+  'apple-touch-icon.png',
+  'apple-touch-icon-precomposed.png',
+]);
+
+const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|map|txt|xml|json)$/i;
+
 /**
  * Resolve short link and perform server-side click recording
  */
 export default async function ResolvePage({ params }: { params: Params }) {
   try {
-    await connectDB();
-
     const { shortCode } = params;
+
+    // Immediately reject known system/static asset paths — do not query DB.
+    if (SYSTEM_PATHS.has(shortCode) || STATIC_EXTENSIONS.test(shortCode)) {
+      notFound();
+    }
+
+    await connectDB();
 
     // Resolve link by short code
     const link = await LinkService.getLinkByShortCode(shortCode);
