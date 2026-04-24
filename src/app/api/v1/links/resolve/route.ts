@@ -69,13 +69,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get campaign name if link has a campaign
-    let campaignName: string | null = null;
+    // Get full campaign data if link has a campaign
+    let campaign: any = null;
     if (link.campaignId) {
       try {
         const CampaignModel = (await import('@/lib/models/Campaign')).default;
-        const campaign = await CampaignModel.findById(link.campaignId).lean();
-        campaignName = campaign?.name || null;
+        campaign = await CampaignModel.findById(link.campaignId).lean();
       } catch (_) {}
     }
 
@@ -88,7 +87,16 @@ export async function GET(request: NextRequest) {
         destinationUrl: link.destinationUrl,
         linkType: link.linkType,
         campaignId: link.campaignId || null,
-        campaignName,
+        campaignName: campaign?.name || null,
+        campaign: campaign ? {
+          name: campaign.name,
+          slug: campaign.slug,
+          description: campaign.description || null,
+          status: campaign.status || null,
+          startDate: campaign.startDate || null,
+          endDate: campaign.endDate || null,
+          metadata: campaign.metadata || {},
+        } : null,
         params: {
           eventId: params.eventId || null,
           action: params.action || null,
