@@ -2,9 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import StatCard from '@/components/charts/StatCard';
-import LineChart from '@/components/charts/LineChart';
-import DonutChart from '@/components/charts/DonutChart';
-import BarChart from '@/components/charts/BarChart';
+import { LineChart, DonutChart, BarChart } from '@/components/charts/AnalyticsCharts';
 import { downloadCSV, getAnalyticsFilename, formatAnalyticsForExport } from '@/lib/utils/export';
 
 interface DateRange {
