@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { aeLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { RegisterTenantDto } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -520,8 +520,8 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
         <h3 className="font-semibold text-slate-900 mb-3 text-sm">What's Next</h3>
         <div className="space-y-3">
           {[
-            { step: '1', title: 'Add the Flutter SDK', desc: 'Install ae_link_sdk in your pubspec.yaml' },
-            { step: '2', title: 'Initialize with your API key', desc: 'AeLinkSdk.init(apiKey: "your-key")' },
+            { step: '1', title: 'Add the Flutter SDK', desc: 'Install smartlink_sdk in your pubspec.yaml' },
+            { step: '2', title: 'Initialize with your API key', desc: 'SmartLinkSdk.init(apiKey: "your-key")' },
             { step: '3', title: 'Create a deep link', desc: 'Use the dashboard to generate your first link' },
             { step: '4', title: 'Test end-to-end', desc: 'Click the link on web, install app, verify routing' },
           ].map((item) => (

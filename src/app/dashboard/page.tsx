@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { aeLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { DashboardOverview } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -378,7 +378,7 @@ export default function DashboardPage() {
     const fetchOverview = async () => {
       try {
         setLoading(true);
-        const data = await aeLinkApi.getOverview();
+        const data = await smartLinkApi.getOverview();
         setOverview(data);
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard');
@@ -411,7 +411,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Welcome to AE-LINK. Here's your performance overview.</p>
+          <p className="text-slate-600 mt-1">Welcome to SmartLink. Here's your performance overview.</p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/links">

@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { generateQRCodeSVG, generateQRCodeViaAPI } from '@/lib/utils/qr-code';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 interface Campaign {
   _id: string;

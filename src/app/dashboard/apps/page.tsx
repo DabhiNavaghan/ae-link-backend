@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { aeLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { IApp, CreateAppDto, UpdateAppDto } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -199,9 +199,9 @@ function AppFormModal({
       };
 
       if (isEdit) {
-        await aeLinkApi.updateApp(String((editApp as any)._id), appData as UpdateAppDto);
+        await smartLinkApi.updateApp(String((editApp as any)._id), appData as UpdateAppDto);
       } else {
-        await aeLinkApi.createApp(appData as CreateAppDto);
+        await smartLinkApi.createApp(appData as CreateAppDto);
       }
 
       onSuccess();
@@ -353,7 +353,7 @@ export default function AppsPage() {
     try {
       setLoading(true);
       setError(null);
-      const { apps: appList } = await aeLinkApi.listApps();
+      const { apps: appList } = await smartLinkApi.listApps();
       setApps(appList);
     } catch (err: any) {
       if (err.status === 401) {
@@ -380,7 +380,7 @@ export default function AppsPage() {
       return;
     }
     try {
-      await aeLinkApi.deleteApp(String((app as any)._id));
+      await smartLinkApi.deleteApp(String((app as any)._id));
       fetchApps();
     } catch (err: any) {
       alert(err.message || 'Failed to delete app');

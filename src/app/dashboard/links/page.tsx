@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 interface LinkItem {
   _id: string;
@@ -101,7 +101,7 @@ export default function LinksPage() {
 
   async function handleCopyLink(shortCode: string) {
     try {
-      const domain = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
+      const domain = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
       await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { aeLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 
 interface TenantSettings {
   name: string;
@@ -56,12 +56,12 @@ const SettingsPage: React.FC = () => {
 
   const fetchSettings = async () => {
     try {
-      const tenant = await aeLinkApi.getTenant();
+      const tenant = await smartLinkApi.getTenant();
       setSettings({
         name: tenant.name || '',
         domain: tenant.domain || '',
         defaultFallbackUrl: (tenant as any).settings?.defaultFallbackUrl || '',
-        apiKey: aeLinkApi.getApiKey() || '',
+        apiKey: smartLinkApi.getApiKey() || '',
         tenantId: (tenant as any)._id || (tenant as any).tenantId || '',
         android: (tenant as any).app?.android || {
           package: '',
@@ -93,7 +93,7 @@ const SettingsPage: React.FC = () => {
       const tenantId = settings.tenantId;
       if (!tenantId) throw new Error('Tenant ID not found');
 
-      await aeLinkApi.updateTenant(tenantId, {
+      await smartLinkApi.updateTenant(tenantId, {
         name: settings.name,
         settings: {
           defaultFallbackUrl: settings.defaultFallbackUrl || '',
@@ -120,7 +120,7 @@ const SettingsPage: React.FC = () => {
 
   const handleRegenerateKey = async () => {
     try {
-      const result = await aeLinkApi.regenerateApiKey();
+      const result = await smartLinkApi.regenerateApiKey();
       setSettings({ ...settings, apiKey: result.apiKey });
       setMessage({ type: 'success', text: 'API key regenerated. The old key no longer works.' });
       setTimeout(() => setMessage(null), 5000);

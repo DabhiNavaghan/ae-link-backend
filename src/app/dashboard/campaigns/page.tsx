@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { formatDate, formatRelativeTime } from '@/lib/utils/slug';
@@ -22,7 +22,7 @@ interface Campaign {
   updatedAt: string;
 }
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 export default function CampaignsPage() {
   const router = useRouter();

@@ -1,32 +1,23 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { authMiddleware } from '@clerk/nextjs';
 
-// Routes that require authentication
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-]);
-
-// Routes that are always public
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/v1/(.*)',
-  '/api/health',
-  '/.well-known/(.*)',
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  // Protect dashboard routes — redirect to sign-in if not authenticated
-  if (isProtectedRoute(req)) {
-    await auth.protect();
-  }
+// Clerk v5 middleware for Next.js 14
+export default authMiddleware({
+  // Routes that don't require authentication
+  publicRoutes: [
+    '/',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    '/api/v1/(.*)',
+    '/api/health',
+    '/.well-known/(.*)',
+    // Short code redirect pages are public
+    '/([a-zA-Z0-9]{5,10})',
+  ],
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
     '/(api|trpc)(.*)',
   ],
 };

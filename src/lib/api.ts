@@ -18,7 +18,7 @@ import {
   ApiResponse,
 } from '@/types';
 
-export class AeLinkApi {
+export class SmartLinkApi {
   private baseUrl: string;
   private apiKey: string | null;
 
@@ -340,4 +340,4 @@ export class AeLinkApi {
 }
 
 // Export singleton instance
-export const aeLinkApi = new AeLinkApi();
+export const smartLinkApi = new SmartLinkApi();

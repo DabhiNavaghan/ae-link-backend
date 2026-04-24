@@ -6,9 +6,9 @@ import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { formatDate, formatRelativeTime } from '@/lib/utils/slug';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 interface Campaign {
   _id: string;

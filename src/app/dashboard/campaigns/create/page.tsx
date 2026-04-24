@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { generateSlug } from '@/lib/utils/slug';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 interface FormData {
   name: string;
@@ -362,7 +362,7 @@ export default function CreateCampaignPage() {
                     <div className="border-t border-slate-200 pt-3">
                       <p className="text-xs text-slate-500">URL Path</p>
                       <p className="text-sm font-mono text-primary-600 break-all">
-                        {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/c/{formData.slug || 'slug'}
+                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/{formData.slug || 'slug'}
                       </p>
                     </div>
 

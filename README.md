@@ -1,18 +1,18 @@
-# AE-LINK Backend
+# SmartLink Backend
 
 Deferred deep linking platform built with Next.js 14, TypeScript, MongoDB, and Mongoose. Deployed on Vercel.
 
-**Live:** Your deployment domain (e.g., `https://aelink.vercel.app`)
+**Live:** Your deployment domain (e.g., `https://smartlink.vercel.app`)
 **Repos:** [Backend](https://github.com/DabhiNavaghan/ae-link-backend) · [Flutter SDK](https://github.com/DabhiNavaghan/ae-link)
 
 ## What It Does
 
-AE-LINK creates short links that intelligently route users based on their platform. When a mobile user clicks a link but doesn't have the app installed, the system collects a device fingerprint, redirects to the app store, and later matches that fingerprint when the app is launched for the first time — delivering the original link's context (event ID, UTM params, coupon codes, etc.) into the app.
+SmartLink creates short links that intelligently route users based on their platform. When a mobile user clicks a link but doesn't have the app installed, the system collects a device fingerprint, redirects to the app store, and later matches that fingerprint when the app is launched for the first time — delivering the original link's context (event ID, UTM params, coupon codes, etc.) into the app.
 
 ## How the Flow Works
 
 ```
-Email/SMS/Social → User clicks aelink.vercel.app/TG5hid0
+Email/SMS/Social → User clicks smartlink.vercel.app/TG5hid0
                          ↓
               Redirect page (SSR + client JS)
               ├── Records click
@@ -71,7 +71,7 @@ npm run dev
 |----------|----------|-------------|
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `NODE_ENV` | Yes | `development` or `production` |
-| `NEXT_PUBLIC_APP_URL` | Yes | Your deployment URL (e.g., `https://aelink.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Yes | Your deployment URL (e.g., `https://smartlink.vercel.app`) |
 | `ALLOWED_ORIGINS` | No | Comma-separated CORS origins |
 
 ## Project Structure
@@ -158,7 +158,7 @@ src/
 ### Example: Create a Link
 
 ```bash
-curl -X POST https://aelink.vercel.app/api/v1/links \
+curl -X POST https://smartlink.vercel.app/api/v1/links \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

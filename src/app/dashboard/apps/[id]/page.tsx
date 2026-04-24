@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { aeLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { IApp } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -16,7 +16,7 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
     const fetchApp = async () => {
       try {
         setLoading(true);
-        const result = await aeLinkApi.getApp(params.id);
+        const result = await smartLinkApi.getApp(params.id);
         setApp(result);
       } catch (err: any) {
         setError(err.message || 'Failed to load app details');

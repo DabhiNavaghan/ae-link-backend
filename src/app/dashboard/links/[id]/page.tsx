@@ -6,9 +6,9 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { generateQRCodeSVG } from '@/lib/utils/qr-code';
-import { AeLinkApi } from '@/lib/api';
+import { SmartLinkApi } from '@/lib/api';
 
-const api = new AeLinkApi();
+const api = new SmartLinkApi();
 
 interface Link {
   _id: string;
