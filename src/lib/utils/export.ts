@@ -123,5 +123,5 @@ export function getAnalyticsFilename(
   endDate?: Date
 ): string {
   const dateRange = formatDateRangeForFilename(startDate, endDate);
-  return `AE-LINK_${type}_${dateRange}.csv`;
+  return `SmartLink_${type}_${dateRange}.csv`;
 }

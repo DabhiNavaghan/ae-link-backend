@@ -51,7 +51,7 @@ const AnalyticsDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const apiKey = localStorage.getItem('ae-link-api-key');
+      const apiKey = localStorage.getItem('smartlink-api-key');
       if (!apiKey) {
         setError('API key not found. Please go to Settings to configure your API key.');
         setLoading(false);

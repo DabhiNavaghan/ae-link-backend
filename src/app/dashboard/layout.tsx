@@ -22,7 +22,7 @@ export default function DashboardLayout({
 
   // Redirect to setup if no API key (except if already on setup or docs page)
   useEffect(() => {
-    const apiKey = localStorage.getItem('ae-link-api-key');
+    const apiKey = localStorage.getItem('smartlink-api-key');
     if (!apiKey && !isFullScreenPage) {
       router.replace('/dashboard/setup');
     } else {

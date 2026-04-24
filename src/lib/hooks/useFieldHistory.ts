@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 
-const STORAGE_KEY = 'ae-link-field-history';
+const STORAGE_KEY = 'smartlink-field-history';
 const MAX_ITEMS = 5;
 
 function readHistory(): Record<string, string[]> {

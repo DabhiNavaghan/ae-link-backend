@@ -156,7 +156,7 @@ export default function CreateCampaignPage() {
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-600 font-medium">
-                    {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/c/
+                    {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/
                   </span>
                   <input
                     type="text"

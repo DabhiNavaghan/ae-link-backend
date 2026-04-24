@@ -924,7 +924,7 @@ export default function CreateLinkPage() {
                     </p>
                     <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                       <p className="text-sm font-mono text-primary-600 break-all">
-                        {typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app'}/{formData.shortCode || '<auto>'}
+                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode || '<auto>'}
                       </p>
                     </div>
                   </div>

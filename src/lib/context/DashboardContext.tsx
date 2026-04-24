@@ -29,8 +29,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Initialize from localStorage
   React.useEffect(() => {
-    const storedApiKey = localStorage.getItem('ae-link-api-key');
-    const storedTenant = localStorage.getItem('ae-link-tenant');
+    const storedApiKey = localStorage.getItem('smartlink-api-key');
+    const storedTenant = localStorage.getItem('smartlink-tenant');
 
     if (storedApiKey) {
       setApiKey(storedApiKey);
@@ -48,18 +48,18 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateTenant = useCallback((t: Tenant | null) => {
     setTenant(t);
     if (t) {
-      localStorage.setItem('ae-link-tenant', JSON.stringify(t));
+      localStorage.setItem('smartlink-tenant', JSON.stringify(t));
     } else {
-      localStorage.removeItem('ae-link-tenant');
+      localStorage.removeItem('smartlink-tenant');
     }
   }, []);
 
   const updateApiKey = useCallback((key: string | null) => {
     setApiKey(key);
     if (key) {
-      localStorage.setItem('ae-link-api-key', key);
+      localStorage.setItem('smartlink-api-key', key);
     } else {
-      localStorage.removeItem('ae-link-api-key');
+      localStorage.removeItem('smartlink-api-key');
     }
   }, []);
 

@@ -107,7 +107,7 @@ function WelcomeStep({
         <div className="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <RocketIcon />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome to AE-LINK</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome to SmartLink</h2>
         <p className="text-slate-500 text-sm">
           Set up deep linking for your mobile app in minutes.
         </p>
@@ -657,7 +657,7 @@ export default function SetupPage() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AE-LINK</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">SmartLink</h1>
           <p className="text-slate-500 text-sm mt-1">Smart Deep Linking Platform</p>
         </div>
 

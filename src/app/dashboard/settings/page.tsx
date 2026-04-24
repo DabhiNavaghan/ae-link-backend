@@ -154,7 +154,7 @@ const SettingsPage: React.FC = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
-        <p className="text-slate-600">Configure your AE-LINK app and deep linking preferences.</p>
+        <p className="text-slate-600">Configure your SmartLink app and deep linking preferences.</p>
       </div>
 
       {/* Messages */}

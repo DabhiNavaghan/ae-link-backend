@@ -6,6 +6,7 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -81,65 +82,16 @@ const config: Config = {
           800: '#991B1B',
           900: '#7F1D1D',
         },
-        slate: {
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-        },
-      },
-      backgroundColor: {
-        base: '#F8FAFC',
-        card: '#FFFFFF',
-      },
-      borderRadius: {
-        'xs': '0.25rem',
-        'sm': '0.375rem',
-        'md': '0.5rem',
-        'lg': '0.75rem',
-        'xl': '1rem',
-        '2xl': '1.25rem',
-        '3xl': '1.5rem',
-      },
-      boxShadow: {
-        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        'sm': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        'inner': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-        'none': 'none',
       },
       fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          '"Helvetica Neue"',
-          'Arial',
-          '"Noto Sans"',
-          'sans-serif',
-          '"Apple Color Emoji"',
-          '"Segoe UI Emoji"',
-          '"Segoe UI Symbol"',
-          '"Noto Color Emoji"',
-        ],
+        heading: ["'Inter'", '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        body: ["'Manrope'", '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        mono: ["'JetBrains Mono'", '"Fira Code"', '"Consolas"', 'monospace'],
       },
       animation: {
         'fadeIn': 'fadeIn 0.3s ease-in-out',
         'slideInRight': 'slideInRight 0.3s ease-out',
-        'slideInDown': 'slideInDown 0.3s ease-out',
         'pulse-gentle': 'pulse-gentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'spin-slow': 'spin 3s linear infinite',
-        'bounce-sm': 'bounce-sm 1s infinite',
       },
       keyframes: {
         fadeIn: {
@@ -150,21 +102,10 @@ const config: Config = {
           '0%': { transform: 'translateX(10px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
-        slideInDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
         'pulse-gentle': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
-        'bounce-sm': {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-2px)' },
-        },
-      },
-      transitionDuration: {
-        '250': '250ms',
       },
     },
   },

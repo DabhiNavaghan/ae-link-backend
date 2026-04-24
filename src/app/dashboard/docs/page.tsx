@@ -141,7 +141,7 @@ export default function DocsPage() {
               <ArrowLeftIcon />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">AE-LINK Documentation</h1>
+              <h1 className="text-lg font-bold text-slate-900">SmartLink Documentation</h1>
               <p className="text-xs text-slate-500">Setup guides, SDK reference, and integration help</p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export default function DocsPage() {
           {/* Overview */}
           <DocSection id="overview" title="Overview">
             <p>
-              AE-LINK is a deep linking platform that ensures consistent user experience from
+              SmartLink is a deep linking platform that ensures consistent user experience from
               email or web to your mobile app. It supports standard deep links, deferred deep links
               (routing users to specific content even after a fresh install), device fingerprinting
               for attribution, and real-time analytics.
@@ -186,7 +186,7 @@ export default function DocsPage() {
             <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
               <p className="font-semibold text-primary-800 mb-2">How it works</p>
               <p className="text-primary-700">
-                When a user clicks an AE-LINK deep link on the web, the system captures a device
+                When a user clicks a SmartLink deep link on the web, the system captures a device
                 fingerprint (IP, browser, screen, etc.). If the app is already installed, the user
                 is routed directly. If not, they're sent to the app store. After installing and
                 opening the app, the Flutter SDK matches the fingerprint and delivers the original
@@ -197,7 +197,7 @@ export default function DocsPage() {
 
           {/* Getting Started */}
           <DocSection id="getting-started" title="Getting Started">
-            <p>Follow these steps to get AE-LINK running with your app:</p>
+            <p>Follow these steps to get SmartLink running with your app:</p>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">

@@ -26,7 +26,7 @@ export class AeLinkApi {
     this.baseUrl = baseUrl;
     // Get API key from localStorage (client-side only)
     if (typeof window !== 'undefined') {
-      this.apiKey = localStorage.getItem('ae-link-api-key');
+      this.apiKey = localStorage.getItem('smartlink-api-key');
     } else {
       this.apiKey = null;
     }
@@ -35,7 +35,7 @@ export class AeLinkApi {
   setApiKey(apiKey: string) {
     this.apiKey = apiKey;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('ae-link-api-key', apiKey);
+      localStorage.setItem('smartlink-api-key', apiKey);
     }
   }
 
@@ -46,7 +46,7 @@ export class AeLinkApi {
   clearApiKey() {
     this.apiKey = null;
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('ae-link-api-key');
+      localStorage.removeItem('smartlink-api-key');
     }
   }
 

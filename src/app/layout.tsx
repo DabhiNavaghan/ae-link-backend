@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AE-LINK | AllEvents Deep Link Platform',
-  description: 'AE-LINK: Smart deep linking for AllEvents',
+  title: 'SmartLink | AllEvents Deep Link Platform',
+  description: 'SmartLink: Smart deep linking for AllEvents',
   icons: {
     icon: '/favicon.ico',
   },

@@ -151,25 +151,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-40 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col
+        className={`fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 flex flex-col
           lg:static lg:translate-x-0
           ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
           lg:${sidebarWidth}`}
-        style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : undefined }}
+        style={{
+          backgroundColor: 'var(--color-bg-card)',
+          borderRight: '1px solid var(--color-border)',
+          width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : undefined,
+        }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 flex-shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                AE
+                SL
               </div>
-              <span className="font-bold text-slate-900">AE-LINK</span>
+              <span className="font-bold text-slate-900">SmartLink</span>
             </Link>
           )}
           {isCollapsed && (
             <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto">
-              AE
+              SL
             </div>
           )}
 
