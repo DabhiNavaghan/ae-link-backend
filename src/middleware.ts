@@ -28,13 +28,19 @@ export default clerkMiddleware((auth, request: NextRequest) => {
     return response;
   }
 
+  // Only protect dashboard routes — everything else is public
   if (isDashboardRoute(request)) {
     auth().protect();
   }
 });
 
 export const config = {
+  // Only run middleware on dashboard and auth pages
+  // Skip: API routes, static files, .well-known, short code pages
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/dashboard(.*)',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    '/',
   ],
 };
