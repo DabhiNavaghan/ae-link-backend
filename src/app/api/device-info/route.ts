@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   if (!isPrivateIp) {
     try {
       const geoRes = await fetch(`https://ipapi.co/${ip}/json/`, {
-        headers: { 'User-Agent': 'AE-LINK-DeviceInspector/1.0', Accept: 'application/json' },
+        headers: { 'User-Agent': 'SmartLink-DeviceInspector/1.0', Accept: 'application/json' },
         cache: 'no-store',
       });
       if (geoRes.ok) {

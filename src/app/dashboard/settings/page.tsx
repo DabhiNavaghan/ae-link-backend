@@ -517,12 +517,12 @@ const SettingsPage: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Flutter SDK</h3>
               <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
-                <p className="text-sm text-slate-600 mb-2">Create <code className="bg-slate-200 px-1 py-0.5 rounded text-xs">lib/services/aelink_service.dart</code> and initialize in main.dart:</p>
+                <p className="text-sm text-slate-600 mb-2">Create <code className="bg-slate-200 px-1 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> and initialize in main.dart:</p>
                 <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
-{`import 'package:ae_link/ae_link.dart';
+{`import 'package:smartlink/smartlink.dart';
 
 // Create service with your API key
-final aeLink = AeLinkService(
+final smartLink = SmartLinkService(
   apiKey: '${settings.apiKey || 'YOUR_API_KEY'}',
   onDeepLink: (data) {
     // Route based on event ID, action, params
@@ -547,7 +547,7 @@ void main() async {
               <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
                 <p className="text-sm text-slate-600 mb-2">Create a deep link:</p>
                 <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
-{`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app'}/api/v1/links \\
+{`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app'}/api/v1/links \\
   -H "X-API-Key: ${settings.apiKey || 'YOUR_API_KEY'}" \\
   -H "Content-Type: application/json" \\
   -d '{

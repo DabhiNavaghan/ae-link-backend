@@ -610,7 +610,7 @@ export default function SetupPage() {
       const appName = result?.name || data.name;
       if (typeof window !== 'undefined') {
         localStorage.setItem(
-          'ae-link-tenant',
+          'smartlink-tenant',
           JSON.stringify({ id: (result as any)?.tenantId || (result as any)?._id, name: appName, apiKey })
         );
       }

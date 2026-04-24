@@ -138,5 +138,5 @@ export const STORAGE_KEYS = {
 export const APP_META = {
   title: 'SmartLink',
   description: 'Deep linking platform for seamless app attribution',
-  url: 'https://aelink.vercel.app',
+  url: 'https://smartlink.vercel.app',
 } as const;

@@ -123,8 +123,8 @@ const navItems = [
 export default function DocsPage() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('overview');
-  const appHost = typeof window !== 'undefined' ? window.location.host : 'aelink.vercel.app';
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://aelink.vercel.app';
+  const appHost = typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app';
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
 
   const scrollTo = (id: string) => {
     setActiveSection(id);
@@ -225,7 +225,7 @@ export default function DocsPage() {
                 <div>
                   <p className="font-medium text-slate-800">Integrate the Flutter SDK</p>
                   <p className="text-slate-600 mt-0.5">
-                    Add <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs">ae_link_sdk</code> to
+                    Add <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs">smartlink</code> to
                     your Flutter app and initialize with your API key.
                   </p>
                 </div>
@@ -290,7 +290,7 @@ export default function DocsPage() {
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">Add to your AndroidManifest.xml:</p>
               <p>Inside your <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">&lt;activity&gt;</code> tag in <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">android/app/src/main/AndroidManifest.xml</code>:</p>
-              <CodeBlock language="xml" code={`<!-- AE-LINK App Links — opens app when link is clicked -->
+              <CodeBlock language="xml" code={`<!-- SmartLink App Links — opens app when link is clicked -->
 <intent-filter android:autoVerify="true">
     <action android:name="android.intent.action.VIEW" />
     <category android:name="android.intent.category.DEFAULT" />
@@ -299,7 +299,7 @@ export default function DocsPage() {
 </intent-filter>`} />
               <p className="text-sm text-slate-600">
                 This tells Android to open your app when a user clicks any <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appHost}</code> link.
-                Android verifies ownership via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> which AE-LINK serves automatically from your registered app config.
+                Android verifies ownership via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> which SmartLink serves automatically from your registered app config.
               </p>
             </div>
 
@@ -355,7 +355,7 @@ export default function DocsPage() {
               <CodeBlock code={`applinks:${appHost}`} />
               <p className="text-sm text-slate-600">
                 iOS checks <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> to verify your app is authorized.
-                AE-LINK serves this file automatically from your registered iOS config (Team ID + Bundle ID).
+                SmartLink serves this file automatically from your registered iOS config (Team ID + Bundle ID).
               </p>
             </div>
 
@@ -369,38 +369,38 @@ export default function DocsPage() {
 
           {/* Flutter SDK */}
           <DocSection id="flutter-sdk" title="Flutter SDK Integration">
-            <p>The AE-LINK Flutter SDK handles everything: device fingerprinting, deferred deep link matching, and direct app link handling. Use the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">AeLinkService</code> wrapper for the simplest integration.</p>
+            <p>The SmartLink Flutter SDK handles everything: device fingerprinting, deferred deep link matching, and direct app link handling. Use the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SmartLinkService</code> wrapper for the simplest integration.</p>
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">1. Add dependency</p>
               <CodeBlock language="yaml" code={`# pubspec.yaml
 dependencies:
-  ae_link:
+  smartlink:
     git:
-      url: https://github.com/DabhiNavaghan/ae-link.git`} />
+      url: https://github.com/DabhiNavaghan/smartlink.git`} />
             </div>
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">2. Create a service file</p>
-              <p>Create <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">lib/services/aelink_service.dart</code> — a single file that manages the entire AE-LINK lifecycle:</p>
-              <CodeBlock language="dart" code={`import 'package:ae_link/ae_link.dart';
+              <p>Create <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> — a single file that manages the entire SmartLink lifecycle:</p>
+              <CodeBlock language="dart" code={`import 'package:smartlink/smartlink.dart';
 import 'package:flutter/material.dart';
 
-/// Global AE-LINK service instance
-late AeLinkService aeLink;
+/// Global SmartLink service instance
+late SmartLinkService aeLink;
 
-/// Initialize AE-LINK — call once in main()
-Future<DeepLinkData?> initAeLink({
+/// Initialize SmartLink — call once in main()
+Future<DeepLinkData?> initSmartLink({
   required GlobalKey<NavigatorState> navigatorKey,
 }) async {
-  aeLink = AeLinkService(
+  aeLink = SmartLinkService(
     apiKey: 'YOUR_API_KEY',  // From dashboard Settings
     debug: true,  // false in production
     onDeepLink: (data) {
       _handleDeepLink(data, navigatorKey);
     },
     onError: (message, error) {
-      debugPrint('AE-LINK error: $message — $error');
+      debugPrint('SmartLink error: $message — $error');
     },
   );
 
@@ -435,15 +435,15 @@ void _handleDeepLink(DeepLinkData data, GlobalKey<NavigatorState> navKey) {
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">3. Initialize in main.dart</p>
               <CodeBlock language="dart" code={`import 'package:flutter/material.dart';
-import 'services/aelink_service.dart';
+import 'services/smartlink_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize AE-LINK (handles everything)
-  final deferredLink = await initAeLink(navigatorKey: navigatorKey);
+  // Initialize SmartLink (handles everything)
+  final deferredLink = await initSmartLink(navigatorKey: navigatorKey);
 
   runApp(MyApp(
     navigatorKey: navigatorKey,
@@ -482,7 +482,7 @@ class MyApp extends StatelessWidget {
               <p className="font-semibold text-slate-800">4. What happens automatically</p>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-2">
                 <p className="text-sm text-slate-700"><strong>First launch after install:</strong> SDK collects device fingerprint, calls the backend to match against stored browser fingerprints, and delivers the original link data via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code>.</p>
-                <p className="text-sm text-slate-700"><strong>Direct app links:</strong> When the app is already installed and the user clicks an AE-LINK URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
+                <p className="text-sm text-slate-700"><strong>Direct app links:</strong> When the app is already installed and the user clicks an SmartLink URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
                 <p className="text-sm text-slate-700"><strong>Auto-confirmation:</strong> Deferred links are automatically confirmed as delivered, tracking the conversion in your analytics.</p>
               </div>
             </div>
@@ -582,7 +582,7 @@ class MyApp extends StatelessWidget {
           {/* Deep Links */}
           <DocSection id="deep-links" title="Creating Deep Links">
             <p>
-              Deep links are URLs that route users to specific content in your app. In AE-LINK,
+              Deep links are URLs that route users to specific content in your app. In SmartLink,
               each link has a short code (e.g., <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{appHost}/abc123</code>)
               that resolves to your app or web fallback.
             </p>
@@ -615,7 +615,7 @@ class MyApp extends StatelessWidget {
               {[
                 {
                   step: '1',
-                  title: 'User clicks an AE-LINK URL on the web',
+                  title: 'User clicks an SmartLink URL on the web',
                   desc: 'The redirect page captures device fingerprint data: IP address, browser, screen size, language, timezone, and more.',
                 },
                 {
@@ -696,7 +696,7 @@ class MyApp extends StatelessWidget {
 
           {/* Analytics */}
           <DocSection id="analytics" title="Analytics">
-            <p>AE-LINK tracks the following metrics in real-time:</p>
+            <p>SmartLink tracks the following metrics in real-time:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { title: 'Clicks', desc: 'Total deep link clicks across all platforms' },
@@ -740,7 +740,7 @@ class MyApp extends StatelessWidget {
                 },
                 {
                   q: 'Flutter SDK not receiving deferred links',
-                  a: 'Ensure you call AeLinkSdk.instance.init() before runApp(). The SDK performs deferred link matching during initialization. Also check that your API key and base URL are correct.',
+                  a: 'Ensure you call SmartLinkSdk.init() before runApp(). The SDK performs deferred link matching during initialization. Also check that your API key and base URL are correct.',
                 },
               ].map((item) => (
                 <div key={item.q} className="border-b border-slate-100 pb-4 last:border-0">
