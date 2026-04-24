@@ -49,7 +49,7 @@ export async function connectDB(): Promise<Connection> {
     .connect(mongoUri, {
       bufferCommands: false,
       maxPoolSize: 10,
-      minPoolSize: 2,
+      minPoolSize: 0,
     })
     .then((mongoose) => {
       logger.info('MongoDB connected successfully');

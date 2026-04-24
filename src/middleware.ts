@@ -1,23 +1,40 @@
-import { authMiddleware } from '@clerk/nextjs';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Clerk v5 middleware for Next.js 14
-export default authMiddleware({
-  // Routes that don't require authentication
-  publicRoutes: [
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-    '/api/v1/(.*)',
-    '/api/health',
-    '/.well-known/(.*)',
-    // Short code redirect pages are public
-    '/([a-zA-Z0-9]{5,10})',
-  ],
+const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
+
+export default clerkMiddleware((auth, request: NextRequest) => {
+  // Handle CORS preflight before any auth check
+  if (request.method === 'OPTIONS') {
+    const response = new NextResponse(null, { status: 200 });
+
+    const origin = request.headers.get('origin');
+    const allowedOrigins = (
+      process.env.ALLOWED_ORIGINS || 'https://allevents.in,https://allevents.app'
+    ).split(',').map((o) => o.trim());
+
+    if (origin && allowedOrigins.includes(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    response.headers.set(
+      'Access-Control-Allow-Headers',
+      'Content-Type, X-API-Key, X-Signature, Accept'
+    );
+    response.headers.set('Access-Control-Max-Age', '86400');
+
+    return response;
+  }
+
+  if (isDashboardRoute(request)) {
+    auth().protect();
+  }
 });
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

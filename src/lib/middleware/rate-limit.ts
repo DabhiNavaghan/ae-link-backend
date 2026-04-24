@@ -95,15 +95,3 @@ export function cleanupRateLimitEntries(): void {
   }
 }
 
-// Clean up every hour
-// @ts-ignore
-if (typeof globalThis !== 'undefined') {
-  // @ts-ignore
-  if (!globalThis.rateLimitCleanupInterval) {
-    // @ts-ignore
-    globalThis.rateLimitCleanupInterval = setInterval(
-      cleanupRateLimitEntries,
-      3600000
-    );
-  }
-}

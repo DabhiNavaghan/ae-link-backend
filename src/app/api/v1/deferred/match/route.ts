@@ -162,7 +162,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error({ message: err.message, stack: err.stack }, 'Deferred match error');
-    console.error('DEFERRED MATCH ERROR:', err.message);
     const errorRes = new NextResponse(
       JSON.stringify(Errors.INTERNAL_ERROR()),
       { status: 500 }

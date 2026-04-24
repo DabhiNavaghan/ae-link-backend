@@ -82,8 +82,6 @@ export async function POST(request: NextRequest) {
     const err = error instanceof Error ? error : new Error(String(error));
     // Log with object first so the logger includes error details
     logger.error({ message: err.message, stack: err.stack }, 'Register tenant error');
-    // Also direct console.error for debugging
-    console.error('TENANT REGISTRATION ERROR:', err.message, err.stack);
     const errorRes = new NextResponse(
       JSON.stringify(Errors.INTERNAL_ERROR(err.message)),
       { status: 500 }
@@ -144,7 +142,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error({ message: err.message, stack: err.stack }, 'Get tenant error');
-    console.error('GET TENANT ERROR:', err.message, err.stack);
     const errorRes = new NextResponse(
       JSON.stringify(Errors.INTERNAL_ERROR(err.message)),
       { status: 500 }
