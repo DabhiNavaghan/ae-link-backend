@@ -69,15 +69,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.info({ shortCode, linkId: link._id }, 'Link resolved by SDK');
+    // Get campaign name if link has a campaign
+    let campaignName: string | null = null;
+    if (link.campaignId) {
+      try {
+        const CampaignModel = (await import('@/lib/models/Campaign')).default;
+        const campaign = await CampaignModel.findById(link.campaignId).lean();
+        campaignName = campaign?.name || null;
+      } catch (_) {}
+    }
+
+    const params = (link as any).params || {};
 
     const response = NextResponse.json(
       successResponse({
         linkId: link._id,
         shortCode: link.shortCode,
         destinationUrl: link.destinationUrl,
-        params: link.params || {},
         linkType: link.linkType,
+        campaignId: link.campaignId || null,
+        campaignName,
+        params: {
+          eventId: params.eventId || null,
+          action: params.action || null,
+          utmSource: params.utmSource || null,
+          utmMedium: params.utmMedium || null,
+          utmCampaign: params.utmCampaign || null,
+          utmTerm: params.utmTerm || null,
+          utmContent: params.utmContent || null,
+          userEmail: params.userEmail || null,
+          userId: params.userId || null,
+          couponCode: params.couponCode || null,
+          referralCode: params.referralCode || null,
+          custom: params.custom || null,
+        },
         platformOverrides: link.platformOverrides || {},
       }),
       { status: 200 }
