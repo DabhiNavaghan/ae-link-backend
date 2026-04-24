@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { generateQRCodeSVG, generateQRCodeViaAPI } from '@/lib/utils/qr-code';
+import { generateQRCodeSVG } from '@/lib/utils/qr-code';
 import { SmartLinkApi } from '@/lib/api';
 
 const api = new SmartLinkApi();
@@ -56,12 +56,13 @@ const ACTIONS = [
   'custom',
 ];
 
-export default function CreateLinkPage() {
+export default function EditLinkPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const campaignIdFromUrl = searchParams.get('campaignId');
+  const params = useParams();
+  const linkId = params.id as string;
 
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [apps, setApps] = useState<AppOption[]>([]);
@@ -78,7 +79,7 @@ export default function CreateLinkPage() {
 
   const [formData, setFormData] = useState<FormData>({
     appId: '',
-    campaignId: campaignIdFromUrl || '',
+    campaignId: '',
     destinationUrl: '',
     linkType: 'event',
     eventId: '',
@@ -103,13 +104,50 @@ export default function CreateLinkPage() {
   });
 
   useEffect(() => {
-    fetchCampaigns();
-    fetchApps();
-  }, []);
+    Promise.all([fetchLink(), fetchCampaigns(), fetchApps()]).finally(() => {
+      setPageLoading(false);
+    });
+  }, [linkId]);
 
   useEffect(() => {
     generateQRCode();
   }, [formData.destinationUrl]);
+
+  async function fetchLink() {
+    try {
+      const link = await api.getLink(linkId);
+      const typedLink = link as any;
+
+      setFormData({
+        appId: typedLink.appId || '',
+        campaignId: typedLink.campaignId || '',
+        destinationUrl: typedLink.destinationUrl || '',
+        linkType: typedLink.linkType || 'event',
+        eventId: typedLink.params?.eventId || '',
+        action: typedLink.params?.action || 'view_event',
+        utmSource: typedLink.params?.utmSource || '',
+        utmMedium: typedLink.params?.utmMedium || '',
+        utmCampaign: typedLink.params?.utmCampaign || '',
+        utmTerm: typedLink.params?.utmTerm || '',
+        utmContent: typedLink.params?.utmContent || '',
+        userEmail: typedLink.params?.userEmail || '',
+        userId: typedLink.params?.userId || '',
+        couponCode: typedLink.params?.couponCode || '',
+        referralCode: typedLink.params?.referralCode || '',
+        customParams: typedLink.params?.custom || {},
+        androidUrl: typedLink.platformOverrides?.android?.url || '',
+        androidFallback: typedLink.platformOverrides?.android?.fallback || '',
+        iosUrl: typedLink.platformOverrides?.ios?.url || '',
+        iosFallback: typedLink.platformOverrides?.ios?.fallback || '',
+        webUrl: typedLink.platformOverrides?.web?.url || '',
+        shortCode: typedLink.shortCode || '',
+        expiryDate: typedLink.expiresAt ? typedLink.expiresAt.split('T')[0] : '',
+      });
+    } catch (err) {
+      console.error('Failed to load link', err);
+      setError('Failed to load link');
+    }
+  }
 
   async function fetchCampaigns() {
     try {
@@ -173,40 +211,6 @@ export default function CreateLinkPage() {
     }));
   };
 
-  const handleCampaignChange = (campaignId: string) => {
-    const selectedCampaign = campaigns.find(c => c._id === campaignId);
-
-    const updates: any = { campaignId };
-
-    // Auto-fill utmCampaign if not already set
-    if (selectedCampaign?.slug && !formData.utmCampaign) {
-      updates.utmCampaign = selectedCampaign.slug;
-    }
-
-    // Auto-fill utmSource from metadata if available
-    if (selectedCampaign?.metadata?.utmSource && !formData.utmSource) {
-      updates.utmSource = selectedCampaign.metadata.utmSource;
-    }
-
-    // Auto-fill utmMedium from metadata if available
-    if (selectedCampaign?.metadata?.utmMedium && !formData.utmMedium) {
-      updates.utmMedium = selectedCampaign.metadata.utmMedium;
-    }
-
-    // Expand UTM section if any values were auto-filled
-    if (Object.keys(updates).length > 1) {
-      setExpandedSections((prev) => ({
-        ...prev,
-        utm: true,
-      }));
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      ...updates,
-    }));
-  };
-
   const getPreviewDeepLink = () => {
     const url = new URL(formData.destinationUrl || 'https://allevents.in');
     const params = new URLSearchParams();
@@ -253,6 +257,40 @@ export default function CreateLinkPage() {
     });
 
     return data;
+  };
+
+  const handleCampaignChange = (campaignId: string) => {
+    const selectedCampaign = campaigns.find(c => c._id === campaignId);
+
+    const updates: any = { campaignId };
+
+    // Auto-fill utmCampaign if not already set
+    if (selectedCampaign?.slug && !formData.utmCampaign) {
+      updates.utmCampaign = selectedCampaign.slug;
+    }
+
+    // Auto-fill utmSource from metadata if available
+    if (selectedCampaign?.metadata?.utmSource && !formData.utmSource) {
+      updates.utmSource = selectedCampaign.metadata.utmSource;
+    }
+
+    // Auto-fill utmMedium from metadata if available
+    if (selectedCampaign?.metadata?.utmMedium && !formData.utmMedium) {
+      updates.utmMedium = selectedCampaign.metadata.utmMedium;
+    }
+
+    // Expand UTM section if any values were auto-filled
+    if (Object.keys(updates).length > 1) {
+      setExpandedSections((prev) => ({
+        ...prev,
+        utm: true,
+      }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ...updates,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -305,18 +343,30 @@ export default function CreateLinkPage() {
         },
         ...(formData.appId && { appId: formData.appId }),
         ...(formData.campaignId && { campaignId: formData.campaignId }),
-        ...(formData.shortCode && { shortCode: formData.shortCode }),
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
       };
 
-      const link = await api.createLink(payload);
-      router.push(`/dashboard/links/${link._id}`);
+      await api.updateLink(linkId, payload);
+      router.push(`/dashboard/links/${linkId}`);
     } catch (err: any) {
-      setError(err.message || 'Failed to create link');
+      setError(err.message || 'Failed to update link');
     } finally {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-base p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-600">Loading link...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base p-8">
@@ -328,9 +378,9 @@ export default function CreateLinkPage() {
           >
             ← Back
           </button>
-          <h1 className="text-3xl font-bold text-slate-900">Create Link</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Edit Link</h1>
           <p className="text-slate-600 mt-2">
-            Build a deep link with parameters and platform overrides
+            Update your deep link parameters and platform overrides
           </p>
         </div>
 
@@ -385,9 +435,6 @@ export default function CreateLinkPage() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Select an app to use its store URLs for mobile redirects
-                  </p>
                 </div>
 
                 <div>
@@ -407,9 +454,6 @@ export default function CreateLinkPage() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    The base URL where the link will redirect
-                  </p>
                 </div>
 
                 <div>
@@ -483,8 +527,6 @@ export default function CreateLinkPage() {
                 </div>
               </div>
             </div>
-
-            {/* Collapsible Sections */}
 
             {/* UTM Parameters */}
             <div className="bg-card rounded-lg shadow-sm overflow-hidden">
@@ -876,27 +918,6 @@ export default function CreateLinkPage() {
                 <div className="p-6 space-y-4 border-t border-slate-200">
                   <div>
                     <label className="block text-sm font-semibold text-slate-900 mb-2">
-                      Custom Short Code
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Leave empty for auto-generated"
-                      value={formData.shortCode}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          shortCode: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Only letters and numbers
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">
                       Expiry Date
                     </label>
                     <input
@@ -934,7 +955,7 @@ export default function CreateLinkPage() {
                 isLoading={loading}
                 disabled={loading}
               >
-                Create Link
+                Update Link
               </Button>
             </div>
           </div>
@@ -955,7 +976,7 @@ export default function CreateLinkPage() {
                     </p>
                     <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                       <p className="text-sm font-mono text-primary-600 break-all">
-                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode || '<auto>'}
+                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode}
                       </p>
                     </div>
                   </div>

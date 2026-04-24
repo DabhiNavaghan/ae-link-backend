@@ -223,6 +223,14 @@ export default function CampaignDetailPage() {
                   campaign.status.slice(1)}
               </Badge>
 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/dashboard/campaigns/${campaignId}/edit`)}
+              >
+                ✏️ Edit
+              </Button>
+
               {campaign.status === 'active' ? (
                 <Button
                   variant="outline"

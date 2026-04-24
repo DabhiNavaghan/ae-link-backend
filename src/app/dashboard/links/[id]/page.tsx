@@ -158,6 +158,13 @@ export default function LinkDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => router.push(`/dashboard/links/${linkId}/edit`)}
+              >
+                ✏️ Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleCopy}
               >
                 {copied ? '✓ Copied' : '📋 Copy'}
