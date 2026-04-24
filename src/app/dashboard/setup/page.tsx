@@ -582,15 +582,15 @@ export default function SetupPage() {
       setLoading(true);
       setError(null);
       if (apiKey) {
-        aeLinkApi.setApiKey(apiKey);
-        await aeLinkApi.getTenant();
+        smartLinkApi.setApiKey(apiKey);
+        await smartLinkApi.getTenant();
         router.push('/dashboard');
       } else {
         setStep('app-details');
       }
     } catch (err: any) {
       setError(err.message || 'Invalid API key. Please check and try again.');
-      aeLinkApi.clearApiKey();
+      smartLinkApi.clearApiKey();
     } finally {
       setLoading(false);
     }
@@ -605,7 +605,7 @@ export default function SetupPage() {
     try {
       setLoading(true);
       setError(null);
-      const result = await aeLinkApi.registerTenant(data);
+      const result = await smartLinkApi.registerTenant(data);
       const apiKey = result?.apiKey || '';
       const appName = result?.name || data.name;
       if (typeof window !== 'undefined') {
@@ -617,7 +617,7 @@ export default function SetupPage() {
 
       // Also create an App record with the platform config
       try {
-        await aeLinkApi.createApp({
+        await smartLinkApi.createApp({
           name: data.name,
           android: data.app?.android || undefined,
           ios: data.app?.ios || undefined,
