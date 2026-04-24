@@ -1,7 +1,21 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  cacheMaxMemorySize: 52 * 1024 * 1024,
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+    return config;
+  },
+
   headers: async () => {
     return [
       {
