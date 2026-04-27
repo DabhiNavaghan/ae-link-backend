@@ -23,7 +23,7 @@ const tenantSettingsSchema = new Schema<ITenantSettings>(
   {
     fingerprintTtlHours: {
       type: Number,
-      default: 72,
+      default: 6,
     },
     matchThreshold: {
       type: Number,

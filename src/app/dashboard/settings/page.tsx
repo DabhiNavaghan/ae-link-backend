@@ -28,7 +28,7 @@ const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<TenantSettings>({
     name: '',
     domain: '',
-    fingerprintTtlHours: 72,
+    fingerprintTtlHours: 6,
     matchThreshold: 60,
     android: {
       package: '',
@@ -74,7 +74,7 @@ const SettingsPage: React.FC = () => {
           appId: '',
           storeUrl: '',
         },
-        fingerprintTtlHours: (tenant as any).settings?.fingerprintTtlHours || 72,
+        fingerprintTtlHours: (tenant as any).settings?.fingerprintTtlHours || 6,
         matchThreshold: (tenant as any).settings?.matchThreshold || 60,
       });
     } catch (err) {

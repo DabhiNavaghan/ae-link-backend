@@ -31,7 +31,7 @@ export class FingerprintService {
     tenantId: string,
     clickId: string | undefined,
     fingerprint: FingerprintData,
-    ttlHours: number = 72,
+    ttlHours: number = 6,
     rawData?: Record<string, any>,
     source: 'browser' | 'app' = 'browser'
   ): Promise<IFingerprint> {

@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         deviceId,
         config: {
           matchThreshold: tenant?.settings?.matchThreshold || 60,
-          fingerprintTtlHours: tenant?.settings?.fingerprintTtlHours || 72,
+          fingerprintTtlHours: tenant?.settings?.fingerprintTtlHours || 6,
         },
       }),
       { status: 200 }

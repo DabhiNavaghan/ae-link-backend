@@ -16,7 +16,7 @@ export class DeferredService {
     tenantId: string,
     params: ILinkParams,
     destinationUrl: string,
-    ttlHours: number = 72
+    ttlHours: number = 6
   ): Promise<IDeferredLink> {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + ttlHours);

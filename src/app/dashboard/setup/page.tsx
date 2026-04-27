@@ -219,7 +219,7 @@ function AppDetailsStep({
       ios: { bundleId: '', teamId: '', appId: '', storeUrl: '' },
     },
     settings: {
-      fingerprintTtlHours: 72,
+      fingerprintTtlHours: 6,
       matchThreshold: 60,
       defaultFallbackUrl: '',
     },

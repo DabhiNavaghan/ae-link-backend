@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       return applyCors(request, errorRes);
     }
 
-    const ttlHours = tenant.settings?.fingerprintTtlHours || 72;
+    const ttlHours = tenant.settings?.fingerprintTtlHours || 6;
 
     // 1. Store fingerprint (with full raw data for debugging)
     const storedFingerprint = await FingerprintService.storeFingerprint(
