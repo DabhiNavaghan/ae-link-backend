@@ -16,20 +16,22 @@ interface LineChartProps {
 }
 
 const colorMap: Record<string, string> = {
-  primary: '#6366F1',
-  secondary: '#14B8A6',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger: '#EF4444',
+  primary: 'var(--color-primary)',
+  secondary: 'var(--color-secondary)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
 };
 
 const lightColorMap: Record<string, string> = {
-  primary: '#EEF2FF',
-  secondary: '#F0FDFA',
-  success: '#F0FDF4',
-  warning: '#FFFBEB',
-  danger: '#FEF2F2',
+  primary: 'var(--color-primary-light)',
+  secondary: 'var(--color-secondary)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
 };
+
+const gridStroke = '#3A3F47';
 
 export const LineChart: React.FC<LineChartProps> = ({
   title,
@@ -65,7 +67,11 @@ export const LineChart: React.FC<LineChartProps> = ({
 
   return (
     <div className="card p-6">
-      {title && <h3 className="text-lg font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && (
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </h3>
+      )}
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         className="w-full"
@@ -79,7 +85,7 @@ export const LineChart: React.FC<LineChartProps> = ({
             y1={(svgHeight - (y / 100) * (svgHeight - padding * 2)) - padding}
             x2={svgWidth - padding}
             y2={(svgHeight - (y / 100) * (svgHeight - padding * 2)) - padding}
-            stroke="#E2E8F0"
+            stroke={gridStroke}
             strokeWidth="1"
           />
         ))}
@@ -124,7 +130,7 @@ export const LineChart: React.FC<LineChartProps> = ({
               cx={x}
               cy={y}
               r="4"
-              fill="white"
+              fill="var(--color-bg-card)"
               stroke={colorMap[color]}
               strokeWidth="2"
             />
@@ -160,7 +166,11 @@ export const BarChart: React.FC<LineChartProps> = ({
 
   return (
     <div className="card p-6">
-      {title && <h3 className="text-lg font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && (
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </h3>
+      )}
       <svg
         viewBox={`0 0 500 ${height}`}
         className="w-full"
@@ -174,7 +184,7 @@ export const BarChart: React.FC<LineChartProps> = ({
             y1={(height - (y / 100) * (height - padding * 2)) - padding}
             x2={500 - padding}
             y2={(height - (y / 100) * (height - padding * 2)) - padding}
-            stroke="#E2E8F0"
+            stroke={gridStroke}
             strokeWidth="1"
           />
         ))}
@@ -202,7 +212,7 @@ export const BarChart: React.FC<LineChartProps> = ({
                 y={height - padding + 20}
                 textAnchor="middle"
                 fontSize="12"
-                fill="#64748B"
+                fill="var(--color-text-tertiary)"
               >
                 {d.label}
               </text>
@@ -283,7 +293,11 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 
   return (
     <div className="card p-6">
-      {title && <h3 className="text-lg font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && (
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </h3>
+      )}
       <div className="flex flex-col items-center">
         <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
           {slices.map((slice, i) => (
@@ -295,7 +309,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               className="hover:opacity-100 transition-opacity cursor-pointer"
             />
           ))}
-          <circle cx={svgSize / 2} cy={svgSize / 2} r={innerRadius * 0.3} fill="white" />
+          <circle cx={svgSize / 2} cy={svgSize / 2} r={innerRadius * 0.3} fill="var(--color-bg-card)" />
         </svg>
 
         <div className="mt-6 space-y-2 w-full">
@@ -306,9 +320,16 @@ export const DonutChart: React.FC<DonutChartProps> = ({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: slice.color }}
                 />
-                <span className="text-slate-600">{slice.label}</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>
+                  {slice.label}
+                </span>
               </div>
-              <span className="font-semibold text-slate-900">{slice.percentage}%</span>
+              <span
+                className="font-semibold"
+                style={{ color: 'var(--color-text)' }}
+              >
+                {slice.percentage}%
+              </span>
             </div>
           ))}
         </div>

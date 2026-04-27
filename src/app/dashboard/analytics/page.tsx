@@ -163,12 +163,12 @@ const AnalyticsDashboard: React.FC = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Analytics</h1>
-          <p className="text-slate-600">Real-time deep link performance metrics</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>Analytics</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>Real-time deep link performance metrics</p>
         </div>
 
         {/* Controls */}
@@ -179,9 +179,10 @@ const AnalyticsDashboard: React.FC = () => {
               onClick={() => handleDateRangeChange('week')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 dateRange.type === 'week'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'text-white'
+                  : 'hover:opacity-80'
               }`}
+              style={dateRange.type === 'week' ? { backgroundColor: 'var(--color-primary)' } : { backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
             >
               Last 7 days
             </button>
@@ -189,9 +190,10 @@ const AnalyticsDashboard: React.FC = () => {
               onClick={() => handleDateRangeChange('month')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 dateRange.type === 'month'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'text-white'
+                  : 'hover:opacity-80'
               }`}
+              style={dateRange.type === 'month' ? { backgroundColor: 'var(--color-primary)' } : { backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
             >
               Last 30 days
             </button>
@@ -199,9 +201,10 @@ const AnalyticsDashboard: React.FC = () => {
               onClick={() => handleDateRangeChange('quarter')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 dateRange.type === 'quarter'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'text-white'
+                  : 'hover:opacity-80'
               }`}
+              style={dateRange.type === 'quarter' ? { backgroundColor: 'var(--color-primary)' } : { backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
             >
               Last 90 days
             </button>
@@ -239,14 +242,15 @@ const AnalyticsDashboard: React.FC = () => {
           <button
             onClick={handleExport}
             disabled={!analytics}
-            className="ml-auto px-4 py-2 bg-accent-500 hover:bg-accent-600 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors"
+            className="ml-auto px-4 py-2 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-accent)' }}
           >
             Export CSV
           </button>
         </div>
 
         {error && (
-          <div className="card bg-danger-50 border-danger-200 p-4 mb-6 text-danger-800">
+          <div className="card p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'var(--color-danger)', borderWidth: '1px', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
@@ -255,7 +259,7 @@ const AnalyticsDashboard: React.FC = () => {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="card p-6 h-24 animate-pulse bg-slate-100" />
+              <div key={i} className="card p-6 h-24 animate-pulse" style={{ backgroundColor: 'var(--color-bg-hover)' }} />
             ))}
           </div>
         ) : analytics ? (
@@ -291,7 +295,7 @@ const AnalyticsDashboard: React.FC = () => {
             {/* Charts Section */}
             {/* Row 1: Clicks & Conversions Over Time */}
             <div className="card p-6 mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
                 Clicks & Conversions Over Time
               </h3>
               <LineChart
@@ -423,7 +427,7 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Row 4: Top Links Table */}
             <div className="card p-6 mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
                 Top Performing Links
               </h3>
               <div className="overflow-x-auto">
@@ -439,7 +443,7 @@ const AnalyticsDashboard: React.FC = () => {
                   <tbody>
                     {analytics.topLinks.map((link, i) => (
                       <tr key={i}>
-                        <td className="font-mono font-semibold text-primary-600">
+                        <td className="font-mono font-semibold" style={{ color: 'var(--color-primary)' }}>
                           {link.shortCode}
                         </td>
                         <td className="text-right">{link.clicks.toLocaleString()}</td>
@@ -456,7 +460,7 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Row 5: Campaign Performance */}
             <div className="card p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
                 Campaign Performance
               </h3>
               <div className="overflow-x-auto">
@@ -471,7 +475,7 @@ const AnalyticsDashboard: React.FC = () => {
                   <tbody>
                     {analytics.topCampaigns.map((campaign, i) => (
                       <tr key={i}>
-                        <td className="font-semibold text-slate-900">
+                        <td className="font-semibold" style={{ color: 'var(--color-text)' }}>
                           {campaign.name}
                         </td>
                         <td className="text-right">{campaign.clicks.toLocaleString()}</td>

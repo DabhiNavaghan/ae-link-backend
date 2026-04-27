@@ -52,11 +52,11 @@ function AppCard({
   const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
-    <div className="card p-6 hover:shadow-md transition-shadow">
+    <div className="card p-6 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-bg-card)' }}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{app.name}</h3>
-          <p className="text-xs text-slate-400 mt-0.5 font-mono">
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
+          <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
             ID: {String((app as any)._id).slice(-8)}
           </p>
         </div>
@@ -68,44 +68,44 @@ function AppCard({
       {/* Platform badges */}
       <div className="flex gap-2 mb-4">
         {hasAndroid && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
             <AndroidIcon /> Android
           </span>
         )}
         {hasIos && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
             <AppleIcon /> iOS
           </span>
         )}
         {!hasAndroid && !hasIos && (
-          <span className="text-xs text-slate-400 italic">No platforms configured</span>
+          <span className="text-xs italic" style={{ color: 'var(--color-text-tertiary)' }}>No platforms configured</span>
         )}
       </div>
 
       {/* Platform details */}
-      <div className="space-y-3 border-t border-slate-100 pt-4 mb-5">
+      <div className="space-y-3 pt-4 mb-5" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
         {hasAndroid && (
           <div className="text-sm">
-            <p className="font-medium text-slate-700 mb-1 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500" /> Android
+            <p className="font-medium mb-1 flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} /> Android
             </p>
-            <div className="pl-3.5 space-y-0.5 text-xs text-slate-500">
-              {app.android?.package && <p>Package: <span className="font-mono text-slate-700">{app.android.package}</span></p>}
-              {app.android?.sha256 && <p>SHA256: <span className="font-mono text-slate-700">{app.android.sha256.substring(0, 20)}...</span></p>}
-              {app.android?.storeUrl && <p>Store: <a href={app.android.storeUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Play Store</a></p>}
+            <div className="pl-3.5 space-y-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              {app.android?.package && <p>Package: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{app.android.package}</span></p>}
+              {app.android?.sha256 && <p>SHA256: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{app.android.sha256.substring(0, 20)}...</span></p>}
+              {app.android?.storeUrl && <p>Store: <a href={app.android.storeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }} className="hover:underline">Play Store</a></p>}
             </div>
           </div>
         )}
         {hasIos && (
           <div className="text-sm">
-            <p className="font-medium text-slate-700 mb-1 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-slate-500" /> iOS
+            <p className="font-medium mb-1 flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-text-secondary)' }} /> iOS
             </p>
-            <div className="pl-3.5 space-y-0.5 text-xs text-slate-500">
-              {app.ios?.bundleId && <p>Bundle ID: <span className="font-mono text-slate-700">{app.ios.bundleId}</span></p>}
-              {app.ios?.teamId && <p>Team ID: <span className="font-mono text-slate-700">{app.ios.teamId}</span></p>}
-              {app.ios?.appId && <p>App ID: <span className="font-mono text-slate-700">{app.ios.appId}</span></p>}
-              {app.ios?.storeUrl && <p>Store: <a href={app.ios.storeUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">App Store</a></p>}
+            <div className="pl-3.5 space-y-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              {app.ios?.bundleId && <p>Bundle ID: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{app.ios.bundleId}</span></p>}
+              {app.ios?.teamId && <p>Team ID: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{app.ios.teamId}</span></p>}
+              {app.ios?.appId && <p>App ID: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{app.ios.appId}</span></p>}
+              {app.ios?.storeUrl && <p>Store: <a href={app.ios.storeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }} className="hover:underline">App Store</a></p>}
             </div>
           </div>
         )}
@@ -217,15 +217,16 @@ function AppFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-200 p-6 z-10">
+      <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="sticky top-0 p-6 z-10" style={{ backgroundColor: 'var(--color-bg-card)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
               {isEdit ? 'Edit App' : 'Add New App'}
             </h2>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+              className="text-2xl leading-none"
+              style={{ color: 'var(--color-text-tertiary)' }}
             >
               &times;
             </button>
@@ -234,7 +235,7 @@ function AppFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
+            <div className="border px-4 py-3 rounded-lg text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
               {error}
             </div>
           )}
@@ -253,8 +254,8 @@ function AppFormModal({
 
           {/* Android */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center">
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+              <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
                 <AndroidIcon />
               </div>
               Android Configuration
@@ -287,8 +288,8 @@ function AppFormModal({
 
           {/* iOS */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-slate-100 text-slate-600 flex items-center justify-center">
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+              <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
                 <AppleIcon />
               </div>
               iOS Configuration
@@ -327,7 +328,7 @@ function AppFormModal({
             />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-slate-200">
+          <div className="flex gap-3 pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
             <Button variant="secondary" size="lg" onClick={onClose} type="button" className="flex-1">
               Cancel
             </Button>
@@ -397,12 +398,12 @@ export default function AppsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Apps</h1>
-          <p className="text-slate-600 mt-1">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Apps</h1>
+          <p className="mt-1" style={{ color: 'var(--color-text-secondary)' }}>
             Manage your Android and iOS app configurations
           </p>
         </div>
@@ -413,22 +414,24 @@ export default function AppsPage() {
 
       {/* Error / empty state */}
       {error && !loading && apps.length === 0 && (
-        <div className="card bg-warning-50 border-warning-200 p-8 text-center">
-          <h3 className="text-lg font-semibold text-warning-900 mb-2">No Apps Yet</h3>
-          <p className="text-warning-700 mb-4">{error}</p>
-          <p className="text-warning-600 text-sm">
+        <div className="card p-8 text-center" style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-danger)', borderWidth: '1px' }}>
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-danger)' }}>No Apps Yet</h3>
+          <p className="mb-4" style={{ color: 'var(--color-danger)' }}>{error}</p>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Add your first app to start creating deep links.
           </p>
         </div>
       )}
 
       {!error && !loading && apps.length === 0 && (
-        <div className="card p-12 text-center">
-          <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <PlusIcon />
+        <div className="card p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-primary-light)' }}>
+            <div style={{ color: 'var(--color-primary)' }}>
+              <PlusIcon />
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">Add Your First App</h3>
-          <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Add Your First App</h3>
+          <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: 'var(--color-text-secondary)' }}>
             Register your Android or iOS app to start creating deep links and tracking installs.
           </p>
           <Button variant="primary" size="lg" onClick={handleAddNew}>
@@ -441,16 +444,16 @@ export default function AppsPage() {
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="card p-6 space-y-3">
-              <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2" />
-              <div className="h-4 bg-slate-100 rounded animate-pulse w-1/4" />
+            <div key={i} className="card p-6 space-y-3" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <div className="h-6 rounded animate-pulse w-1/2" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+              <div className="h-4 rounded animate-pulse w-1/4" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
               <div className="flex gap-2 pt-2">
-                <div className="h-6 bg-slate-100 rounded-full animate-pulse w-20" />
-                <div className="h-6 bg-slate-100 rounded-full animate-pulse w-16" />
+                <div className="h-6 rounded-full animate-pulse w-20" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+                <div className="h-6 rounded-full animate-pulse w-16" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
               </div>
-              <div className="pt-4 border-t border-slate-100 space-y-2">
-                <div className="h-3 bg-slate-100 rounded animate-pulse" />
-                <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4" />
+              <div className="pt-4 space-y-2" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                <div className="h-3 rounded animate-pulse" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+                <div className="h-3 rounded animate-pulse w-3/4" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
               </div>
             </div>
           ))}

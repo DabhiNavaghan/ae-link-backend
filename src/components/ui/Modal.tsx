@@ -61,15 +61,29 @@ const Modal: React.FC<ModalProps> = ({
 
       {/* Modal */}
       <div
-        className={`relative bg-white rounded-xl shadow-xl z-10 w-full mx-4 overflow-hidden animate-fadeIn ${sizeClasses[size]}`}
+        className={`relative rounded-xl shadow-xl z-10 w-full mx-4 overflow-hidden animate-fadeIn ${sizeClasses[size]}`}
+        style={{
+          backgroundColor: 'var(--color-bg-card)',
+        }}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          <div
+            className="flex items-center justify-between px-6 py-4"
+            style={{
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <h2
+              className="text-lg font-semibold"
+              style={{ color: 'var(--color-text)' }}
+            >
+              {title}
+            </h2>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              className="transition-colors duration-200"
+              style={{ color: 'var(--color-text-tertiary)' }}
               aria-label="Close modal"
             >
               <svg
@@ -94,7 +108,13 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+          <div
+            className="px-6 py-4 flex justify-end gap-3"
+            style={{
+              borderTop: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-bg-secondary)',
+            }}
+          >
             {footer}
           </div>
         )}

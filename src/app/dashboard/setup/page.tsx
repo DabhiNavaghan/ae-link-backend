@@ -66,9 +66,9 @@ function Tooltip({ text }: { text: string }) {
     >
       <InfoIcon />
       {show && (
-        <span className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg leading-relaxed">
+        <span style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }} className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 rounded-lg shadow-lg leading-relaxed">
           {text}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-800" />
+          <span style={{ borderTopColor: 'var(--color-bg-secondary)' }} className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent" />
         </span>
       )}
     </span>
@@ -79,12 +79,12 @@ function Tooltip({ text }: { text: string }) {
 function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div className="flex items-start gap-3 mb-5">
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
+      <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center">
         {icon}
       </div>
       <div>
-        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+        <h2 style={{ color: 'var(--color-text)' }} className="text-xl font-bold">{title}</h2>
+        {subtitle && <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
@@ -104,27 +104,27 @@ function WelcomeStep({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <RocketIcon />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome to SmartLink</h2>
-        <p className="text-slate-500 text-sm">
+        <h2 style={{ color: 'var(--color-text)' }} className="text-2xl font-bold mb-1">Welcome to SmartLink</h2>
+        <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm">
           Set up deep linking for your mobile app in minutes.
         </p>
       </div>
 
       {/* Features overview */}
-      <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+      <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="rounded-xl p-4 space-y-3">
         {[
           ['Deferred Deep Links', 'Route users to the right content even after app install'],
           ['Device Fingerprinting', 'Smart matching between web clicks and app opens'],
           ['Real-time Analytics', 'Track clicks, installs, and conversions'],
         ].map(([title, desc]) => (
           <div key={title} className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-2 flex-shrink-0" />
+            <div style={{ backgroundColor: 'var(--color-primary)' }} className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-slate-800">{title}</p>
-              <p className="text-xs text-slate-500">{desc}</p>
+              <p style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{title}</p>
+              <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{desc}</p>
             </div>
           </div>
         ))}
@@ -144,10 +144,10 @@ function WelcomeStep({
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200" />
+          <div className="w-full border-t" style={{ borderColor: 'var(--color-border)' }} />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-3 text-slate-400 uppercase tracking-wider">or</span>
+          <span style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text-tertiary)' }} className="px-3 uppercase tracking-wider">or</span>
         </div>
       </div>
 
@@ -155,14 +155,18 @@ function WelcomeStep({
       {!showExisting ? (
         <button
           onClick={() => setShowExisting(true)}
-          className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-primary-600 font-medium py-2.5 border border-slate-200 rounded-lg hover:border-primary-300 transition-colors"
+          style={{
+            color: 'var(--color-text-secondary)',
+            borderColor: 'var(--color-border)'
+          }}
+          className="w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 border rounded-lg transition-colors hover:border-primary-500 hover:text-primary-500"
         >
           <KeyIcon />
           Connect with existing API key
         </button>
       ) : (
-        <div className="border border-slate-200 p-4 rounded-xl space-y-3">
-          <p className="text-xs text-slate-500">
+        <div style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }} className="border p-4 rounded-xl space-y-3">
+          <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs">
             If you've already registered an app, paste your API key to connect.
           </p>
           <Input
@@ -491,33 +495,35 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
       </div>
 
       {/* API Key Card */}
-      <div className="bg-success-50 border border-success-200 rounded-xl p-5">
+      <div style={{ backgroundColor: 'rgba(74, 222, 128, 0.12)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <KeyIcon />
-          <p className="text-sm font-semibold text-slate-800">Your API Key</p>
+          <p style={{ color: 'var(--color-text)' }} className="text-sm font-semibold">Your API Key</p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-success-200">
-          <code className="font-mono text-xs flex-1 break-all text-slate-900 select-all">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="flex items-center gap-3 p-3 rounded-lg border">
+          <code style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }} className="text-xs flex-1 break-all select-all">
             {apiKey}
           </code>
           <button
             onClick={handleCopy}
-            className={`text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-md transition-colors ${
-              copied ? 'bg-success-100 text-success-700' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
-            }`}
+            style={{
+              backgroundColor: copied ? 'rgba(74, 222, 128, 0.12)' : 'var(--color-primary-light)',
+              color: copied ? '#4ADE80' : 'var(--color-primary)'
+            }}
+            className="text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-md transition-colors"
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <p className="text-xs text-success-700 mt-2.5 flex items-start gap-1.5">
-          <InfoIcon className="w-3.5 h-3.5 text-success-500 mt-0.5 flex-shrink-0" />
+        <p style={{ color: '#4ADE80' }} className="text-xs mt-2.5 flex items-start gap-1.5">
+          <InfoIcon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           Save this key securely. You'll need it to authenticate SDK and API requests.
         </p>
       </div>
 
       {/* Next Steps */}
-      <div className="bg-primary-50 border border-primary-200 rounded-xl p-5">
-        <h3 className="font-semibold text-slate-900 mb-3 text-sm">What's Next</h3>
+      <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="border rounded-xl p-5">
+        <h3 style={{ color: 'var(--color-text)' }} className="font-semibold mb-3 text-sm">What's Next</h3>
         <div className="space-y-3">
           {[
             { step: '1', title: 'Add the Flutter SDK', desc: 'Install smartlink_sdk in your pubspec.yaml' },
@@ -526,12 +532,12 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
             { step: '4', title: 'Test end-to-end', desc: 'Click the link on web, install app, verify routing' },
           ].map((item) => (
             <div key={item.step} className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-200 text-primary-700 text-xs font-bold flex items-center justify-center">
+              <span style={{ backgroundColor: 'var(--color-primary)', color: '#000' }} className="flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center">
                 {item.step}
               </span>
               <div>
-                <p className="text-sm font-medium text-slate-800">{item.title}</p>
-                <p className="text-xs text-slate-500">{item.desc}</p>
+                <p style={{ color: 'var(--color-text)' }} className="text-sm font-medium">{item.title}</p>
+                <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -653,12 +659,12 @@ export default function SetupPage() {
   const stepLabels = ['Welcome', 'App Details', 'Platforms'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
+    <div style={{ backgroundColor: 'var(--color-bg)' }} className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">SmartLink</h1>
-          <p className="text-slate-500 text-sm mt-1">Smart Deep Linking Platform</p>
+          <h1 style={{ color: 'var(--color-text)' }} className="text-3xl font-bold tracking-tight">SmartLink</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mt-1">Smart Deep Linking Platform</p>
         </div>
 
         {/* Progress Bar (visible for non-success steps) */}
@@ -668,9 +674,10 @@ export default function SetupPage() {
               {stepLabels.map((label, idx) => (
                 <span
                   key={label}
-                  className={`text-xs font-medium transition-colors ${
-                    currentStepIndex >= idx ? 'text-primary-600' : 'text-slate-400'
-                  }`}
+                  style={{
+                    color: currentStepIndex >= idx ? 'var(--color-primary)' : 'var(--color-text-tertiary)'
+                  }}
+                  className="text-xs font-medium transition-colors"
                 >
                   {label}
                 </span>
@@ -680,9 +687,10 @@ export default function SetupPage() {
               {steps.map((s, idx) => (
                 <div
                   key={s}
-                  className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                    currentStepIndex >= idx ? 'bg-primary-500' : 'bg-slate-200'
-                  }`}
+                  style={{
+                    backgroundColor: currentStepIndex >= idx ? 'var(--color-primary)' : 'var(--color-border)'
+                  }}
+                  className="h-1.5 flex-1 rounded-full transition-all duration-300"
                 />
               ))}
             </div>
@@ -690,9 +698,9 @@ export default function SetupPage() {
         )}
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 sm:p-8">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="rounded-2xl shadow-lg border p-6 sm:p-8">
           {error && (
-            <div className="mb-5 bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+            <div style={{ backgroundColor: 'rgba(255, 61, 138, 0.12)', borderColor: 'rgba(255, 61, 138, 0.3)', color: 'var(--color-danger)' }} className="mb-5 border px-4 py-3 rounded-lg text-sm flex items-start gap-2">
               <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-danger-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
@@ -714,11 +722,11 @@ export default function SetupPage() {
 
         {/* Footer */}
         <div className="text-center mt-5 flex items-center justify-center gap-4">
-          <a href="/dashboard/docs" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1.5">
+          <a href="/dashboard/docs" style={{ color: 'var(--color-primary)' }} className="text-sm hover:opacity-80 font-medium flex items-center gap-1.5">
             <BookIcon /> Documentation
           </a>
-          <span className="text-slate-300">|</span>
-          <span className="text-xs text-slate-400">Powered by AllEvents</span>
+          <span style={{ color: 'var(--color-border)' }}>|</span>
+          <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Powered by AllEvents</span>
         </div>
       </div>
     </div>

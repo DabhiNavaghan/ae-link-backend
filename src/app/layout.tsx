@@ -31,8 +31,8 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: 'Trail Link | Deep Linking Platform',
-  description: 'Trail Link by AllEvents — deep links, deferred deep links, and attribution. One SDK. Every platform.',
+  title: 'SmartLink | Deep Linking Platform',
+  description: 'SmartLink by AllEvents — deep links, deferred deep links, and attribution. One SDK. Every platform.',
   icons: {
     icon: '/favicon.ico',
   },

@@ -31,22 +31,26 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
     <nav className="flex items-center gap-2 text-sm">
       <Link
         href="/dashboard"
-        className="text-slate-600 hover:text-slate-900 transition-colors duration-200"
+        className="transition-colors duration-200"
+        style={{ color: 'var(--color-text-secondary)' }}
       >
         Dashboard
       </Link>
       {defaultItems.map((item, index) => (
         <React.Fragment key={index}>
-          <span className="text-slate-400">/</span>
+          <span style={{ color: 'var(--color-text-tertiary)' }}>/</span>
           {item.href ? (
             <Link
               href={item.href}
-              className="text-slate-600 hover:text-slate-900 transition-colors duration-200"
+              className="transition-colors duration-200"
+              style={{ color: 'var(--color-text-secondary)' }}
             >
               {item.label}
             </Link>
           ) : (
-            <span className="text-slate-900 font-medium">{item.label}</span>
+            <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+              {item.label}
+            </span>
           )}
         </React.Fragment>
       ))}

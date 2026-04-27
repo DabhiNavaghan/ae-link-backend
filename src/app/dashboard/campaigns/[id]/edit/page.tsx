@@ -161,12 +161,13 @@ export default function EditCampaignPage() {
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="text-primary-600 hover:text-primary-700 font-medium mb-4"
+            className="font-medium mb-4"
+            style={{ color: 'var(--color-primary)' }}
           >
             ← Back
           </button>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Campaign</h1>
-          <p className="text-slate-600 mt-2">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Edit Campaign</h1>
+          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
             Update your campaign details and metadata
           </p>
         </div>
@@ -174,10 +175,10 @@ export default function EditCampaignPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Form */}
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-            <div className="bg-card rounded-lg shadow-sm p-6">
+            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               {/* Campaign Name */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                   Campaign Name *
                 </label>
                 <input
@@ -185,20 +186,21 @@ export default function EditCampaignPage() {
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="e.g., Summer Festival 2024"
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                   Give your campaign a descriptive name
                 </p>
               </div>
 
               {/* Slug */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                   Slug *
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-medium">
+                  <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                     {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/
                   </span>
                   <input
@@ -206,10 +208,11 @@ export default function EditCampaignPage() {
                     value={formData.slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
                     placeholder="summer-festival-2024"
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                   Auto-generated from campaign name. Only letters, numbers, and
                   hyphens.
                 </p>
@@ -217,7 +220,7 @@ export default function EditCampaignPage() {
 
               {/* Description */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                   Description
                 </label>
                 <textarea
@@ -230,13 +233,14 @@ export default function EditCampaignPage() {
                   }
                   placeholder="Add details about this campaign..."
                   rows={4}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                 />
               </div>
 
               {/* Fallback URL */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                   Fallback URL
                 </label>
                 <input
@@ -249,23 +253,24 @@ export default function EditCampaignPage() {
                     }))
                   }
                   placeholder="https://allevents.in"
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                   Where users are redirected if no destination URL is found
                 </p>
               </div>
             </div>
 
             {/* Dates Section */}
-            <div className="bg-card rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">
+            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
                 Campaign Duration
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Start Date
                   </label>
                   <input
@@ -277,12 +282,13 @@ export default function EditCampaignPage() {
                         startDate: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     End Date
                   </label>
                   <input
@@ -294,15 +300,16 @@ export default function EditCampaignPage() {
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
                   />
                 </div>
               </div>
             </div>
 
             {/* Metadata Section */}
-            <div className="bg-card rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">
+            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
                 Custom Metadata
               </h3>
 
@@ -310,18 +317,20 @@ export default function EditCampaignPage() {
                 {Object.entries(formData.metadata).map(([key, value]) => (
                   <div
                     key={key}
-                    className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                    className="flex items-center gap-3 p-3 rounded-lg border"
+                    style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                         {key}
                       </p>
-                      <p className="text-sm text-slate-600">{value}</p>
+                      <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{value}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeMetadata(key)}
-                      className="px-3 py-1 text-sm text-danger-600 hover:bg-danger-50 rounded"
+                      className="px-3 py-1 text-sm rounded"
+                      style={{ color: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
                     >
                       Remove
                     </button>
@@ -334,19 +343,22 @@ export default function EditCampaignPage() {
                     value={metadataKey}
                     onChange={(e) => setMetadataKey(e.target.value)}
                     placeholder="Key"
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="flex-1 px-4 py-2 border rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
                   />
                   <input
                     type="text"
                     value={metadataValue}
                     onChange={(e) => setMetadataValue(e.target.value)}
                     placeholder="Value"
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="flex-1 px-4 py-2 border rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
                   />
                   <button
                     type="button"
                     onClick={addMetadata}
-                    className="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-200 transition"
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition"
+                    style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
                   >
                     Add
                   </button>
@@ -356,7 +368,7 @@ export default function EditCampaignPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-danger-50 border border-danger-200 rounded-lg p-4 text-danger-800">
+              <div className="border rounded-lg p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
                 {error}
               </div>
             )}
@@ -387,41 +399,41 @@ export default function EditCampaignPage() {
 
           {/* Preview Card */}
           <div className="lg:col-span-1">
-            <div className="bg-card rounded-lg shadow-sm p-6 sticky top-8">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">
+            <div className="rounded-lg shadow-sm p-6 sticky top-8" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
                 Preview
               </h3>
 
-              <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
+              <div className="rounded-lg p-4 space-y-3 border" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
                 {formData.name ? (
                   <>
                     <div>
-                      <p className="text-xs text-slate-500">Campaign Name</p>
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Campaign Name</p>
+                      <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
                         {formData.name}
                       </p>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-3">
-                      <p className="text-xs text-slate-500">URL Path</p>
-                      <p className="text-sm font-mono text-primary-600 break-all">
+                    <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                      <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>URL Path</p>
+                      <p className="text-sm font-mono break-all" style={{ color: 'var(--color-primary)' }}>
                         {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/{formData.slug || 'slug'}
                       </p>
                     </div>
 
                     {formData.description && (
-                      <div className="border-t border-slate-200 pt-3">
-                        <p className="text-xs text-slate-500">Description</p>
-                        <p className="text-sm text-slate-700">
+                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Description</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                           {formData.description}
                         </p>
                       </div>
                     )}
 
                     {formData.startDate && formData.endDate && (
-                      <div className="border-t border-slate-200 pt-3">
-                        <p className="text-xs text-slate-500">Duration</p>
-                        <p className="text-sm text-slate-700">
+                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Duration</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                           {new Date(formData.startDate).toLocaleDateString()}{' '}
                           to{' '}
                           {new Date(formData.endDate).toLocaleDateString()}
@@ -430,12 +442,12 @@ export default function EditCampaignPage() {
                     )}
 
                     {Object.keys(formData.metadata).length > 0 && (
-                      <div className="border-t border-slate-200 pt-3">
-                        <p className="text-xs text-slate-500 mb-2">Metadata</p>
+                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                        <p className="text-xs mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Metadata</p>
                         <div className="space-y-1">
                           {Object.entries(formData.metadata).map(
                             ([key, value]) => (
-                              <p key={key} className="text-xs text-slate-600">
+                              <p key={key} className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                                 <span className="font-medium">{key}:</span>{' '}
                                 {value}
                               </p>
@@ -446,7 +458,7 @@ export default function EditCampaignPage() {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500 text-center py-6">
+                  <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-tertiary)' }}>
                     Fill in campaign details to see preview
                   </p>
                 )}

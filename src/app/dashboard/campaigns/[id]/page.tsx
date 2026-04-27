@@ -231,8 +231,8 @@ export default function CampaignDetailPage() {
       <div className="min-h-screen bg-base p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-600">Loading campaign...</p>
+            <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin mb-4" style={{ borderColor: 'var(--color-primary-light)', borderTopColor: 'var(--color-primary)' }}></div>
+            <p style={{ color: 'var(--color-text-secondary)' }}>Loading campaign...</p>
           </div>
         </div>
       </div>
@@ -245,11 +245,12 @@ export default function CampaignDetailPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => router.back()}
-            className="text-primary-600 hover:text-primary-700 font-medium mb-4"
+            className="font-medium mb-4"
+            style={{ color: 'var(--color-primary)' }}
           >
             ← Back
           </button>
-          <div className="bg-danger-50 border border-danger-200 rounded-lg p-6 text-danger-800">
+          <div className="border rounded-lg p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
             {error || 'Campaign not found'}
           </div>
         </div>
@@ -263,20 +264,21 @@ export default function CampaignDetailPage() {
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="text-primary-600 hover:text-primary-700 font-medium mb-4"
+          className="font-medium mb-4"
+          style={{ color: 'var(--color-primary)' }}
         >
           ← Back
         </button>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-danger-50 border border-danger-200 rounded-lg p-4 mb-6 text-danger-800">
+          <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
 
         {/* Header */}
-        <div className="bg-card rounded-lg shadow-sm p-8 mb-6">
+        <div className="rounded-lg shadow-sm p-8 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               {editingName ? (
@@ -286,7 +288,8 @@ export default function CampaignDetailPage() {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     autoFocus
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg"
+                    className="flex-1 px-4 py-2 border rounded-lg"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
                   />
                   <Button
                     variant="primary"
@@ -304,11 +307,11 @@ export default function CampaignDetailPage() {
                   </Button>
                 </div>
               ) : (
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
                   {campaign.name}
                 </h1>
               )}
-              <p className="text-slate-500 font-mono text-sm">
+              <p className="font-mono text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
                 Slug: /{campaign.slug}
               </p>
             </div>
@@ -355,7 +358,8 @@ export default function CampaignDetailPage() {
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
                 autoFocus
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg mb-2"
+                className="w-full px-4 py-2 border rounded-lg mb-2"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
               />
               <div className="flex gap-2">
                 <Button
@@ -377,12 +381,15 @@ export default function CampaignDetailPage() {
           ) : (
             <div
               onClick={() => setEditingDescription(true)}
-              className="cursor-pointer hover:bg-slate-50 rounded p-2 -m-2 transition"
+              className="cursor-pointer rounded p-2 -m-2 transition"
+              style={{ '--hover-bg': 'var(--color-bg-secondary)' } as any}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               {campaign.description ? (
-                <p className="text-slate-700">{campaign.description}</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>{campaign.description}</p>
               ) : (
-                <p className="text-slate-400">Add a description...</p>
+                <p style={{ color: 'var(--color-text-tertiary)' }}>Add a description...</p>
               )}
             </div>
           )}
@@ -390,54 +397,54 @@ export default function CampaignDetailPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-card rounded-lg shadow-sm p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Links</p>
+          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Links</p>
             {analyticsLoading ? (
-              <div className="h-8 w-16 bg-slate-200 animate-pulse rounded mt-1" />
+              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
             ) : (
-              <p className="text-2xl font-bold text-slate-900">{links.length}</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{links.length}</p>
             )}
           </div>
 
-          <div className="bg-card rounded-lg shadow-sm p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Clicks</p>
+          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Clicks</p>
             {analyticsLoading ? (
-              <div className="h-8 w-16 bg-slate-200 animate-pulse rounded mt-1" />
+              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
             ) : (
-              <p className="text-2xl font-bold text-slate-900">{analytics?.totalClicks || 0}</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{analytics?.totalClicks || 0}</p>
             )}
           </div>
 
-          <div className="bg-card rounded-lg shadow-sm p-4">
-            <p className="text-sm text-slate-600 mb-1">Conversions</p>
+          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Conversions</p>
             {analyticsLoading ? (
-              <div className="h-8 w-16 bg-slate-200 animate-pulse rounded mt-1" />
+              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
             ) : (
-              <p className="text-2xl font-bold text-slate-900">{analytics?.totalConversions || 0}</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{analytics?.totalConversions || 0}</p>
             )}
           </div>
 
-          <div className="bg-card rounded-lg shadow-sm p-4">
-            <p className="text-sm text-slate-600 mb-1">Conv. Rate</p>
+          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Conv. Rate</p>
             {analyticsLoading ? (
-              <div className="h-8 w-20 bg-slate-200 animate-pulse rounded mt-1" />
+              <div className="h-8 w-20 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
             ) : (
-              <p className="text-2xl font-bold text-slate-900">{(analytics?.conversionRate || 0).toFixed(2)}%</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{(analytics?.conversionRate || 0).toFixed(2)}%</p>
             )}
           </div>
         </div>
 
         {/* Campaign Metadata */}
         {campaign.metadata && Object.keys(campaign.metadata).length > 0 && (
-          <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          <div className="rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
               Metadata
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(campaign.metadata).map(([key, value]) => (
-                <div key={key} className="bg-slate-50 rounded p-3">
-                  <p className="text-sm font-medium text-slate-900">{key}</p>
-                  <p className="text-sm text-slate-600 mt-1">
+                <div key={key} className="rounded p-3" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{key}</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                     {String(value)}
                   </p>
                 </div>
@@ -448,23 +455,23 @@ export default function CampaignDetailPage() {
 
         {/* Dates */}
         {(campaign.startDate || campaign.endDate) && (
-          <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          <div className="rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
               Duration
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {campaign.startDate && (
                 <div>
-                  <p className="text-sm text-slate-600">Start Date</p>
-                  <p className="text-slate-900 font-medium">
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Start Date</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text)' }}>
                     {formatDate(campaign.startDate)}
                   </p>
                 </div>
               )}
               {campaign.endDate && (
                 <div>
-                  <p className="text-sm text-slate-600">End Date</p>
-                  <p className="text-slate-900 font-medium">
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>End Date</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text)' }}>
                     {formatDate(campaign.endDate)}
                   </p>
                 </div>
@@ -474,14 +481,15 @@ export default function CampaignDetailPage() {
         )}
 
         {/* Links in Campaign */}
-        <div className="bg-card rounded-lg shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">
+        <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+          <div className="p-6 flex items-center justify-between" style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
               Links ({links.length})
             </h3>
             <Link
               href={`/dashboard/links/create?campaignId=${campaignId}`}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+              className="px-4 py-2 text-white rounded-lg transition"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               + Add Link
             </Link>
@@ -489,12 +497,13 @@ export default function CampaignDetailPage() {
 
           {links.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="text-slate-600 mb-4">
+              <p className="mb-4" style={{ color: 'var(--color-text-secondary)' }}>
                 No links created for this campaign yet
               </p>
               <Link
                 href={`/dashboard/links/create?campaignId=${campaignId}`}
-                className="inline-block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                className="inline-block px-4 py-2 text-white rounded-lg transition"
+                style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 Create First Link
               </Link>
@@ -502,21 +511,21 @@ export default function CampaignDetailPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-t border-b border-slate-200">
+                <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderTopColor: 'var(--color-border)', borderBottomColor: 'var(--color-border)', borderTopWidth: '1px', borderBottomWidth: '1px' }}>
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
+                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                       Short Code
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
+                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                       Destination
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
+                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                       Clicks
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
+                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                       Conversions
                     </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-900">
+                    <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                       Actions
                     </th>
                   </tr>
@@ -525,19 +534,24 @@ export default function CampaignDetailPage() {
                   {links.map((link, idx) => (
                     <tr
                       key={link._id}
-                      className={`border-t border-slate-200 hover:bg-slate-50 transition ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                      }`}
+                      className="transition"
+                      style={{
+                        borderTopColor: 'var(--color-border)',
+                        borderTopWidth: '1px',
+                        backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--color-bg-secondary)',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'var(--color-bg-secondary)'}
                     >
                       <td className="px-6 py-4">
-                        <span className="text-slate-900 font-medium font-mono">
+                        <span className="font-medium font-mono" style={{ color: 'var(--color-text)' }}>
                           {link.shortCode}
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                           {typeof window !== 'undefined' ? window.location.host : ''}/{link.shortCode}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="px-6 py-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                         <span
                           title={link.destinationUrl}
                           className="truncate block max-w-xs"
@@ -545,16 +559,16 @@ export default function CampaignDetailPage() {
                           {link.destinationUrl}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-900 font-medium">
+                      <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
                         {linkAnalyticsLoading ? (
-                          <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
                         ) : (
                           link.clickCount.toLocaleString()
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-900 font-medium">
+                      <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
                         {linkAnalyticsLoading ? (
-                          <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
                         ) : (
                           (link.conversionCount ?? 0).toLocaleString()
                         )}
@@ -563,20 +577,23 @@ export default function CampaignDetailPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleCopyLink(link.shortCode)}
-                            className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded transition"
+                            className="px-3 py-1 text-sm rounded transition"
+                            style={{ color: 'var(--color-text-secondary)' }}
                             title="Copy link"
                           >
                             {copiedCode === link.shortCode ? '✓' : '📋'}
                           </button>
                           <Link
                             href={`/dashboard/links/${link._id}/edit`}
-                            className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded transition"
+                            className="px-3 py-1 text-sm rounded transition"
+                            style={{ color: 'var(--color-text-secondary)' }}
                           >
                             Edit
                           </Link>
                           <button
                             onClick={() => setLinkDeleteConfirm(link._id)}
-                            className="px-2 py-1 text-sm text-danger-500 hover:bg-danger-50 hover:text-danger-700 rounded transition"
+                            className="px-2 py-1 text-sm rounded transition"
+                            style={{ color: 'var(--color-danger)' }}
                             title="Delete link"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

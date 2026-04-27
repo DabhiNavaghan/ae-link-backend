@@ -101,12 +101,12 @@ const LinksAnalyticsPage: React.FC = () => {
     clicks > 0 ? ((conversions / clicks) * 100).toFixed(2) : '0.00';
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Links Analytics</h1>
-          <p className="text-slate-600">Individual link performance metrics</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>Links Analytics</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>Individual link performance metrics</p>
         </div>
 
         {/* Controls */}
@@ -131,15 +131,15 @@ const LinksAnalyticsPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="card bg-danger-50 border-danger-200 p-4 mb-6 text-danger-800">
+          <div className="card p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'var(--color-danger)', borderWidth: '1px', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="card p-6 text-center text-slate-600">Loading...</div>
+          <div className="card p-6 text-center" style={{ color: 'var(--color-text-secondary)' }}>Loading...</div>
         ) : filteredLinks.length === 0 ? (
-          <div className="card p-6 text-center text-slate-600">No links found</div>
+          <div className="card p-6 text-center" style={{ color: 'var(--color-text-secondary)' }}>No links found</div>
         ) : (
           <div className="card overflow-x-auto">
             <table className="table-base w-full text-sm">
@@ -158,7 +158,7 @@ const LinksAnalyticsPage: React.FC = () => {
               <tbody>
                 {filteredLinks.map(link => (
                   <tr key={link.linkId}>
-                    <td className="font-mono font-semibold text-primary-600">
+                    <td className="font-mono font-semibold" style={{ color: 'var(--color-primary)' }}>
                       {link.shortCode}
                     </td>
                     <td className="text-right font-medium">
@@ -178,10 +178,10 @@ const LinksAnalyticsPage: React.FC = () => {
                         {link.deferredMatchRate.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="text-right text-slate-500">
+                    <td className="text-right" style={{ color: 'var(--color-text-tertiary)' }}>
                       {new Date(link.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="text-right text-slate-500">
+                    <td className="text-right" style={{ color: 'var(--color-text-tertiary)' }}>
                       {new Date(link.lastClicked).toLocaleDateString()}
                     </td>
                   </tr>

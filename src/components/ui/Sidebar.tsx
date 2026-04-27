@@ -19,14 +19,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    // Persist collapsed state in sessionStorage
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('sidebar-collapsed') === 'true';
     }
     return false;
   });
 
-  // Save collapsed state
   useEffect(() => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('sidebar-collapsed', String(isCollapsed));
@@ -39,12 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 4l4 2m-9-2l4-2"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 4l4 2m-9-2l4-2" />
         </svg>
       ),
     },
@@ -53,12 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard/apps',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 18h.01M8 18h.01M4 18h.01M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 18h.01M4 18h.01M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
         </svg>
       ),
     },
@@ -67,18 +55,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard/campaigns',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
         </svg>
       ),
     },
@@ -87,12 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard/links',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
       ),
     },
@@ -101,12 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard/analytics',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
     },
@@ -115,18 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/dashboard/settings',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
     },
@@ -137,14 +95,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     return pathname.startsWith(href);
   };
 
-  const sidebarWidth = isCollapsed ? 'w-20' : 'w-64';
-
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 z-30 lg:hidden"
+          style={{ backgroundColor: 'rgba(10, 11, 14, 0.7)' }}
           onClick={onClose}
         />
       )}
@@ -153,33 +110,46 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       <aside
         className={`fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 flex flex-col
           lg:static lg:translate-x-0
-          ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
-          lg:${sidebarWidth}`}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderRight: '1px solid var(--color-border)',
-          width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : undefined,
+          width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : '16rem',
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-14 px-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div
+          className="flex items-center justify-between h-14 px-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                SL
+              <div
+                className="w-8 h-8 flex items-center justify-center"
+                style={{ background: 'var(--color-primary)', position: 'relative' }}
+              >
+                <div style={{ position: 'absolute', inset: 3, background: 'var(--color-bg)' }} />
+                <div style={{ position: 'absolute', inset: 6, background: 'var(--color-primary)' }} />
               </div>
-              <span className="font-bold text-slate-900">SmartLink</span>
+              <span className="font-bold" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 14 }}>
+                SmartLink<span style={{ color: 'var(--color-primary)' }}>/</span>
+              </span>
             </Link>
           )}
           {isCollapsed && (
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto">
-              SL
+            <div
+              className="w-8 h-8 mx-auto flex items-center justify-center"
+              style={{ background: 'var(--color-primary)', position: 'relative' }}
+            >
+              <div style={{ position: 'absolute', inset: 3, background: 'var(--color-bg)' }} />
+              <div style={{ position: 'absolute', inset: 6, background: 'var(--color-primary)' }} />
             </div>
           )}
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-200"
+            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200"
+            style={{ color: 'var(--color-text-tertiary)' }}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -188,12 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
         </div>
@@ -205,21 +170,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
               key={item.href}
               href={item.href}
               onClick={() => onClose?.()}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isCollapsed ? 'justify-center' : ''}`}
+              style={
                 isActive(item.href)
-                  ? 'bg-primary-50 text-primary-600 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              } ${isCollapsed ? 'justify-center' : ''}`}
+                  ? {
+                      backgroundColor: 'var(--color-primary-light)',
+                      color: 'var(--color-primary)',
+                      fontWeight: 600,
+                    }
+                  : {
+                      color: 'var(--color-text-secondary)',
+                    }
+              }
               title={isCollapsed ? item.label : undefined}
             >
-              <span className={`flex-shrink-0 ${isActive(item.href) ? 'text-primary-600' : ''}`}>
-                {item.icon}
-              </span>
+              <span className="flex-shrink-0">{item.icon}</span>
               {!isCollapsed && (
                 <>
                   <span className="flex-1 text-sm">{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto bg-danger-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    <span
+                      className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'var(--color-danger)', color: 'var(--color-bg)' }}
+                    >
                       {item.badge}
                     </span>
                   )}
@@ -231,17 +204,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
         {/* Footer */}
         {!isCollapsed && (
-          <div className="flex-shrink-0 p-4 border-t border-slate-200">
-            <div className="rounded-lg p-3 bg-gradient-to-br from-primary-50 to-secondary-50">
-              <h4 className="text-sm font-semibold text-slate-900 mb-1">Need help?</h4>
-              <p className="text-xs text-slate-600 mb-2">
-                Check our documentation for guides and tutorials.
+          <div className="flex-shrink-0 p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+              <h4 className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                // docs
+              </h4>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
+                SDK guides, API reference, and integration tutorials.
               </p>
               <Link
                 href="/dashboard/docs"
-                className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200"
+                className="text-xs font-semibold transition-colors duration-200"
+                style={{ color: 'var(--color-primary)' }}
               >
-                View docs →
+                View docs &rarr;
               </Link>
             </div>
           </div>

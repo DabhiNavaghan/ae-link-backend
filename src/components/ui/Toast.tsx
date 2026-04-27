@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, CSSProperties } from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -68,18 +68,40 @@ interface ToastItemProps {
 }
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
-  const typeClasses: Record<ToastType, string> = {
-    success: 'bg-success-50 border border-success-200 text-success-800',
-    error: 'bg-danger-50 border border-danger-200 text-danger-800',
-    warning: 'bg-warning-50 border border-warning-200 text-warning-800',
-    info: 'bg-primary-50 border border-primary-200 text-primary-800',
+  const getTypeStyle = (type: ToastType): CSSProperties => {
+    const typeStyles: Record<ToastType, CSSProperties> = {
+      success: {
+        backgroundColor: 'var(--color-success)',
+        borderColor: 'var(--color-success)',
+        color: 'var(--color-bg)',
+      },
+      error: {
+        backgroundColor: 'var(--color-danger)',
+        borderColor: 'var(--color-danger)',
+        color: 'var(--color-bg)',
+      },
+      warning: {
+        backgroundColor: 'var(--color-warning)',
+        borderColor: 'var(--color-warning)',
+        color: 'var(--color-bg)',
+      },
+      info: {
+        backgroundColor: 'var(--color-primary)',
+        borderColor: 'var(--color-primary)',
+        color: 'var(--color-bg)',
+      },
+    };
+    return typeStyles[type];
   };
 
-  const iconClasses: Record<ToastType, string> = {
-    success: 'text-success-600',
-    error: 'text-danger-600',
-    warning: 'text-warning-600',
-    info: 'text-primary-600',
+  const getIconColor = (type: ToastType): string => {
+    const iconColors: Record<ToastType, string> = {
+      success: 'var(--color-bg)',
+      error: 'var(--color-bg)',
+      warning: 'var(--color-bg)',
+      info: 'var(--color-bg)',
+    };
+    return iconColors[type];
   };
 
   const icons: Record<ToastType, React.ReactNode> = {
@@ -119,20 +141,26 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
 
   return (
     <div
-      className={`card p-4 flex items-start gap-3 animate-slideInRight shadow-lg ${typeClasses[toast.type]}`}
+      className="card p-4 flex items-start gap-3 animate-slideInRight shadow-lg"
+      style={{
+        border: '1px solid',
+        ...getTypeStyle(toast.type),
+      }}
     >
       <svg
-        className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconClasses[toast.type]}`}
+        className="w-5 h-5 flex-shrink-0 mt-0.5"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
+        style={{ color: getIconColor(toast.type) }}
       >
         {icons[toast.type]}
       </svg>
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={() => onClose(toast.id)}
-        className="text-slate-500 hover:text-slate-700 transition-colors duration-200 flex-shrink-0"
+        className="transition-colors duration-200 flex-shrink-0"
+        style={{ color: 'currentColor', opacity: 0.7 }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

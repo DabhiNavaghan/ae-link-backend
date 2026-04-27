@@ -39,7 +39,10 @@ export default function DashboardLayout({
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <div
+            className="animate-spin rounded-full h-10 w-10 border-b-2 mx-auto mb-4"
+            style={{ borderColor: 'var(--color-primary)' }}
+          ></div>
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading dashboard...</p>
         </div>
       </div>

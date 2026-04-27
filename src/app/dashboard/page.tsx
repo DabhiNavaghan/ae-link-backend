@@ -21,22 +21,35 @@ function StatCard({
   if (loading) {
     return (
       <div className="card p-6">
-        <p className="text-slate-600 text-sm font-medium mb-2">{label}</p>
-        <div className="h-8 bg-slate-200 rounded animate-pulse"></div>
+        <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+          {label}
+        </p>
+        <div
+          className="h-8 rounded animate-pulse"
+          style={{ backgroundColor: 'var(--color-bg-hover)' }}
+        ></div>
       </div>
     );
   }
 
   return (
-    <div className="card p-6 bg-gradient-to-br from-primary-50 to-white hover:shadow-md transition-shadow">
-      <p className="text-slate-600 text-sm font-medium mb-2">{label}</p>
+    <div
+      className="card p-6 hover:shadow-md transition-shadow"
+      style={{ backgroundColor: 'var(--color-primary-light)' }}
+    >
+      <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+        {label}
+      </p>
       <div className="flex items-baseline justify-between">
-        <h3 className="text-3xl font-bold text-slate-900">{value}</h3>
+        <h3 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
+          {value}
+        </h3>
         {trend && (
           <div
-            className={`flex items-center gap-1 text-sm font-semibold ${
-              trend.direction === 'up' ? 'text-success-600' : 'text-danger-600'
-            }`}
+            className="flex items-center gap-1 text-sm font-semibold"
+            style={{
+              color: trend.direction === 'up' ? 'var(--color-secondary)' : 'var(--color-accent)',
+            }}
           >
             {trend.direction === 'up' ? '↑' : '↓'} {trend.percentage}%
           </div>
@@ -50,7 +63,7 @@ function ClicksTrendChart({ data }: { data: Array<{ date: string; clicks: number
   if (!data || data.length === 0) {
     return (
       <div className="card p-6 h-80 flex items-center justify-center">
-        <p className="text-slate-500">No trend data available</p>
+        <p style={{ color: 'var(--color-text-tertiary)' }}>No trend data available</p>
       </div>
     );
   }
@@ -60,7 +73,9 @@ function ClicksTrendChart({ data }: { data: Array<{ date: string; clicks: number
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Clicks Trend (30 Days)</h3>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+        Clicks Trend (30 Days)
+      </h3>
       <div className="flex items-end justify-between h-80 gap-1">
         {data.map((point, idx) => {
           const barHeight = (point.clicks / maxClicks) * chartHeight;
@@ -70,11 +85,17 @@ function ClicksTrendChart({ data }: { data: Array<{ date: string; clicks: number
               className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
             >
               <div
-                className="w-full bg-gradient-to-t from-primary-600 to-primary-400 rounded-t transition-all hover:from-primary-700 hover:to-primary-500 group-hover:shadow-md"
-                style={{ height: `${Math.max(barHeight, 8)}px` }}
+                className="w-full rounded-t transition-all group-hover:shadow-md"
+                style={{
+                  height: `${Math.max(barHeight, 8)}px`,
+                  backgroundImage: 'linear-gradient(to top, var(--color-primary), rgba(201, 255, 61, 0.6))',
+                }}
                 title={`${point.date}: ${point.clicks} clicks`}
               ></div>
-              <span className="text-xs text-slate-500 rotate-45 origin-left whitespace-nowrap -mt-1">
+              <span
+                className="text-xs rotate-45 origin-left whitespace-nowrap -mt-1"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
                 {new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
             </div>
@@ -121,7 +142,9 @@ function PlatformBreakdown({
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-semibold text-slate-900 mb-6">Platform Breakdown</h3>
+      <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
+        Platform Breakdown
+      </h3>
       <div className="flex items-center justify-center h-80">
         <div className="relative w-64 h-64 flex items-center justify-center">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
@@ -130,7 +153,7 @@ function PlatformBreakdown({
               cy="100"
               r={radius}
               fill="none"
-              stroke="#E0E7FF"
+              stroke="var(--color-bg-hover)"
               strokeWidth="20"
             />
             <circle
@@ -138,7 +161,7 @@ function PlatformBreakdown({
               cy="100"
               r={radius}
               fill="none"
-              stroke="#818CF8"
+              stroke="var(--color-primary)"
               strokeWidth="20"
               strokeDasharray={circumference}
               strokeDashoffset={androidOffset.offset}
@@ -152,7 +175,7 @@ function PlatformBreakdown({
               cy="100"
               r={radius}
               fill="none"
-              stroke="#14B8A6"
+              stroke="var(--color-secondary)"
               strokeWidth="20"
               strokeDasharray={circumference}
               strokeDashoffset={iosOffset.offset}
@@ -166,7 +189,7 @@ function PlatformBreakdown({
               cy="100"
               r={radius}
               fill="none"
-              stroke="#F97316"
+              stroke="var(--color-accent)"
               strokeWidth="20"
               strokeDasharray={circumference}
               strokeDashoffset={webOffset.offset}
@@ -177,35 +200,66 @@ function PlatformBreakdown({
             />
           </svg>
           <div className="absolute text-center">
-            <p className="text-3xl font-bold text-slate-900">{total}</p>
-            <p className="text-sm text-slate-500">total clicks</p>
+            <p className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
+              {total}
+            </p>
+            <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+              total clicks
+            </p>
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4 mt-6 border-t border-slate-200 pt-4">
+      <div className="grid grid-cols-3 gap-4 mt-6 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-3 h-3 rounded-full bg-primary-600"></div>
-            <p className="text-sm font-medium text-slate-700">Android</p>
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            ></div>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+              Android
+            </p>
           </div>
-          <p className="text-lg font-bold text-slate-900">{androidPct}%</p>
-          <p className="text-xs text-slate-500">{android} clicks</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
+            {androidPct}%
+          </p>
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            {android} clicks
+          </p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-3 h-3 rounded-full bg-secondary-600"></div>
-            <p className="text-sm font-medium text-slate-700">iOS</p>
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: 'var(--color-secondary)' }}
+            ></div>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+              iOS
+            </p>
           </div>
-          <p className="text-lg font-bold text-slate-900">{iosPct}%</p>
-          <p className="text-xs text-slate-500">{ios} clicks</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
+            {iosPct}%
+          </p>
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            {ios} clicks
+          </p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-3 h-3 rounded-full bg-accent-500"></div>
-            <p className="text-sm font-medium text-slate-700">Web</p>
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: 'var(--color-accent)' }}
+            ></div>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+              Web
+            </p>
           </div>
-          <p className="text-lg font-bold text-slate-900">{webPct}%</p>
-          <p className="text-xs text-slate-500">{web} clicks</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
+            {webPct}%
+          </p>
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            {web} clicks
+          </p>
         </div>
       </div>
     </div>
@@ -223,10 +277,16 @@ function TopLinksTable({
     return (
       <div className="card overflow-hidden">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Top Performing Links</h3>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+            Top Performing Links
+          </h3>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-slate-100 rounded animate-pulse"></div>
+              <div
+                key={i}
+                className="h-12 rounded animate-pulse"
+                style={{ backgroundColor: 'var(--color-bg-hover)' }}
+              ></div>
             ))}
           </div>
         </div>
@@ -237,7 +297,9 @@ function TopLinksTable({
   if (!links || links.length === 0) {
     return (
       <div className="card p-12 text-center">
-        <p className="text-slate-600 mb-4">No links created yet</p>
+        <p className="mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+          No links created yet
+        </p>
         <Link href="/dashboard/links">
           <Button variant="primary">Create First Link</Button>
         </Link>
@@ -250,8 +312,10 @@ function TopLinksTable({
 
   return (
     <div className="card overflow-hidden">
-      <div className="p-6 border-b border-slate-200">
-        <h3 className="text-lg font-semibold text-slate-900">Top Performing Links</h3>
+      <div className="p-6" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
+          Top Performing Links
+        </h3>
       </div>
       <div className="overflow-x-auto">
         <table className="table-base">
@@ -272,20 +336,41 @@ function TopLinksTable({
                   : '0';
 
               return (
-                <tr key={idx} className="hover:bg-slate-50 cursor-pointer transition-colors">
-                  <td className="font-medium text-primary-600">
-                    <code className="bg-slate-100 px-2 py-1 rounded text-sm">
+                <tr
+                  key={idx}
+                  className="cursor-pointer transition-colors"
+                  style={{ backgroundColor: 'transparent' }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      'var(--color-bg-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <td className="font-medium">
+                    <code
+                      className="px-2 py-1 rounded text-sm"
+                      style={{
+                        backgroundColor: 'var(--color-bg-secondary)',
+                        color: 'var(--color-primary)',
+                      }}
+                    >
                       {link.shortCode}
                     </code>
                   </td>
-                  <td className="text-slate-600 max-w-xs truncate text-sm">
+                  <td className="max-w-xs truncate text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                     (Analytics View)
                   </td>
-                  <td className="text-right font-semibold">{link.clicks}</td>
-                  <td className="text-right font-semibold text-success-600">
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-text)' }}>
+                    {link.clicks}
+                  </td>
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-secondary)' }}>
                     {link.conversions}
                   </td>
-                  <td className="text-right font-semibold">{convRate}%</td>
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-text)' }}>
+                    {convRate}%
+                  </td>
                 </tr>
               );
             })}
@@ -307,10 +392,16 @@ function TopCampaignsTable({
     return (
       <div className="card overflow-hidden">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Top Campaigns</h3>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+            Top Campaigns
+          </h3>
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-slate-100 rounded animate-pulse"></div>
+              <div
+                key={i}
+                className="h-12 rounded animate-pulse"
+                style={{ backgroundColor: 'var(--color-bg-hover)' }}
+              ></div>
             ))}
           </div>
         </div>
@@ -321,7 +412,9 @@ function TopCampaignsTable({
   if (!campaigns || campaigns.length === 0) {
     return (
       <div className="card p-12 text-center">
-        <p className="text-slate-600 mb-4">No campaigns created yet</p>
+        <p className="mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+          No campaigns created yet
+        </p>
         <Link href="/dashboard/campaigns">
           <Button variant="primary">Create Campaign</Button>
         </Link>
@@ -331,8 +424,10 @@ function TopCampaignsTable({
 
   return (
     <div className="card overflow-hidden">
-      <div className="p-6 border-b border-slate-200">
-        <h3 className="text-lg font-semibold text-slate-900">Top Campaigns</h3>
+      <div className="p-6" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
+          Top Campaigns
+        </h3>
       </div>
       <div className="overflow-x-auto">
         <table className="table-base">
@@ -352,13 +447,30 @@ function TopCampaignsTable({
                   : '0';
 
               return (
-                <tr key={idx} className="hover:bg-slate-50 cursor-pointer transition-colors">
-                  <td className="font-medium text-slate-900">{campaign.name}</td>
-                  <td className="text-right font-semibold">{campaign.clicks}</td>
-                  <td className="text-right font-semibold text-success-600">
+                <tr
+                  key={idx}
+                  className="cursor-pointer transition-colors"
+                  style={{ backgroundColor: 'transparent' }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      'var(--color-bg-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <td className="font-medium" style={{ color: 'var(--color-text)' }}>
+                    {campaign.name}
+                  </td>
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-text)' }}>
+                    {campaign.clicks}
+                  </td>
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-secondary)' }}>
                     {campaign.conversions}
                   </td>
-                  <td className="text-right font-semibold">{convRate}%</td>
+                  <td className="text-right font-semibold" style={{ color: 'var(--color-text)' }}>
+                    {convRate}%
+                  </td>
                 </tr>
               );
             })}
@@ -394,9 +506,13 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="card bg-danger-50 border-danger-200 p-6 text-center">
-          <h3 className="text-lg font-semibold text-danger-900 mb-2">Error Loading Dashboard</h3>
-          <p className="text-danger-700 mb-4">{error}</p>
+        <div className="card p-6 text-center" style={{ backgroundColor: 'rgba(255, 61, 138, 0.1)', borderColor: 'var(--color-accent)' }}>
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-accent)' }}>
+            Error Loading Dashboard
+          </h3>
+          <p className="mb-4" style={{ color: 'var(--color-accent)' }}>
+            {error}
+          </p>
           <Link href="/dashboard/setup">
             <Button variant="primary">Setup Dashboard</Button>
           </Link>
@@ -410,8 +526,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Welcome to SmartLink. Here's your performance overview.</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
+            Dashboard
+          </h1>
+          <p className="mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+            Welcome to SmartLink. Here's your performance overview.
+          </p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/links">

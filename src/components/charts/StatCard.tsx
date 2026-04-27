@@ -41,17 +41,16 @@ const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`card p-6 transition-all duration-200 hover:shadow-md ${
-        gradient ? 'bg-gradient-to-br from-primary-50 to-primary-100' : ''
-      }`}
+      className="card p-6 transition-all duration-200 hover:shadow-md"
+      style={gradient ? { background: 'linear-gradient(to bottom right, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05))' } : {}}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600 mb-2">{label}</p>
+          <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
           {isLoading ? (
-            <div className="h-10 bg-slate-200 rounded animate-pulse w-32" />
+            <div className="h-10 rounded animate-pulse w-32" style={{ backgroundColor: 'var(--color-bg-hover)' }} />
           ) : (
-            <p className="text-3xl font-bold text-slate-900">
+            <p className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
               {typeof value === 'number'
                 ? value.toLocaleString()
                 : value}
@@ -70,12 +69,12 @@ const StatCard: React.FC<StatCardProps> = ({
                   {change}%
                 </p>
               )}
-              <p className="text-xs text-slate-500 ml-1">{changeLabel}</p>
+              <p className="text-xs ml-1" style={{ color: 'var(--color-text-tertiary)' }}>{changeLabel}</p>
             </div>
           )}
         </div>
         {icon && (
-          <div className="p-3 rounded-lg bg-white bg-opacity-50 text-primary-600 flex-shrink-0">
+          <div className="p-3 rounded-lg flex-shrink-0" style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', color: 'var(--color-primary)' }}>
             {icon}
           </div>
         )}

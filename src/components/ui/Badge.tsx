@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { CSSProperties } from 'react';
 
 interface BadgeProps {
   status: 'active' | 'paused' | 'archived' | 'error' | 'pending' | 'completed';
@@ -9,36 +9,79 @@ interface BadgeProps {
 }
 
 const Badge: React.FC<BadgeProps> = ({ status, children, size = 'md' }) => {
-  const statusClasses: Record<string, string> = {
-    active: 'bg-success-100 text-success-800',
-    paused: 'bg-warning-100 text-warning-800',
-    archived: 'bg-slate-100 text-slate-800',
-    error: 'bg-danger-100 text-danger-800',
-    pending: 'bg-primary-100 text-primary-800',
-    completed: 'bg-success-100 text-success-800',
+  const getStatusStyle = (status: string): CSSProperties => {
+    const statusStyles: Record<string, CSSProperties> = {
+      active: {
+        backgroundColor: 'var(--color-success)',
+        color: 'var(--color-bg)',
+      },
+      paused: {
+        backgroundColor: 'var(--color-warning)',
+        color: 'var(--color-bg)',
+      },
+      archived: {
+        backgroundColor: 'var(--color-bg-hover)',
+        color: 'var(--color-text-tertiary)',
+      },
+      error: {
+        backgroundColor: 'var(--color-danger)',
+        color: 'var(--color-bg)',
+      },
+      pending: {
+        backgroundColor: 'var(--color-primary-light)',
+        color: 'var(--color-primary)',
+      },
+      completed: {
+        backgroundColor: 'var(--color-success)',
+        color: 'var(--color-bg)',
+      },
+    };
+    return statusStyles[status];
   };
 
-  const sizeClasses: Record<string, string> = {
-    sm: 'text-xs px-2 py-1',
-    md: 'text-sm px-3 py-1.5',
+  const getDotStyle = (status: string): CSSProperties => {
+    const dotStyles: Record<string, CSSProperties> = {
+      active: { backgroundColor: 'var(--color-success)' },
+      paused: { backgroundColor: 'var(--color-warning)' },
+      archived: { backgroundColor: 'var(--color-text-tertiary)' },
+      error: { backgroundColor: 'var(--color-danger)' },
+      pending: { backgroundColor: 'var(--color-primary)' },
+      completed: { backgroundColor: 'var(--color-success)' },
+    };
+    return dotStyles[status];
+  };
+
+  const sizeStyles: Record<string, CSSProperties> = {
+    sm: { fontSize: '0.75rem', padding: '0.25rem 0.5rem' },
+    md: { fontSize: '0.875rem', padding: '0.375rem 0.75rem' },
   };
 
   return (
     <span
-      className={`badge-base ${statusClasses[status]} ${sizeClasses[size]} font-semibold`}
+      className="badge-base"
+      style={{
+        ...getStatusStyle(status),
+        ...sizeStyles[size],
+        fontWeight: 600,
+        display: 'inline-block',
+        borderRadius: '0.375rem',
+      }}
     >
-      <span className={`w-2 h-2 rounded-full mr-2 inline-block`}>
+      <span style={{
+        width: '0.5rem',
+        height: '0.5rem',
+        borderRadius: '50%',
+        marginRight: '0.5rem',
+        display: 'inline-block',
+      }}>
         <span
-          className={`w-full h-full block rounded-full ${
-            {
-              active: 'bg-success-600',
-              paused: 'bg-warning-600',
-              archived: 'bg-slate-400',
-              error: 'bg-danger-600',
-              pending: 'bg-primary-600',
-              completed: 'bg-success-600',
-            }[status]
-          }`}
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            borderRadius: '50%',
+            ...getDotStyle(status),
+          }}
         />
       </span>
       {children}

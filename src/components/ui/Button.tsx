@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ButtonHTMLAttributes, forwardRef } from 'react';
+import React, { ButtonHTMLAttributes, forwardRef, CSSProperties } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -9,6 +9,49 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   fullWidth?: boolean;
 }
+
+const getVariantStyle = (variant: string): CSSProperties => {
+  const baseStyle: CSSProperties = {
+    fontWeight: 500,
+    opacity: undefined,
+  };
+
+  const variantStyles: Record<string, CSSProperties> = {
+    primary: {
+      backgroundColor: 'var(--color-primary)',
+      color: 'var(--color-bg)',
+    },
+    secondary: {
+      backgroundColor: 'var(--color-secondary)',
+      color: 'var(--color-bg)',
+    },
+    outline: {
+      border: '2px solid var(--color-primary)',
+      color: 'var(--color-primary)',
+      backgroundColor: 'transparent',
+    },
+    ghost: {
+      color: 'var(--color-text-secondary)',
+      backgroundColor: 'transparent',
+    },
+    danger: {
+      backgroundColor: 'var(--color-danger)',
+      color: 'var(--color-bg)',
+    },
+  };
+
+  return { ...baseStyle, ...variantStyles[variant] };
+};
+
+const getSizeStyle = (size: string): CSSProperties => {
+  const sizeStyles: Record<string, CSSProperties> = {
+    sm: { padding: '0.375rem 0.75rem', fontSize: '0.875rem' },
+    md: { padding: '0.5rem 1rem', fontSize: '0.875rem' },
+    lg: { padding: '0.75rem 1.5rem', fontSize: '1rem' },
+  };
+
+  return sizeStyles[size] || sizeStyles['md'];
+};
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -20,49 +63,28 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth = false,
       disabled,
       className = '',
+      style = {},
       ...props
     },
     ref
   ) => {
-    const baseClasses =
-      'btn-base font-medium focus-ring disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseClasses = 'btn-base focus-ring';
 
-    const variantClasses: Record<string, string> = {
-      primary:
-        'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm',
-      secondary:
-        'bg-secondary-600 text-white hover:bg-secondary-700 active:bg-secondary-800 shadow-sm',
-      outline:
-        'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 active:bg-primary-100',
-      ghost:
-        'text-slate-700 hover:bg-slate-100 active:bg-slate-200',
-      danger:
-        'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800 shadow-sm',
+    const combinedStyle: CSSProperties = {
+      ...getVariantStyle(variant),
+      ...getSizeStyle(size),
+      width: fullWidth ? '100%' : undefined,
+      opacity: disabled ? 0.5 : 1,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      ...(style as CSSProperties),
     };
-
-    const sizeClasses: Record<string, string> = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base',
-    };
-
-    const widthClasses = fullWidth ? 'w-full' : '';
-
-    const combinedClasses = [
-      baseClasses,
-      variantClasses[variant],
-      sizeClasses[size],
-      widthClasses,
-      className,
-    ]
-      .filter(Boolean)
-      .join(' ');
 
     return (
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={combinedClasses}
+        className={baseClasses + (className ? ` ${className}` : '')}
+        style={combinedStyle}
         {...props}
       >
         <span className="flex items-center justify-center gap-2">

@@ -23,7 +23,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       {icon && (
-        <div className="mb-4 text-slate-400">
+        <div className="mb-4" style={{ color: 'var(--color-text-tertiary)' }}>
           <svg
             className="w-16 h-16 mx-auto"
             fill="none"
@@ -34,8 +34,18 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           </svg>
         </div>
       )}
-      <h3 className="text-lg font-semibold text-slate-900 mb-1">{title}</h3>
-      <p className="text-sm text-slate-600 mb-6 max-w-sm">{description}</p>
+      <h3
+        className="text-lg font-semibold mb-1"
+        style={{ color: 'var(--color-text)' }}
+      >
+        {title}
+      </h3>
+      <p
+        className="text-sm mb-6 max-w-sm"
+        style={{ color: 'var(--color-text-secondary)' }}
+      >
+        {description}
+      </p>
       {action && (
         <Button
           variant={action.variant || 'primary'}

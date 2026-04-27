@@ -45,7 +45,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div className="w-full flex items-center justify-center" style={{ height }}>
-        <p className="text-slate-500">No data available</p>
+        <p style={{ color: 'var(--color-text-tertiary)' }}>No data available</p>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export const LineChart: React.FC<LineChartProps> = ({
     const value = Math.round(minValue + (range / 4) * (4 - i));
     const y = padding.top + (chartHeight / 4) * i;
     return (
-      <text key={`y-label-${i}`} x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="12" fill="#64748B">
+      <text key={`y-label-${i}`} x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="12" fill="var(--color-text-secondary)">
         {value.toLocaleString()}
       </text>
     );
@@ -118,7 +118,7 @@ export const LineChart: React.FC<LineChartProps> = ({
       const point = primaryPoints[i * step];
       if (!point) return null;
       return (
-        <text key={`x-label-${i}`} x={point.x} y={chartHeight + padding.top + 20} textAnchor="middle" fontSize="12" fill="#64748B">
+        <text key={`x-label-${i}`} x={point.x} y={chartHeight + padding.top + 20} textAnchor="middle" fontSize="12" fill="var(--color-text-secondary)">
           {d.label}
         </text>
       );
@@ -126,12 +126,12 @@ export const LineChart: React.FC<LineChartProps> = ({
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>{title}</h3>}
       <div className="relative w-full overflow-x-auto">
         <svg width={chartWidth} height={height} className="min-w-full" style={{ fontFamily: 'inherit' }}>
           {gridLines}
-          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={chartHeight + padding.top} stroke="#CBD5E1" strokeWidth="1" />
-          <line x1={padding.left} y1={chartHeight + padding.top} x2={chartWidth - padding.right} y2={chartHeight + padding.top} stroke="#CBD5E1" strokeWidth="1" />
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={chartHeight + padding.top} stroke="var(--color-border)" strokeWidth="1" />
+          <line x1={padding.left} y1={chartHeight + padding.top} x2={chartWidth - padding.right} y2={chartHeight + padding.top} stroke="var(--color-border)" strokeWidth="1" />
           {yLabels}
           {xLabels}
           {secondaryPath && (
@@ -201,12 +201,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         {title && <h3 className="text-sm font-semibold text-slate-900 mb-4">{title}</h3>}
         <div className="flex flex-col items-center">
           <svg width={size * 1.2} height={size * 1.2} className="mx-auto">
-            <circle cx={radius} cy={radius} r={outerRadius} fill="none" stroke="#E2E8F0" strokeWidth={outerRadius - innerRadius} />
+            <circle cx={radius} cy={radius} r={outerRadius} fill="none" stroke="var(--color-bg-hover)" strokeWidth={outerRadius - innerRadius} />
             {centerText && (
-              <text x={radius} y={radius} textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="600" fill="#94A3B8">{centerText}</text>
+              <text x={radius} y={radius} textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="600" fill="var(--color-text-secondary)">{centerText}</text>
             )}
           </svg>
-          <p className="text-sm text-slate-400 text-center mt-4">No data yet</p>
+          <p className="text-sm text-center mt-4" style={{ color: 'var(--color-text-tertiary)' }}>No data yet</p>
         </div>
       </div>
     );
@@ -238,7 +238,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>{title}</h3>}
       <div className="flex flex-col items-center">
         <svg width={size * 1.2} height={size * 1.2} className="mx-auto">
           {segments.map((segment, index) => (
@@ -254,7 +254,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             </g>
           ))}
           {centerText && (
-            <text x={radius} y={radius} textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="600" fill="#1E293B" pointerEvents="none" style={{ opacity: animated ? animationOffset : 1, transition: 'opacity 0.6s ease' }}>
+            <text x={radius} y={radius} textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="600" fill="var(--color-text)" pointerEvents="none" style={{ opacity: animated ? animationOffset : 1, transition: 'opacity 0.6s ease' }}>
               {centerText}
             </text>
           )}
@@ -264,8 +264,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             <div key={`legend-${index}`} className="flex items-center gap-3 mb-2">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: segment.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length] }} />
               <div className="flex items-center justify-between flex-1 min-w-0">
-                <span className="text-sm text-slate-600 truncate">{segment.label}</span>
-                <span className="text-sm font-medium text-slate-900 ml-2">{segment.value.toLocaleString()}</span>
+                <span className="text-sm truncate" style={{ color: 'var(--color-text-secondary)' }}>{segment.label}</span>
+                <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-text)' }}>{segment.value.toLocaleString()}</span>
               </div>
             </div>
           ))}
@@ -309,7 +309,7 @@ export const BarChart: React.FC<BarChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div className="w-full flex items-center justify-center" style={{ height }}>
-        <p className="text-slate-500">No data available</p>
+        <p style={{ color: 'var(--color-text-tertiary)' }}>No data available</p>
       </div>
     );
   }
@@ -321,23 +321,23 @@ export const BarChart: React.FC<BarChartProps> = ({
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-slate-900 mb-4">{title}</h3>}
+      {title && <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>{title}</h3>}
       <div style={{ height, display: 'flex', flexDirection: 'column' }}>
         {data.map((item, index) => {
           const barWidth = ((item.value / maxValue) / 100) * (chartWidth - padding * 2) * 100;
           return (
             <div key={`bar-${index}`} className="flex items-center gap-3 flex-1" style={{ minHeight: barHeight }}>
               <div style={{ width: 120, flexShrink: 0 }}>
-                <p className="text-sm font-medium text-slate-700 truncate">{item.label}</p>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-secondary)' }}>{item.label}</p>
               </div>
               <div className="flex-1 flex items-center gap-2 min-w-0">
-                <div className="bg-slate-100 rounded h-8 relative flex-1">
+                <div className="rounded h-8 relative flex-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
                   <div
                     className="h-full rounded transition-all duration-500"
                     style={{ backgroundColor: color, width: animated ? `${barWidth * animationOffset}px` : `${barWidth}px`, opacity: 0.9 }}
                   />
                 </div>
-                <p className="text-sm font-semibold text-slate-900 flex-shrink-0 w-16 text-right">
+                <p className="text-sm font-semibold flex-shrink-0 w-16 text-right" style={{ color: 'var(--color-text)' }}>
                   {item.value.toLocaleString()}
                 </p>
               </div>

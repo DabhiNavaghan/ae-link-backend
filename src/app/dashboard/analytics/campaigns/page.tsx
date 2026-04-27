@@ -90,22 +90,22 @@ const CampaignsAnalyticsPage: React.FC = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Campaigns Analytics</h1>
-          <p className="text-slate-600">Compare campaign performance across all channels</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>Campaigns Analytics</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>Compare campaign performance across all channels</p>
         </div>
 
         {error && (
-          <div className="card bg-danger-50 border-danger-200 p-4 mb-6 text-danger-800">
+          <div className="card p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'var(--color-danger)', borderWidth: '1px', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="card p-6 text-center text-slate-600">Loading...</div>
+          <div className="card p-6 text-center" style={{ color: 'var(--color-text-secondary)' }}>Loading...</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Campaign List */}
@@ -140,13 +140,12 @@ const CampaignsAnalyticsPage: React.FC = () => {
                         <tr
                           key={campaign.campaignId}
                           onClick={() => setSelectedCampaign(campaign.campaignId)}
-                          className={`cursor-pointer transition-colors ${
-                            selectedCampaign === campaign.campaignId
-                              ? 'bg-primary-50'
-                              : 'hover:bg-slate-50'
-                          }`}
+                          className="cursor-pointer transition-colors"
+                          style={{ backgroundColor: selectedCampaign === campaign.campaignId ? 'rgba(99, 102, 241, 0.1)' : 'transparent' }}
+                          onMouseEnter={(e) => { if (selectedCampaign !== campaign.campaignId) e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)'; }}
+                          onMouseLeave={(e) => { if (selectedCampaign !== campaign.campaignId) e.currentTarget.style.backgroundColor = 'transparent'; }}
                         >
-                          <td className="font-semibold text-slate-900">
+                          <td className="font-semibold" style={{ color: 'var(--color-text)' }}>
                             {campaign.campaignName}
                           </td>
                           <td className="text-right">
@@ -183,19 +182,19 @@ const CampaignsAnalyticsPage: React.FC = () => {
             {/* Campaign Details */}
             {selectedCampaignData ? (
               <div className="card p-6 h-fit">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Campaign Details</h3>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Campaign Details</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Name</p>
-                    <p className="text-lg font-bold text-slate-900 mt-1">
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Name</p>
+                    <p className="text-lg font-bold mt-1" style={{ color: 'var(--color-text)' }}>
                       {selectedCampaignData.campaignName}
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Status</p>
-                    <p className="text-sm font-medium text-slate-900 mt-1">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Status</p>
+                    <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text)' }}>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           selectedCampaignData.status === 'active'
@@ -211,48 +210,48 @@ const CampaignsAnalyticsPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Total Links</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Total Links</p>
+                    <p className="text-2xl font-bold mt-1" style={{ color: 'var(--color-text)' }}>
                       {selectedCampaignData.totalLinks}
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Total Clicks</p>
-                    <p className="text-2xl font-bold text-primary-600 mt-1">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Total Clicks</p>
+                    <p className="text-2xl font-bold mt-1" style={{ color: 'var(--color-primary)' }}>
                       {selectedCampaignData.totalClicks.toLocaleString()}
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>
                       Total Conversions
                     </p>
-                    <p className="text-2xl font-bold text-secondary-600 mt-1">
+                    <p className="text-2xl font-bold mt-1" style={{ color: 'var(--color-secondary)' }}>
                       {selectedCampaignData.totalConversions.toLocaleString()}
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>
                       Conversion Rate
                     </p>
-                    <p className="text-2xl font-bold text-emerald-600 mt-1">
+                    <p className="text-2xl font-bold mt-1" style={{ color: '#10B981' }}>
                       {selectedCampaignData.conversionRate.toFixed(2)}%
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Match Rate</p>
-                    <p className="text-lg font-semibold text-slate-900 mt-1">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Match Rate</p>
+                    <p className="text-lg font-semibold mt-1" style={{ color: 'var(--color-text)' }}>
                       {selectedCampaignData.deferredMatchRate.toFixed(1)}%
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Created</p>
-                    <p className="text-sm text-slate-600 mt-1">
+                  <div className="pt-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                    <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-secondary)' }}>Created</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                       {new Date(selectedCampaignData.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -260,7 +259,7 @@ const CampaignsAnalyticsPage: React.FC = () => {
               </div>
             ) : (
               <div className="card p-6 flex items-center justify-center h-fit">
-                <p className="text-slate-500 text-center">
+                <p className="text-center" style={{ color: 'var(--color-text-tertiary)' }}>
                   Select a campaign to view details
                 </p>
               </div>
@@ -271,7 +270,7 @@ const CampaignsAnalyticsPage: React.FC = () => {
         {/* Comparison Chart */}
         {campaigns.length > 0 && !loading && (
           <div className="card p-6 mt-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Clicks Comparison</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Clicks Comparison</h3>
             <BarChart
               data={campaigns.map(c => ({
                 label: c.campaignName,

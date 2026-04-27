@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { CSSProperties } from 'react';
 
 interface StatusDotProps {
   status: 'active' | 'paused' | 'archived' | 'error' | 'pending' | 'idle';
@@ -13,26 +13,36 @@ const StatusDot: React.FC<StatusDotProps> = ({
   size = 'md',
   animated = false,
 }) => {
-  const statusColors: Record<string, string> = {
-    active: 'bg-success-600',
-    paused: 'bg-warning-600',
-    archived: 'bg-slate-400',
-    error: 'bg-danger-600',
-    pending: 'bg-primary-600',
-    idle: 'bg-slate-400',
+  const getStatusColor = (status: string): string => {
+    const statusColors: Record<string, string> = {
+      active: 'var(--color-success)',
+      paused: 'var(--color-warning)',
+      archived: 'var(--color-text-tertiary)',
+      error: 'var(--color-danger)',
+      pending: 'var(--color-primary)',
+      idle: 'var(--color-text-tertiary)',
+    };
+    return statusColors[status];
   };
 
-  const sizeClasses: Record<string, string> = {
-    sm: 'w-2 h-2',
-    md: 'w-3 h-3',
-    lg: 'w-4 h-4',
+  const getSizeStyle = (size: string): CSSProperties => {
+    const sizeStyles: Record<string, CSSProperties> = {
+      sm: { width: '0.5rem', height: '0.5rem' },
+      md: { width: '0.75rem', height: '0.75rem' },
+      lg: { width: '1rem', height: '1rem' },
+    };
+    return sizeStyles[size];
   };
 
   const animationClass = animated && status === 'active' ? 'animate-pulse' : '';
 
   return (
     <span
-      className={`inline-block rounded-full ${sizeClasses[size]} ${statusColors[status]} ${animationClass}`}
+      className={`inline-block rounded-full ${animationClass}`}
+      style={{
+        ...getSizeStyle(size),
+        backgroundColor: getStatusColor(status),
+      }}
     />
   );
 };

@@ -30,12 +30,13 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
 
   return (
     <div className="relative group">
-      <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 text-sm overflow-x-auto leading-relaxed">
+      <pre style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="rounded-lg p-4 text-sm overflow-x-auto leading-relaxed">
         <code>{code}</code>
       </pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text-secondary)' }}
+        className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-90"
         title="Copy to clipboard"
       >
         {copied ? (
@@ -132,17 +133,17 @@ export default function DocsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div style={{ backgroundColor: 'var(--color-bg)' }} className="min-h-screen">
       {/* Top Bar */}
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+      <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="sticky top-0 z-20 backdrop-blur-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard')} className="text-slate-500 hover:text-slate-700 p-1">
+            <button onClick={() => router.push('/dashboard')} style={{ color: 'var(--color-text-secondary)' }} className="hover:opacity-70 p-1">
               <ArrowLeftIcon />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">SmartLink Documentation</h1>
-              <p className="text-xs text-slate-500">Setup guides, SDK reference, and integration help</p>
+              <h1 style={{ color: 'var(--color-text)' }} className="text-lg font-bold">SmartLink Documentation</h1>
+              <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs">Setup guides, SDK reference, and integration help</p>
             </div>
           </div>
           <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
@@ -159,11 +160,12 @@ export default function DocsPage() {
               <li key={item.id}>
                 <button
                   onClick={() => scrollTo(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    activeSection === item.id
-                      ? 'bg-primary-50 text-primary-700 font-medium'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
+                  style={{
+                    backgroundColor: activeSection === item.id ? 'var(--color-primary-light)' : 'transparent',
+                    color: activeSection === item.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    fontWeight: activeSection === item.id ? '500' : 'normal'
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:opacity-70"
                 >
                   {item.label}
                 </button>

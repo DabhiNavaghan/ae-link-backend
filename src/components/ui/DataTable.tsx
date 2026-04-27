@@ -89,7 +89,13 @@ const DataTable = <T extends Record<string, any>>({
   return (
     <div className="card overflow-hidden">
       {search && (
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div
+          className="px-6 py-4"
+          style={{
+            borderBottom: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg-secondary)',
+          }}
+        >
           <input
             type="text"
             placeholder={search.placeholder || 'Search...'}
@@ -111,7 +117,7 @@ const DataTable = <T extends Record<string, any>>({
                   onClick={() =>
                     column.sortable && handleSort(column.key)
                   }
-                  className={column.sortable ? 'cursor-pointer hover:bg-slate-100' : ''}
+                  className={column.sortable ? 'cursor-pointer' : ''}
                 >
                   <div className="flex items-center gap-2">
                     {column.label}
@@ -163,7 +169,8 @@ const DataTable = <T extends Record<string, any>>({
                         <button
                           key={i}
                           onClick={() => action.onClick(item)}
-                          className="text-slate-600 hover:text-slate-900 transition-colors duration-200 p-1"
+                          className="transition-colors duration-200 p-1"
+                          style={{ color: 'var(--color-text-secondary)' }}
                           title={action.label}
                         >
                           {action.icon || action.label}
@@ -179,8 +186,17 @@ const DataTable = <T extends Record<string, any>>({
       </div>
 
       {pagination && (
-        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-          <p className="text-sm text-slate-600">
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{
+            borderTop: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg-secondary)',
+          }}
+        >
+          <p
+            className="text-sm"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             Page {pagination.currentPage} of {pagination.totalPages}
           </p>
           <div className="flex gap-2">
@@ -189,7 +205,13 @@ const DataTable = <T extends Record<string, any>>({
                 pagination.onPageChange(pagination.currentPage - 1)
               }
               disabled={pagination.currentPage === 1}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+              style={{
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-secondary)',
+                opacity: pagination.currentPage === 1 ? 0.5 : 1,
+                cursor: pagination.currentPage === 1 ? 'not-allowed' : 'pointer',
+              }}
             >
               Previous
             </button>
@@ -198,7 +220,13 @@ const DataTable = <T extends Record<string, any>>({
                 pagination.onPageChange(pagination.currentPage + 1)
               }
               disabled={pagination.currentPage === pagination.totalPages}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+              style={{
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-secondary)',
+                opacity: pagination.currentPage === pagination.totalPages ? 0.5 : 1,
+                cursor: pagination.currentPage === pagination.totalPages ? 'not-allowed' : 'pointer',
+              }}
             >
               Next
             </button>

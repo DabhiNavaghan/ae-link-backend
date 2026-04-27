@@ -143,7 +143,7 @@ const SettingsPage: React.FC = () => {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-3"></div>
-          <p className="text-slate-500 text-sm">Loading settings...</p>
+          <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Loading settings...</p>
         </div>
       </div>
     );
@@ -153,25 +153,26 @@ const SettingsPage: React.FC = () => {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
-        <p className="text-slate-600">Configure your SmartLink app and deep linking preferences.</p>
+        <h1 style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mb-2">Settings</h1>
+        <p style={{ color: 'var(--color-text-secondary)' }}>Configure your SmartLink app and deep linking preferences.</p>
       </div>
 
       {/* Messages */}
       {message && (
         <div
-          className={`card p-4 mb-6 ${
-            message.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-danger-50 border-danger-200 text-danger-800'
-          }`}
+          style={{
+            backgroundColor: message.type === 'success' ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 61, 138, 0.12)',
+            borderColor: message.type === 'success' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(255, 61, 138, 0.3)',
+            color: message.type === 'success' ? '#4ADE80' : '#FF3D8A'
+          }}
+          className="card p-4 mb-6"
         >
           {message.text}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="card border-b border-slate-200 mb-6 flex overflow-x-auto">
+      <div className="card border-b mb-6 flex overflow-x-auto" style={{ borderColor: 'var(--color-border)' }}>
         {[
           { key: 'general', label: 'General' },
           { key: 'app', label: 'App Config' },
@@ -184,9 +185,12 @@ const SettingsPage: React.FC = () => {
             onClick={() => setActiveTab(tab.key as any)}
             className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
+                ? 'border-primary-500'
+                : 'border-transparent'
             }`}
+            style={{
+              color: activeTab === tab.key ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+            }}
           >
             {tab.label}
           </button>
@@ -199,7 +203,7 @@ const SettingsPage: React.FC = () => {
         {activeTab === 'general' && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 App Name
               </label>
               <input
@@ -212,20 +216,21 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 Domain
               </label>
               <input
                 type="text"
                 value={settings.domain}
                 disabled
-                className="input-base bg-slate-50 text-slate-600 cursor-not-allowed"
+                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', cursor: 'not-allowed' }}
+                className="input-base"
               />
-              <p className="text-xs text-slate-500 mt-1">Domain cannot be changed after registration.</p>
+              <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">Domain cannot be changed after registration.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 Default Fallback URL
               </label>
               <input
@@ -237,13 +242,13 @@ const SettingsPage: React.FC = () => {
                 className="input-base"
                 placeholder="https://allevents.in"
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">
                 Where to redirect users when the app is not installed and no store URL is configured.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 API Key
               </label>
               <div className="flex gap-2 items-center">
@@ -251,17 +256,20 @@ const SettingsPage: React.FC = () => {
                   type={showApiKey ? 'text' : 'password'}
                   value={settings.apiKey || ''}
                   disabled
-                  className="input-base flex-1 bg-slate-50 text-slate-600 cursor-not-allowed font-mono text-sm"
+                  style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', cursor: 'not-allowed' }}
+                  className="input-base flex-1 font-mono text-sm"
                 />
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors text-sm"
+                  style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-80"
                 >
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
                 <button
                   onClick={() => copyToClipboard(settings.apiKey || '')}
-                  className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
+                  style={{ backgroundColor: 'var(--color-primary)', color: '#000' }}
+                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-90"
                 >
                   Copy
                 </button>
@@ -269,11 +277,12 @@ const SettingsPage: React.FC = () => {
               <div className="mt-3 flex items-center gap-3">
                 <button
                   onClick={handleRegenerateKey}
-                  className="text-sm text-danger-600 hover:text-danger-700 font-medium"
+                  style={{ color: 'var(--color-danger)' }}
+                  className="text-sm hover:opacity-80 font-medium"
                 >
                   Regenerate API Key
                 </button>
-                <span className="text-xs text-slate-400">
+                <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
                   Warning: this will invalidate the current key immediately.
                 </span>
               </div>
@@ -285,16 +294,16 @@ const SettingsPage: React.FC = () => {
         {activeTab === 'app' && (
           <div className="space-y-8">
             {/* Android */}
-            <div className="border-b border-slate-200 pb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+            <div className="border-b pb-6" style={{ borderColor: 'var(--color-border)' }}>
+              <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#4ADE80">
                   <path d="M17.523 15.341c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.901.402.901.902-.401.902-.901.902zm-11.046 0c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.902.402.902.902-.402.902-.902.902zm11.4-6.052l1.997-3.46a.416.416 0 00-.152-.567.416.416 0 00-.568.152L17.12 8.93c-1.46-.67-3.1-1.044-5.12-1.044s-3.66.374-5.12 1.044L4.846 5.414a.416.416 0 00-.568-.152.416.416 0 00-.152.567l1.997 3.46C2.688 11.186.343 14.654 0 18.76h24c-.343-4.106-2.688-7.574-6.123-9.471z" />
                 </svg>
                 Android
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                     Package Name
                   </label>
                   <input
@@ -309,11 +318,11 @@ const SettingsPage: React.FC = () => {
                     className="input-base"
                     placeholder="com.amitech.allevents"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Found in app/build.gradle under applicationId</p>
+                  <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">Found in app/build.gradle under applicationId</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                     SHA256 Certificate Fingerprint
                   </label>
                   <textarea
@@ -328,11 +337,11 @@ const SettingsPage: React.FC = () => {
                     placeholder="23:C6:3D:23:1E:87:..."
                     rows={3}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Run ./gradlew signingReport in Android Studio terminal, or find in Google Play Console &gt; App Signing</p>
+                  <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">Run ./gradlew signingReport in Android Studio terminal, or find in Google Play Console &gt; App Signing</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                     Play Store URL
                   </label>
                   <input
@@ -353,15 +362,15 @@ const SettingsPage: React.FC = () => {
 
             {/* iOS */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="currentColor">
+              <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--color-text)' }}>
                   <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
                 </svg>
                 iOS
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                     Bundle ID
                   </label>
                   <input
@@ -376,12 +385,12 @@ const SettingsPage: React.FC = () => {
                     className="input-base"
                     placeholder="com.amitech.allevents"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Xcode &gt; Target &gt; General &gt; Bundle Identifier</p>
+                  <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">Xcode &gt; Target &gt; General &gt; Bundle Identifier</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                       Team ID
                     </label>
                     <input
@@ -396,11 +405,11 @@ const SettingsPage: React.FC = () => {
                       className="input-base"
                       placeholder="53V82MSR2T"
                     />
-                    <p className="text-xs text-slate-500 mt-1">developer.apple.com &gt; Membership</p>
+                    <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">developer.apple.com &gt; Membership</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                       App Store ID
                     </label>
                     <input
@@ -415,12 +424,12 @@ const SettingsPage: React.FC = () => {
                       className="input-base"
                       placeholder="488116646"
                     />
-                    <p className="text-xs text-slate-500 mt-1">App Store Connect &gt; General &gt; Apple ID</p>
+                    <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-1">App Store Connect &gt; General &gt; Apple ID</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                     App Store URL
                   </label>
                   <input
@@ -445,7 +454,7 @@ const SettingsPage: React.FC = () => {
         {activeTab === 'deep-link' && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 Fingerprint TTL (hours)
               </label>
               <input
@@ -464,11 +473,11 @@ const SettingsPage: React.FC = () => {
                 max="168"
                 className="input-base"
               />
-              <p className="text-xs text-slate-500 mt-2">
+              <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-2">
                 How long to keep device fingerprints for deferred link matching (1-168 hours). Default: 72 hours.
               </p>
-              <div className="mt-4 p-3 bg-primary-50 rounded-lg">
-                <p className="text-sm text-primary-900">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+                <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>About fingerprints:</strong> Device fingerprints help match
                   deferred deep links by capturing device characteristics (IP, user agent,
                   screen properties). Longer TTLs allow more matches but use more storage.
@@ -477,7 +486,7 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 Match Threshold (points)
               </label>
               <input
@@ -495,13 +504,13 @@ const SettingsPage: React.FC = () => {
                 className="w-full"
               />
               <div className="mt-2 flex justify-between items-center">
-                <span className="text-sm font-semibold text-slate-900">
+                <span style={{ color: 'var(--color-text)' }} className="text-sm font-semibold">
                   {settings.matchThreshold} points
                 </span>
-                <span className="text-xs text-slate-500">Recommended: 70</span>
+                <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Recommended: 70</span>
               </div>
-              <div className="mt-4 p-3 bg-primary-50 rounded-lg">
-                <p className="text-sm text-primary-900">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+                <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>Match threshold:</strong> Minimum confidence score required to
                   confirm a deferred link match. Lower values = more matches but less
                   accurate. Higher values = fewer matches but very reliable.
@@ -515,10 +524,10 @@ const SettingsPage: React.FC = () => {
         {activeTab === 'integration' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Flutter SDK</h3>
-              <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
-                <p className="text-sm text-slate-600 mb-2">Create <code className="bg-slate-200 px-1 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> and initialize in main.dart:</p>
-                <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
+              <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">Flutter SDK</h3>
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+                <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create <code style={{ backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text)' }} className="px-1 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> and initialize in main.dart:</p>
+                <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`import 'package:smartlink/smartlink.dart';
 
 // Create service with your API key
@@ -543,10 +552,10 @@ void main() async {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">API Usage</h3>
-              <div className="bg-slate-50 p-4 rounded-lg overflow-x-auto">
-                <p className="text-sm text-slate-600 mb-2">Create a deep link:</p>
-                <pre className="text-xs font-mono text-slate-800 whitespace-pre-wrap">
+              <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">API Usage</h3>
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+                <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create a deep link:</p>
+                <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app'}/api/v1/links \\
   -H "X-API-Key: ${settings.apiKey || 'YOUR_API_KEY'}" \\
   -H "Content-Type: application/json" \\
@@ -560,10 +569,10 @@ void main() async {
               </div>
             </div>
 
-            <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
-              <p className="text-sm text-primary-900">
+            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="p-4 border rounded-lg">
+              <p style={{ color: 'var(--color-text)' }} className="text-sm">
                 <strong>Full documentation:</strong>{' '}
-                <a href="/dashboard/docs" className="text-primary-600 hover:underline font-medium">
+                <a href="/dashboard/docs" style={{ color: 'var(--color-primary)' }} className="hover:underline font-medium">
                   View the complete integration guide
                 </a>{' '}
                 for detailed setup instructions, SDK reference, and troubleshooting.
@@ -575,44 +584,47 @@ void main() async {
         {/* Danger Zone */}
         {activeTab === 'danger' && (
           <div className="space-y-4">
-            <p className="text-sm text-slate-600 mb-6">
+            <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-6">
               These actions are irreversible. Please proceed with caution.
             </p>
 
-            <div className="border border-danger-200 bg-danger-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-danger-900 mb-2">Reset Analytics Data</h4>
-              <p className="text-sm text-danger-800 mb-4">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+              <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Reset Analytics Data</h4>
+              <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Delete all clicks, conversions, and analytics data.
               </p>
               <button
                 onClick={() => setShowDeleteConfirm('analytics')}
-                className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg text-sm font-medium"
+                style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
+                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
               >
                 Reset Analytics
               </button>
             </div>
 
-            <div className="border border-danger-200 bg-danger-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-danger-900 mb-2">Delete All Links</h4>
-              <p className="text-sm text-danger-800 mb-4">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+              <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete All Links</h4>
+              <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete all deep links and associated data.
               </p>
               <button
                 onClick={() => setShowDeleteConfirm('links')}
-                className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg text-sm font-medium"
+                style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
+                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
               >
                 Delete Links
               </button>
             </div>
 
-            <div className="border border-danger-200 bg-danger-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-danger-900 mb-2">Delete Tenant Account</h4>
-              <p className="text-sm text-danger-800 mb-4">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+              <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete Tenant Account</h4>
+              <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete this account and all associated data.
               </p>
               <button
                 onClick={() => setShowDeleteConfirm('account')}
-                className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg text-sm font-medium"
+                style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
+                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
               >
                 Delete Account
               </button>
@@ -627,13 +639,18 @@ void main() async {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors"
+            style={{
+              backgroundColor: saving ? 'var(--color-text-tertiary)' : 'var(--color-primary)',
+              color: saving ? 'var(--color-text-tertiary)' : '#000'
+            }}
+            className="px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             onClick={() => { setLoading(true); fetchSettings(); }}
-            className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+            className="px-6 py-3 rounded-lg font-medium transition-colors hover:opacity-80"
           >
             Reset
           </button>
@@ -642,16 +659,17 @@ void main() async {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="card p-6 max-w-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Delete</h3>
-            <p className="text-slate-600 mb-6">
+        <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }} className="fixed inset-0 flex items-center justify-center z-50">
+          <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="card p-6 max-w-sm border">
+            <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-bold mb-2">Confirm Delete</h3>
+            <p style={{ color: 'var(--color-text-secondary)' }} className="mb-6">
               Are you sure? This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium"
+                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-80"
               >
                 Cancel
               </button>
@@ -663,7 +681,8 @@ void main() async {
                     text: `${showDeleteConfirm} deletion would be processed`,
                   });
                 }}
-                className="flex-1 px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg font-medium"
+                style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-90"
               >
                 Delete
               </button>

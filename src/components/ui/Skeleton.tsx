@@ -13,7 +13,8 @@ const Skeleton: React.FC<SkeletonProps> = ({ className = '', count = 1 }) => {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className={`bg-slate-200 rounded animate-pulse ${className}`}
+          className={`rounded animate-pulse ${className}`}
+          style={{ backgroundColor: 'var(--color-bg-hover)' }}
         />
       ))}
     </>

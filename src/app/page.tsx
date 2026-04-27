@@ -32,7 +32,7 @@ export default function LandingPage() {
   const faqs = [
     {
       q: 'What counts as a "routed link"?',
-      a: 'Each successful resolution of a Trail Link URL by an end user counts as one routed link. Generating links via API, dashboard previews, and bot traffic flagged by our fraud shield don\'t count.',
+      a: 'Each successful resolution of a SmartLink URL by an end user counts as one routed link. Generating links via API, dashboard previews, and bot traffic flagged by our fraud shield don\'t count.',
     },
     {
       q: 'Can I switch tiers mid-month?',
@@ -59,7 +59,7 @@ export default function LandingPage() {
         <div className="tl-container tl-nav-inner">
           <Link href="/" className="tl-logo">
             <span className="tl-logo-mark" />
-            trail link<span className="slash">/</span>
+            smartlink<span className="slash">/</span>
           </Link>
           <nav className="tl-nav-links">
             <a href="#how">How</a>
@@ -100,7 +100,7 @@ export default function LandingPage() {
           <div className="tl-hero-row">
             <div className="reveal d3">
               <p className="tl-hero-sub">
-                <strong>Trail Link</strong> is the link layer for modern apps. Deep links,
+                <strong>SmartLink</strong> is the link layer for modern apps. Deep links,
                 deferred deep links, and attribution -- engineered for product teams who
                 refuse to lose users between web and app.{' '}
                 <strong>One SDK. Every platform. Zero dropped sessions.</strong>
@@ -131,7 +131,7 @@ export default function LandingPage() {
                 <div className="term-line">
                   <span className="term-prompt">$</span>
                   <span className="term-cmd">
-                    traillink resolve{' '}
+                    smartlink resolve{' '}
                     <span className="term-str">&quot;trl.lk/launch&quot;</span>
                   </span>
                 </div>
@@ -570,12 +570,12 @@ export default function LandingPage() {
                 <div className={`tl-code-pane ${activeLang === 'js' ? 'active' : ''}`}>
                   <pre>
                     <span className="ln">01</span>
-                    <span className="kw">import</span> <span className="var">{'{ traillink }'}</span> <span className="kw">from</span> <span className="str">&apos;@traillink/sdk&apos;</span>{'\n'}
+                    <span className="kw">import</span> <span className="var">{'{ smartlink }'}</span> <span className="kw">from</span> <span className="str">&apos;@smartlink/sdk&apos;</span>{'\n'}
                     <span className="ln">02</span>{'\n'}
                     <span className="ln">03</span>
                     <span className="com">{'// create a link with deferred routing'}</span>{'\n'}
                     <span className="ln">04</span>
-                    <span className="kw">const</span> <span className="var">link</span> = <span className="kw">await</span> <span className="fn">traillink.create</span>({'{'}{'\n'}
+                    <span className="kw">const</span> <span className="var">link</span> = <span className="kw">await</span> <span className="fn">smartlink.create</span>({'{'}{'\n'}
                     <span className="ln">05</span>
                     {'  '}<span className="pn">destination</span>: <span className="str">&apos;/events/music-fest-42&apos;</span>,{'\n'}
                     <span className="ln">06</span>
@@ -596,7 +596,7 @@ export default function LandingPage() {
                 <div className={`tl-code-pane ${activeLang === 'kotlin' ? 'active' : ''}`}>
                   <pre>
                     <span className="ln">01</span>
-                    <span className="kw">import</span> <span className="var">io.traillink.sdk.TrailLink</span>{'\n'}
+                    <span className="kw">import</span> <span className="var">io.smartlink.sdk.TrailLink</span>{'\n'}
                     <span className="ln">02</span>{'\n'}
                     <span className="ln">03</span>
                     <span className="com">{'// in your Application onCreate'}</span>{'\n'}
@@ -860,7 +860,7 @@ export default function LandingPage() {
             <div className="tl-footer-brand">
               <a href="#" className="tl-logo">
                 <span className="tl-logo-mark" />
-                trail link<span className="slash">/</span>
+                smartlink<span className="slash">/</span>
               </a>
               <p>The link layer for modern apps. Built by AllEvents.</p>
               <div className="tl-system-status">All systems operational</div>
@@ -911,7 +911,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="tl-footer-glyph">traillink</div>
+        <div className="tl-footer-glyph">smartlink</div>
       </footer>
     </div>
   );

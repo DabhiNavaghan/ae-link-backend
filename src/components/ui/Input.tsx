@@ -29,7 +29,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             {label}
           </label>
         )}
@@ -48,10 +51,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </datalist>
         )}
         {error && (
-          <p className="mt-2 text-sm text-danger-600 font-medium">{error}</p>
+          <p
+            className="mt-2 text-sm font-medium"
+            style={{ color: 'var(--color-danger)' }}
+          >
+            {error}
+          </p>
         )}
         {helperText && !error && (
-          <p className="mt-2 text-sm text-slate-500">{helperText}</p>
+          <p
+            className="mt-2 text-sm"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            {helperText}
+          </p>
         )}
       </div>
     );

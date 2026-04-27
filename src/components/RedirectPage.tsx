@@ -188,7 +188,7 @@ export default function RedirectPage({
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'var(--color-bg)',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         padding: '20px',
       }}
@@ -199,17 +199,17 @@ export default function RedirectPage({
           width: 56,
           height: 56,
           borderRadius: 16,
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+          backgroundColor: 'var(--color-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 20,
-          color: '#fff',
+          color: 'var(--color-bg)',
           fontWeight: 'bold',
           fontSize: 18,
         }}
       >
-        AE
+        SL
       </div>
 
       {/* Spinner */}
@@ -226,13 +226,13 @@ export default function RedirectPage({
               cx="16"
               cy="16"
               r="13"
-              stroke="#e2e8f0"
+              stroke="var(--color-border)"
               strokeWidth="3"
               fill="none"
             />
             <path
               d="M16 3a13 13 0 0 1 13 13"
-              stroke="#6366f1"
+              stroke="var(--color-primary)"
               strokeWidth="3"
               strokeLinecap="round"
               fill="none"
@@ -241,11 +241,11 @@ export default function RedirectPage({
         </div>
       )}
 
-      <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1e293b', margin: '0 0 6px' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text)', margin: '0 0 6px' }}>
         {status === 'loading' ? 'Preparing your link...' : 'Redirecting...'}
       </h1>
 
-      <p style={{ fontSize: 14, color: '#64748b', margin: 0, textAlign: 'center' }}>
+      <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', margin: 0, textAlign: 'center' }}>
         {deviceOS === 'android' || deviceOS === 'ios'
           ? 'Taking you to the app store'
           : 'Taking you to the destination'}
@@ -257,23 +257,24 @@ export default function RedirectPage({
           style={{
             marginTop: 24,
             padding: 16,
-            backgroundColor: '#1e293b',
+            backgroundColor: 'var(--color-bg-secondary)',
             borderRadius: 12,
             width: '100%',
             maxWidth: 400,
             overflow: 'auto',
+            border: '1px solid var(--color-border)',
           }}
         >
-          <h3 style={{ color: '#22d3ee', fontSize: 14, margin: '0 0 8px', fontWeight: 600 }}>
+          <h3 style={{ color: 'var(--color-secondary)', fontSize: 14, margin: '0 0 8px', fontWeight: 600 }}>
             🌐 Browser Fingerprint (Collected)
           </h3>
-          <pre style={{ color: '#e2e8f0', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          <pre style={{ color: 'var(--color-text)', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
             {JSON.stringify(debugData.collected, null, 2)}
           </pre>
-          <h3 style={{ color: '#a78bfa', fontSize: 14, margin: '12px 0 8px', fontWeight: 600 }}>
+          <h3 style={{ color: 'var(--color-primary)', fontSize: 14, margin: '12px 0 8px', fontWeight: 600 }}>
             💾 Stored in DB
           </h3>
-          <pre style={{ color: '#e2e8f0', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          <pre style={{ color: 'var(--color-text)', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
             {JSON.stringify(debugData.stored, null, 2)}
           </pre>
         </div>
@@ -281,7 +282,7 @@ export default function RedirectPage({
 
       {/* Manual fallback link */}
       <div style={{ marginTop: 40, textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
           Not redirecting?
         </p>
         <a
@@ -294,7 +295,7 @@ export default function RedirectPage({
           }
           style={{
             fontSize: 13,
-            color: '#6366f1',
+            color: 'var(--color-primary)',
             textDecoration: 'none',
             fontWeight: 500,
           }}

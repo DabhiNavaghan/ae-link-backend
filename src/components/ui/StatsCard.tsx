@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, CSSProperties } from 'react';
 
 interface StatsCardProps {
   icon?: React.ReactNode;
@@ -49,47 +49,66 @@ const StatsCard: React.FC<StatsCardProps> = ({
     return () => clearInterval(interval);
   }, [value]);
 
-  const gradientClasses: Record<string, string> = {
-    primary: 'gradient-primary',
-    secondary: 'gradient-secondary',
-    success: 'bg-gradient-to-br from-success-50 to-success-100',
-    warning: 'bg-gradient-to-br from-warning-50 to-warning-100',
-    danger: 'bg-gradient-to-br from-danger-50 to-danger-100',
+  const getGradientStyle = (): CSSProperties => {
+    const gradientStyles: Record<string, CSSProperties> = {
+      primary: { backgroundColor: 'var(--color-primary-light)' },
+      secondary: { backgroundColor: 'var(--color-secondary)' },
+      success: { backgroundColor: 'var(--color-success)' },
+      warning: { backgroundColor: 'var(--color-warning)' },
+      danger: { backgroundColor: 'var(--color-danger)' },
+    };
+    return gradient ? gradientStyles[color] : {};
   };
 
-  const iconColorClasses: Record<string, string> = {
-    primary: 'text-primary-600',
-    secondary: 'text-secondary-600',
-    success: 'text-success-600',
-    warning: 'text-warning-600',
-    danger: 'text-danger-600',
+  const getIconColorStyle = (): CSSProperties => {
+    const iconColorStyles: Record<string, CSSProperties> = {
+      primary: { color: 'var(--color-primary)' },
+      secondary: { color: 'var(--color-secondary)' },
+      success: { color: 'var(--color-success)' },
+      warning: { color: 'var(--color-warning)' },
+      danger: { color: 'var(--color-danger)' },
+    };
+    return iconColorStyles[color];
   };
 
-  const changeColorClass =
+  const changeColor =
     typeof change === 'number' && change >= 0
-      ? 'text-success-600'
-      : 'text-danger-600';
+      ? 'var(--color-success)'
+      : 'var(--color-danger)';
 
   return (
     <div
-      className={`card p-6 transition-all duration-200 hover:shadow-md ${
-        gradient ? gradientClasses[color] : ''
-      }`}
+      className="card p-6 transition-all duration-200 hover:shadow-md"
+      style={getGradientStyle()}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600 mb-1">{label}</p>
+          <p
+            className="text-sm font-medium mb-1"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {label}
+          </p>
           {isLoading ? (
-            <div className="h-8 bg-slate-200 rounded animate-pulse w-24" />
+            <div
+              className="h-8 rounded animate-pulse w-24"
+              style={{ backgroundColor: 'var(--color-bg-hover)' }}
+            />
           ) : (
-            <p className="text-3xl font-bold text-slate-900">
+            <p
+              className="text-3xl font-bold"
+              style={{ color: 'var(--color-text)' }}
+            >
               {typeof displayValue === 'number'
                 ? displayValue.toLocaleString()
                 : displayValue}
             </p>
           )}
           {change !== undefined && !isLoading && (
-            <p className={`text-sm font-medium mt-2 ${changeColorClass}`}>
+            <p
+              className="text-sm font-medium mt-2"
+              style={{ color: changeColor }}
+            >
               {change >= 0 ? '+' : ''}
               {change}% {changeLabel}
             </p>
@@ -97,7 +116,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
         </div>
         {icon && (
           <div
-            className={`p-3 rounded-lg bg-white bg-opacity-50 ${iconColorClasses[color]}`}
+            className="p-3 rounded-lg"
+            style={{
+              backgroundColor: 'var(--color-bg-secondary)',
+              ...getIconColorStyle(),
+            }}
           >
             {icon}
           </div>

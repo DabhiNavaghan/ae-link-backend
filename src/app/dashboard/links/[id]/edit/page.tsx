@@ -360,8 +360,8 @@ export default function EditLinkPage() {
       <div className="min-h-screen bg-base p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-600">Loading link...</p>
+            <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin mb-4" style={{ borderColor: 'var(--color-primary-light)', borderTopColor: 'var(--color-primary)' }}></div>
+            <p style={{ color: 'var(--color-text-secondary)' }}>Loading link...</p>
           </div>
         </div>
       </div>
@@ -374,18 +374,19 @@ export default function EditLinkPage() {
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="text-primary-600 hover:text-primary-700 font-medium mb-4"
+            className="font-medium mb-4"
+            style={{ color: 'var(--color-primary)' }}
           >
             ← Back
           </button>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Link</h1>
-          <p className="text-slate-600 mt-2">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Edit Link</h1>
+          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
             Update your deep link parameters and platform overrides
           </p>
         </div>
 
         {error && (
-          <div className="bg-danger-50 border border-danger-200 rounded-lg p-4 mb-6 text-danger-800">
+          <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', borderWidth: '1px', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
@@ -394,16 +395,17 @@ export default function EditLinkPage() {
           {/* Left Column - Form */}
           <div className="lg:col-span-2 space-y-4">
             {/* Campaign & Destination */}
-            <div className="bg-card rounded-lg shadow-sm p-6">
+            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Campaign
                   </label>
                   <select
                     value={formData.campaignId}
                     onChange={(e) => handleCampaignChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                   >
                     <option value="">No Campaign (Optional)</option>
                     {campaigns.map((camp) => (
@@ -415,7 +417,7 @@ export default function EditLinkPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     App
                   </label>
                   <select
@@ -426,7 +428,8 @@ export default function EditLinkPage() {
                         appId: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                   >
                     <option value="">No App (Optional)</option>
                     {apps.map((app) => (
@@ -438,7 +441,7 @@ export default function EditLinkPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Destination URL *
                   </label>
                   <input
@@ -451,13 +454,14 @@ export default function EditLinkPage() {
                       }))
                     }
                     placeholder="https://allevents.in"
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Link Type
                   </label>
                   <select
@@ -468,7 +472,8 @@ export default function EditLinkPage() {
                         linkType: e.target.value as any,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                   >
                     {LINK_TYPES.map((type) => (
                       <option key={type} value={type}>
@@ -481,13 +486,13 @@ export default function EditLinkPage() {
             </div>
 
             {/* Event/Content Data */}
-            <div className="bg-card rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
                 Event/Content Data
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Event ID
                   </label>
                   <input
@@ -500,12 +505,13 @@ export default function EditLinkPage() {
                       }))
                     }
                     placeholder="evt_123456"
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                     Action
                   </label>
                   <select
@@ -516,7 +522,8 @@ export default function EditLinkPage() {
                         action: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
                   >
                     {ACTIONS.map((action) => (
                       <option key={action} value={action}>
@@ -529,19 +536,23 @@ export default function EditLinkPage() {
             </div>
 
             {/* UTM Parameters */}
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleSection('utm')}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition border-b border-slate-200"
+                className="w-full px-6 py-4 flex items-center justify-between transition"
+                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                   UTM Parameters
                 </h3>
                 <svg
-                  className={`w-5 h-5 text-slate-600 transform transition ${
+                  className={`w-5 h-5 transform transition ${
                     expandedSections.utm ? 'rotate-180' : ''
                   }`}
+                  style={{ color: 'var(--color-text-secondary)' }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -555,7 +566,7 @@ export default function EditLinkPage() {
                 </svg>
               </button>
               {expandedSections.utm && (
-                <div className="p-6 space-y-4 border-t border-slate-200">
+                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
                   <input
                     type="text"
                     placeholder="UTM Source (e.g., facebook)"
@@ -566,7 +577,8 @@ export default function EditLinkPage() {
                         utmSource: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -578,7 +590,8 @@ export default function EditLinkPage() {
                         utmMedium: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -590,7 +603,8 @@ export default function EditLinkPage() {
                         utmCampaign: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -602,7 +616,8 @@ export default function EditLinkPage() {
                         utmTerm: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -614,26 +629,31 @@ export default function EditLinkPage() {
                         utmContent: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                 </div>
               )}
             </div>
 
             {/* User Attribution */}
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleSection('user')}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition border-b border-slate-200"
+                className="w-full px-6 py-4 flex items-center justify-between transition"
+                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                   User Attribution
                 </h3>
                 <svg
-                  className={`w-5 h-5 text-slate-600 transform transition ${
+                  className={`w-5 h-5 transform transition ${
                     expandedSections.user ? 'rotate-180' : ''
                   }`}
+                  style={{ color: 'var(--color-text-secondary)' }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -647,7 +667,7 @@ export default function EditLinkPage() {
                 </svg>
               </button>
               {expandedSections.user && (
-                <div className="p-6 space-y-4 border-t border-slate-200">
+                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
                   <input
                     type="email"
                     placeholder="User Email"
@@ -658,7 +678,8 @@ export default function EditLinkPage() {
                         userEmail: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -670,7 +691,8 @@ export default function EditLinkPage() {
                         userId: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -682,7 +704,8 @@ export default function EditLinkPage() {
                         couponCode: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                   <input
                     type="text"
@@ -694,26 +717,31 @@ export default function EditLinkPage() {
                         referralCode: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    className="w-full px-4 py-2 rounded-lg text-sm"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                   />
                 </div>
               )}
             </div>
 
             {/* Custom Parameters */}
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleSection('custom')}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition border-b border-slate-200"
+                className="w-full px-6 py-4 flex items-center justify-between transition"
+                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                   Custom Parameters
                 </h3>
                 <svg
-                  className={`w-5 h-5 text-slate-600 transform transition ${
+                  className={`w-5 h-5 transform transition ${
                     expandedSections.custom ? 'rotate-180' : ''
                   }`}
+                  style={{ color: 'var(--color-text-secondary)' }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -727,22 +755,24 @@ export default function EditLinkPage() {
                 </svg>
               </button>
               {expandedSections.custom && (
-                <div className="p-6 space-y-4 border-t border-slate-200">
+                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
                   {Object.entries(formData.customParams).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex gap-2 items-start bg-slate-50 p-3 rounded-lg"
+                      className="flex gap-2 items-start p-3 rounded-lg"
+                      style={{ backgroundColor: 'var(--color-bg-secondary)' }}
                     >
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                           {key}
                         </p>
-                        <p className="text-xs text-slate-600">{value}</p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{value}</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => removeCustomParam(key)}
-                        className="text-sm text-danger-600 hover:text-danger-700"
+                        className="text-sm"
+                        style={{ color: 'var(--color-danger)' }}
                       >
                         ✕
                       </button>
@@ -754,19 +784,24 @@ export default function EditLinkPage() {
                       placeholder="Key"
                       value={customParamKey}
                       onChange={(e) => setCustomParamKey(e.target.value)}
-                      className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      className="flex-1 px-4 py-2 rounded-lg text-sm"
+                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                     />
                     <input
                       type="text"
                       placeholder="Value"
                       value={customParamValue}
                       onChange={(e) => setCustomParamValue(e.target.value)}
-                      className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      className="flex-1 px-4 py-2 rounded-lg text-sm"
+                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                     />
                     <button
                       type="button"
                       onClick={addCustomParam}
-                      className="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-200 transition whitespace-nowrap"
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap"
+                      style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
                     >
                       Add
                     </button>
@@ -776,19 +811,23 @@ export default function EditLinkPage() {
             </div>
 
             {/* Platform Overrides */}
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleSection('platform')}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition border-b border-slate-200"
+                className="w-full px-6 py-4 flex items-center justify-between transition"
+                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                   Platform Overrides
                 </h3>
                 <svg
-                  className={`w-5 h-5 text-slate-600 transform transition ${
+                  className={`w-5 h-5 transform transition ${
                     expandedSections.platform ? 'rotate-180' : ''
                   }`}
+                  style={{ color: 'var(--color-text-secondary)' }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -802,9 +841,9 @@ export default function EditLinkPage() {
                 </svg>
               </button>
               {expandedSections.platform && (
-                <div className="p-6 space-y-6 border-t border-slate-200">
+                <div className="p-6 space-y-6" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-900 mb-3">
+                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
                       Android
                     </h4>
                     <div className="space-y-2">
@@ -818,7 +857,8 @@ export default function EditLinkPage() {
                             androidUrl: e.target.value,
                           }))
                         }
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                        className="w-full px-4 py-2 rounded-lg text-sm"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                       />
                       <input
                         type="text"
@@ -830,13 +870,14 @@ export default function EditLinkPage() {
                             androidFallback: e.target.value,
                           }))
                         }
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                        className="w-full px-4 py-2 rounded-lg text-sm"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-900 mb-3">
+                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
                       iOS
                     </h4>
                     <div className="space-y-2">
@@ -850,7 +891,8 @@ export default function EditLinkPage() {
                             iosUrl: e.target.value,
                           }))
                         }
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                        className="w-full px-4 py-2 rounded-lg text-sm"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                       />
                       <input
                         type="text"
@@ -862,13 +904,14 @@ export default function EditLinkPage() {
                             iosFallback: e.target.value,
                           }))
                         }
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                        className="w-full px-4 py-2 rounded-lg text-sm"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-900 mb-3">
+                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
                       Web
                     </h4>
                     <input
@@ -881,7 +924,8 @@ export default function EditLinkPage() {
                           webUrl: e.target.value,
                         }))
                       }
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      className="w-full px-4 py-2 rounded-lg text-sm"
+                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                     />
                   </div>
                 </div>
@@ -889,19 +933,23 @@ export default function EditLinkPage() {
             </div>
 
             {/* Advanced */}
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleSection('advanced')}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition border-b border-slate-200"
+                className="w-full px-6 py-4 flex items-center justify-between transition"
+                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                   Advanced
                 </h3>
                 <svg
-                  className={`w-5 h-5 text-slate-600 transform transition ${
+                  className={`w-5 h-5 transform transition ${
                     expandedSections.advanced ? 'rotate-180' : ''
                   }`}
+                  style={{ color: 'var(--color-text-secondary)' }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -915,9 +963,9 @@ export default function EditLinkPage() {
                 </svg>
               </button>
               {expandedSections.advanced && (
-                <div className="p-6 space-y-4 border-t border-slate-200">
+                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                    <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                       Expiry Date
                     </label>
                     <input
@@ -929,7 +977,8 @@ export default function EditLinkPage() {
                           expiryDate: e.target.value,
                         }))
                       }
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      className="w-full px-4 py-2 rounded-lg text-sm"
+                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
                     />
                   </div>
                 </div>
@@ -962,8 +1011,8 @@ export default function EditLinkPage() {
 
           {/* Right Column - Live Preview */}
           <div className="lg:col-span-1">
-            <div className="bg-card rounded-lg shadow-sm p-6 sticky top-8 space-y-6">
-              <h3 className="text-lg font-semibold text-slate-900">
+            <div className="rounded-lg shadow-sm p-6 sticky top-8 space-y-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
                 Live Preview
               </h3>
 
@@ -971,11 +1020,11 @@ export default function EditLinkPage() {
                 <>
                   {/* Deep Link */}
                   <div>
-                    <p className="text-xs text-slate-500 font-semibold mb-2">
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
                       DEEP LINK
                     </p>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                      <p className="text-sm font-mono text-primary-600 break-all">
+                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
+                      <p className="text-sm font-mono break-all" style={{ color: 'var(--color-primary)' }}>
                         {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode}
                       </p>
                     </div>
@@ -984,10 +1033,10 @@ export default function EditLinkPage() {
                   {/* QR Code */}
                   {qrCodeUrl && (
                     <div>
-                      <p className="text-xs text-slate-500 font-semibold mb-2">
+                      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
                         QR CODE
                       </p>
-                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 flex justify-center">
+                      <div className="rounded-lg p-4 flex justify-center" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
                         <img
                           src={qrCodeUrl}
                           alt="QR Code"
@@ -999,11 +1048,11 @@ export default function EditLinkPage() {
 
                   {/* App Receives */}
                   <div>
-                    <p className="text-xs text-slate-500 font-semibold mb-2">
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
                       APP RECEIVES
                     </p>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                      <pre className="text-xs text-slate-700 overflow-auto max-h-48">
+                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
+                      <pre className="text-xs overflow-auto max-h-48" style={{ color: 'var(--color-text-secondary)' }}>
                         {JSON.stringify(getAppReceives(), null, 2) || '{}'}
                       </pre>
                     </div>
@@ -1011,11 +1060,11 @@ export default function EditLinkPage() {
 
                   {/* Full URL */}
                   <div>
-                    <p className="text-xs text-slate-500 font-semibold mb-2">
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
                       FULL URL
                     </p>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                      <p className="text-xs text-slate-700 break-all font-mono">
+                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
+                      <p className="text-xs break-all font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                         {getPreviewDeepLink()}
                       </p>
                     </div>
@@ -1026,32 +1075,32 @@ export default function EditLinkPage() {
                     formData.iosUrl ||
                     formData.webUrl) && (
                     <div>
-                      <p className="text-xs text-slate-500 font-semibold mb-2">
+                      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
                         PLATFORM ROUTES
                       </p>
                       <div className="space-y-2">
                         {formData.androidUrl && (
-                          <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2">
-                            <p className="font-medium text-blue-900">
+                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', borderWidth: '1px' }}>
+                            <p className="font-medium" style={{ color: 'rgba(59, 130, 246, 1)' }}>
                               Android
                             </p>
-                            <p className="text-blue-700 truncate">
+                            <p className="truncate" style={{ color: 'rgba(59, 130, 246, 0.8)' }}>
                               {formData.androidUrl}
                             </p>
                           </div>
                         )}
                         {formData.iosUrl && (
-                          <div className="text-xs bg-purple-50 border border-purple-200 rounded p-2">
-                            <p className="font-medium text-purple-900">iOS</p>
-                            <p className="text-purple-700 truncate">
+                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.3)', borderWidth: '1px' }}>
+                            <p className="font-medium" style={{ color: 'rgba(168, 85, 247, 1)' }}>iOS</p>
+                            <p className="truncate" style={{ color: 'rgba(168, 85, 247, 0.8)' }}>
                               {formData.iosUrl}
                             </p>
                           </div>
                         )}
                         {formData.webUrl && (
-                          <div className="text-xs bg-slate-100 border border-slate-300 rounded p-2">
-                            <p className="font-medium text-slate-900">Web</p>
-                            <p className="text-slate-700 truncate">
+                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
+                            <p className="font-medium" style={{ color: 'var(--color-text)' }}>Web</p>
+                            <p className="truncate" style={{ color: 'var(--color-text-secondary)' }}>
                               {formData.webUrl}
                             </p>
                           </div>
@@ -1061,7 +1110,7 @@ export default function EditLinkPage() {
                   )}
                 </>
               ) : (
-                <p className="text-sm text-slate-500 text-center py-12">
+                <p className="text-sm text-center py-12" style={{ color: 'var(--color-text-secondary)' }}>
                   Enter a destination URL to see preview
                 </p>
               )}
