@@ -39,6 +39,7 @@ const fingerprintSchema = new Schema<IFingerprint>(
       required: true,
       index: true,
     },
+    userAgent: String,
     userAgentHash: {
       type: String,
       required: true,
@@ -63,6 +64,14 @@ const fingerprintSchema = new Schema<IFingerprint>(
       type: String,
       required: true,
       index: true,
+    },
+    rawData: {
+      type: Schema.Types.Mixed,
+    },
+    source: {
+      type: String,
+      enum: ['browser', 'app'],
+      default: 'browser',
     },
     status: {
       type: String,

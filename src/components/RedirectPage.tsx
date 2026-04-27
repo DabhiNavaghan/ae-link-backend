@@ -67,8 +67,23 @@ export default function RedirectPage({
     // Step 1: ALWAYS collect fingerprint first (even for web users)
     // This creates a DeferredLink record server-side for attribution
     const fingerprint = collectFingerprint();
+
+    // === DEBUG: Log collected browser fingerprint ===
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[SmartLink] 🌐 BROWSER FINGERPRINT COLLECTED:');
+    console.log('  screen (CSS pixels):', fingerprint.screen.width, 'x', fingerprint.screen.height);
+    console.log('  pixelRatio:', fingerprint.pixelRatio);
+    console.log('  physical pixels:', fingerprint.screen.width * fingerprint.pixelRatio, 'x', fingerprint.screen.height * fingerprint.pixelRatio);
+    console.log('  language:', fingerprint.language);
+    console.log('  timezone:', fingerprint.timezone);
+    console.log('  timezoneOffset:', fingerprint.timezoneOffset);
+    console.log('  platform:', fingerprint.platform);
+    console.log('  vendor:', fingerprint.vendor);
+    console.log('  Full data:', JSON.stringify(fingerprint, null, 2));
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
     try {
-      await fetch('/api/v1/fingerprint', {
+      const fpResponse = await fetch('/api/v1/fingerprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,9 +93,16 @@ export default function RedirectPage({
           fingerprint,
         }),
       });
+      const fpResult = await fpResponse.json();
+
+      // === DEBUG: Log what was stored in DB ===
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('[SmartLink] 💾 FINGERPRINT STORED IN DB:');
+      console.log(JSON.stringify(fpResult, null, 2));
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     } catch (err) {
       // Non-blocking — redirect should proceed even if fingerprint fails
-      console.error('Fingerprint collection error:', err);
+      console.error('[SmartLink] ❌ Fingerprint collection error:', err);
     }
 
     setStatus('redirecting');

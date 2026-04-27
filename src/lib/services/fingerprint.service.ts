@@ -31,7 +31,9 @@ export class FingerprintService {
     tenantId: string,
     clickId: string | undefined,
     fingerprint: FingerprintData,
-    ttlHours: number = 72
+    ttlHours: number = 72,
+    rawData?: Record<string, any>,
+    source: 'browser' | 'app' = 'browser'
   ): Promise<IFingerprint> {
     const userAgentHash = crypto
       .createHash('sha256')
@@ -48,6 +50,7 @@ export class FingerprintService {
       linkId,
       tenantId,
       ipAddress: fingerprint.ipAddress,
+      userAgent: fingerprint.userAgent,
       userAgentHash,
       screen: fingerprint.screen,
       language: fingerprint.language,
@@ -62,6 +65,8 @@ export class FingerprintService {
       colorDepth: fingerprint.colorDepth,
       pixelRatio: fingerprint.pixelRatio,
       fingerprintHash,
+      rawData: rawData || fingerprint,
+      source,
       status: 'pending',
       expiresAt,
     });
@@ -72,12 +77,16 @@ export class FingerprintService {
         fingerprintId: newFingerprint._id,
         linkId,
         tenantId,
+        source,
         ip: fingerprint.ipAddress,
         screen: fingerprint.screen,
         language: fingerprint.language,
         timezone: fingerprint.timezone,
+        timezoneOffset: (fingerprint as any).timezoneOffset,
+        pixelRatio: fingerprint.pixelRatio,
+        platform: fingerprint.platform,
       },
-      'Fingerprint stored'
+      `Fingerprint stored from ${source}`
     );
 
     return newFingerprint;
@@ -142,8 +151,17 @@ export class FingerprintService {
     }
 
     logger.info(
-      { tenantId, linkId, candidateCount: candidates.length },
-      'Evaluating fingerprint candidates'
+      {
+        tenantId,
+        linkId,
+        candidateCount: candidates.length,
+        incomingIp: incomingFingerprint.ipAddress,
+        incomingScreen: incomingFingerprint.screen,
+        incomingLanguage: incomingFingerprint.language,
+        incomingTimezone: incomingFingerprint.timezone,
+        incomingTimezoneOffset: (incomingFingerprint as any).timezoneOffset,
+      },
+      '🔍 Evaluating fingerprint candidates — APP data'
     );
 
     let bestMatch: IFingerprint | null = null;
@@ -154,6 +172,21 @@ export class FingerprintService {
       const { score, details } = this.calculateMatchScore(
         incomingFingerprint,
         candidate
+      );
+
+      // Log each candidate comparison for debugging
+      logger.info(
+        {
+          candidateId: candidate._id,
+          candidateIp: candidate.ipAddress,
+          candidateScreen: candidate.screen,
+          candidateLanguage: candidate.language,
+          candidateTimezone: candidate.timezone,
+          candidateTimezoneOffset: candidate.timezoneOffset,
+          score,
+          details,
+        },
+        `📊 Candidate comparison: score=${score}/${matchThreshold}`
       );
 
       if (score > bestScore) {
@@ -228,7 +261,9 @@ export class FingerprintService {
     }
 
     // ── Screen resolution match: 20 points ──
-    // Screen size persists between browser and native app on same device
+    // Screen size persists between browser and native app on same device.
+    // Browser sends CSS pixels (window.screen.width), Flutter sends logical pixels.
+    // Both should be equivalent on the same device.
     if (incoming.screen?.width && incoming.screen?.height &&
         candidate.screen?.width && candidate.screen?.height) {
       const exactMatch =
@@ -240,8 +275,8 @@ export class FingerprintService {
         details.screenMatch = true;
         details.screenScore = 20;
       } else {
-        // Fuzzy screen match: within 10% tolerance (browser may report
-        // CSS pixels vs native reporting physical pixels)
+        // Fuzzy screen match: within 10% tolerance
+        // Handles slight differences in how CSS vs logical pixels are reported
         const widthRatio = incoming.screen.width / candidate.screen.width;
         const heightRatio = incoming.screen.height / candidate.screen.height;
         if (widthRatio > 0.9 && widthRatio < 1.1 &&
@@ -249,8 +284,28 @@ export class FingerprintService {
           score += 12;
           details.screenMatch = true;
           details.screenScore = 12;
+        } else {
+          // Try matching with swapped dimensions (portrait vs landscape)
+          const swappedWidthRatio = incoming.screen.width / candidate.screen.height;
+          const swappedHeightRatio = incoming.screen.height / candidate.screen.width;
+          if (swappedWidthRatio > 0.9 && swappedWidthRatio < 1.1 &&
+              swappedHeightRatio > 0.9 && swappedHeightRatio < 1.1) {
+            score += 12;
+            details.screenMatch = true;
+            details.screenScore = 12;
+          }
         }
       }
+
+      // Log screen comparison for debugging
+      logger.debug(
+        {
+          incomingScreen: incoming.screen,
+          candidateScreen: candidate.screen,
+          screenScore: details.screenScore || 0,
+        },
+        'Screen comparison'
+      );
     }
 
     // ── Timezone match: 15 points ──

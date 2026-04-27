@@ -207,6 +207,7 @@ export interface IFingerprint extends Document {
   linkId: Types.ObjectId;
   tenantId: Types.ObjectId;
   ipAddress: string;
+  userAgent?: string;
   userAgentHash: string;
   screen: IScreenInfo;
   language?: string;
@@ -221,6 +222,8 @@ export interface IFingerprint extends Document {
   colorDepth?: number;
   pixelRatio?: number;
   fingerprintHash: string;
+  rawData?: Record<string, any>;
+  source: 'browser' | 'app';
   status: 'pending' | 'matched' | 'expired';
   expiresAt: Date;
   createdAt: Date;

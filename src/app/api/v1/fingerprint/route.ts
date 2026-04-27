@@ -84,13 +84,15 @@ export async function POST(request: NextRequest) {
 
     const ttlHours = tenant.settings?.fingerprintTtlHours || 72;
 
-    // 1. Store fingerprint
+    // 1. Store fingerprint (with full raw data for debugging)
     const storedFingerprint = await FingerprintService.storeFingerprint(
       linkId,
       tenantId,
       clickId,
       enrichedFingerprint,
-      ttlHours
+      ttlHours,
+      { ...fingerprint, ipAddress: ip, userAgent: userAgent },
+      'browser'
     );
 
     // 2. Look up the link to get its params and destination URL
@@ -123,6 +125,27 @@ export async function POST(request: NextRequest) {
       successResponse({
         fingerprintId: storedFingerprint._id,
         status: storedFingerprint.status,
+        // Return full stored data for debugging — shows exactly what's in the DB
+        debug: {
+          ipAddress: storedFingerprint.ipAddress,
+          screen: storedFingerprint.screen,
+          language: storedFingerprint.language,
+          timezone: storedFingerprint.timezone,
+          timezoneOffset: storedFingerprint.timezoneOffset,
+          platform: storedFingerprint.platform,
+          vendor: storedFingerprint.vendor,
+          pixelRatio: storedFingerprint.pixelRatio,
+          colorDepth: storedFingerprint.colorDepth,
+          deviceMemory: storedFingerprint.deviceMemory,
+          connectionType: storedFingerprint.connectionType,
+          hardwareConcurrency: storedFingerprint.hardwareConcurrency,
+          touchSupport: storedFingerprint.touchSupport,
+          userAgent: userAgent,
+          fingerprintHash: storedFingerprint.fingerprintHash,
+          source: 'browser',
+          createdAt: storedFingerprint.createdAt,
+          expiresAt: storedFingerprint.expiresAt,
+        },
       }),
       { status: 201 }
     );

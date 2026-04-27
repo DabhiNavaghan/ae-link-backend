@@ -76,6 +76,12 @@ export async function POST(request: NextRequest) {
     // Get user agent from the app
     const userAgent = request.headers.get('user-agent') || '';
 
+    // Log raw incoming fingerprint from Flutter SDK for debugging
+    logger.info(
+      { rawFingerprint: fingerprint, serverIp: ip },
+      '📱 RAW fingerprint received from Flutter SDK'
+    );
+
     // Normalize incoming fingerprint — Flutter SDK sends snake_case,
     // server stores camelCase. Map fields to match stored format.
     const normalizedFingerprint: FingerprintData & { timezoneOffset?: string } = {
@@ -98,6 +104,22 @@ export async function POST(request: NextRequest) {
       // Pass through timezone offset for cross-format matching
       timezoneOffset: fingerprint.timezone_offset || fingerprint.timezoneOffset,
     };
+
+    // Log the normalized fingerprint that will be used for matching
+    logger.info(
+      {
+        normalized: {
+          ipAddress: normalizedFingerprint.ipAddress,
+          screen: normalizedFingerprint.screen,
+          language: normalizedFingerprint.language,
+          timezone: normalizedFingerprint.timezone,
+          timezoneOffset: normalizedFingerprint.timezoneOffset,
+          platform: normalizedFingerprint.platform,
+          pixelRatio: normalizedFingerprint.pixelRatio,
+        },
+      },
+      '📱 NORMALIZED fingerprint for matching'
+    );
 
     // Get tenant settings for match threshold
     const tenant = await TenantModel.findById(auth.tenantId);
@@ -129,10 +151,38 @@ export async function POST(request: NextRequest) {
     }
 
     if (!deferredLink) {
+      logger.info(
+        {
+          tenantId: auth.tenantId,
+          appFingerprint: {
+            ip: normalizedFingerprint.ipAddress,
+            screen: normalizedFingerprint.screen,
+            language: normalizedFingerprint.language,
+            timezone: normalizedFingerprint.timezone,
+            timezoneOffset: normalizedFingerprint.timezoneOffset,
+          },
+        },
+        '❌ No deferred link matched — returning debug comparison'
+      );
+
       const response = NextResponse.json(
         successResponse({
           matched: false,
           deferredLinkId: null,
+          // Debug info: what the app sent so you can compare with browser
+          debug: {
+            appFingerprint: {
+              ipAddress: normalizedFingerprint.ipAddress,
+              screen: normalizedFingerprint.screen,
+              language: normalizedFingerprint.language,
+              timezone: normalizedFingerprint.timezone,
+              timezoneOffset: normalizedFingerprint.timezoneOffset,
+              platform: normalizedFingerprint.platform,
+              pixelRatio: normalizedFingerprint.pixelRatio,
+            },
+            matchThreshold,
+            message: 'No matching fingerprint found. Check server logs for candidate comparisons.',
+          },
         }),
         { status: 200 }
       );
@@ -143,9 +193,10 @@ export async function POST(request: NextRequest) {
       {
         deferredLinkId: deferredLink._id,
         matchScore: deferredLink.matchScore,
+        matchDetails: deferredLink.matchDetails,
         tenantId: auth.tenantId,
       },
-      'Deferred link matched from app'
+      '✅ Deferred link matched from app'
     );
 
     const response = NextResponse.json(
@@ -156,6 +207,7 @@ export async function POST(request: NextRequest) {
         params: deferredLink.params,
         destinationUrl: deferredLink.destinationUrl,
         matchScore: deferredLink.matchScore,
+        matchDetails: deferredLink.matchDetails,
       }),
       { status: 200 }
     );
