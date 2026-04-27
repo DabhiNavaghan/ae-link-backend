@@ -27,7 +27,7 @@ const tenantSettingsSchema = new Schema<ITenantSettings>(
     },
     matchThreshold: {
       type: Number,
-      default: 70,
+      default: 60,
     },
     defaultFallbackUrl: String,
   },

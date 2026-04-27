@@ -220,7 +220,7 @@ function AppDetailsStep({
     },
     settings: {
       fingerprintTtlHours: 72,
-      matchThreshold: 80,
+      matchThreshold: 60,
       defaultFallbackUrl: '',
     },
   });

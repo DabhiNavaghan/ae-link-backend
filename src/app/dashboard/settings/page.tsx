@@ -29,7 +29,7 @@ const SettingsPage: React.FC = () => {
     name: '',
     domain: '',
     fingerprintTtlHours: 72,
-    matchThreshold: 70,
+    matchThreshold: 60,
     android: {
       package: '',
       sha256: '',
@@ -75,7 +75,7 @@ const SettingsPage: React.FC = () => {
           storeUrl: '',
         },
         fingerprintTtlHours: (tenant as any).settings?.fingerprintTtlHours || 72,
-        matchThreshold: (tenant as any).settings?.matchThreshold || 70,
+        matchThreshold: (tenant as any).settings?.matchThreshold || 60,
       });
     } catch (err) {
       setMessage({
