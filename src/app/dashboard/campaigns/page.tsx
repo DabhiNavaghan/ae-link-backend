@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { SmartLinkApi } from '@/lib/api';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { formatDate, formatRelativeTime } from '@/lib/utils/slug';
 
 interface Campaign {
   _id: string;
@@ -18,6 +17,8 @@ interface Campaign {
   startDate?: string;
   endDate?: string;
   linkCount?: number;
+  totalClicks?: number;
+  totalConversions?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +38,7 @@ export default function CampaignsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const itemsPerPage = 10;
 
@@ -54,29 +56,36 @@ export default function CampaignsPage() {
         offset: (page - 1) * itemsPerPage,
       });
 
-      setCampaigns(data.campaigns as unknown as Campaign[]);
+      const campaignList = data.campaigns as unknown as Campaign[];
+      setCampaigns(campaignList);
       const total = data.total || 0;
       setTotalPages(Math.ceil(total / itemsPerPage));
+
+      // Fetch analytics for all campaigns in parallel (background)
+      setAnalyticsLoading(true);
+      Promise.allSettled(
+        campaignList.map((c) => api.getCampaignAnalytics(c._id))
+      ).then((results) => {
+        setCampaigns((prev) =>
+          prev.map((c, i) => {
+            const result = results[i];
+            if (result.status === 'fulfilled') {
+              return {
+                ...c,
+                linkCount: result.value.totalLinks ?? c.linkCount,
+                totalClicks: result.value.totalClicks ?? 0,
+                totalConversions: result.value.totalConversions ?? 0,
+              };
+            }
+            return c;
+          })
+        );
+        setAnalyticsLoading(false);
+      });
     } catch (err: any) {
       setError(err.message || 'An error occurred while loading campaigns');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleStatusChange(id: string, newStatus: string) {
-    try {
-      await api.updateCampaign(id, {
-        status: newStatus as 'active' | 'paused' | 'archived',
-      });
-
-      setCampaigns(
-        campaigns.map((c) =>
-          c._id === id ? { ...c, status: newStatus as 'active' | 'paused' | 'archived' } : c
-        )
-      );
-    } catch (err: any) {
-      setError(err.message || 'Failed to update campaign');
     }
   }
 
@@ -117,7 +126,6 @@ export default function CampaignsPage() {
       {/* Filters */}
       <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Status Filter */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Status
@@ -137,7 +145,6 @@ export default function CampaignsPage() {
             </select>
           </div>
 
-          {/* Search */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Search
@@ -164,12 +171,12 @@ export default function CampaignsPage() {
       )}
 
       {/* Campaigns Table */}
-      {loading ? (
+      {loading && campaigns.length === 0 ? (
         <div className="bg-card rounded-lg shadow-sm p-12 text-center">
           <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
           <p className="text-slate-600 mt-4">Loading campaigns...</p>
         </div>
-      ) : campaigns.length === 0 ? (
+      ) : !loading && campaigns.length === 0 ? (
         <div className="bg-card rounded-lg shadow-sm p-12 text-center">
           <svg
             className="mx-auto w-12 h-12 text-slate-400 mb-4"
@@ -213,10 +220,10 @@ export default function CampaignsPage() {
                     Links
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
-                    Dates
+                    Clicks
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
-                    Created
+                    Conversions
                   </th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-slate-900">
                     Actions
@@ -249,53 +256,34 @@ export default function CampaignsPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-slate-900">
-                      {campaign.linkCount || 0} link
-                      {campaign.linkCount !== 1 ? 's' : ''}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {campaign.startDate && campaign.endDate ? (
-                        <span>
-                          {formatDate(campaign.startDate)} to{' '}
-                          {formatDate(campaign.endDate)}
-                        </span>
-                      ) : campaign.startDate ? (
-                        <span>From {formatDate(campaign.startDate)}</span>
+                      {analyticsLoading ? (
+                        <div className="h-4 w-8 bg-slate-200 animate-pulse rounded" />
                       ) : (
-                        <span className="text-slate-400">No dates set</span>
+                        campaign.linkCount ?? 0
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {formatRelativeTime(campaign.createdAt)}
+                    <td className="px-6 py-4 text-slate-900 font-medium">
+                      {analyticsLoading ? (
+                        <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
+                      ) : (
+                        (campaign.totalClicks ?? 0).toLocaleString()
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-slate-900 font-medium">
+                      {analyticsLoading ? (
+                        <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
+                      ) : (
+                        (campaign.totalConversions ?? 0).toLocaleString()
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/dashboard/campaigns/${campaign._id}`}
-                          className="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded transition"
+                          href={`/dashboard/campaigns/${campaign._id}/edit`}
+                          className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded transition"
                         >
-                          View
+                          Edit
                         </Link>
-
-                        {campaign.status === 'active' ? (
-                          <button
-                            onClick={() =>
-                              handleStatusChange(campaign._id, 'paused')
-                            }
-                            className="px-3 py-1 text-sm text-warning-600 hover:bg-warning-50 rounded transition"
-                          >
-                            Pause
-                          </button>
-                        ) : campaign.status === 'paused' ? (
-                          <button
-                            onClick={() =>
-                              handleStatusChange(campaign._id, 'active')
-                            }
-                            className="px-3 py-1 text-sm text-success-600 hover:bg-success-50 rounded transition"
-                          >
-                            Resume
-                          </button>
-                        ) : null}
-
                         <button
                           onClick={() => setDeleteConfirm(campaign._id)}
                           className="px-2 py-1 text-sm text-danger-500 hover:bg-danger-50 hover:text-danger-700 rounded transition"

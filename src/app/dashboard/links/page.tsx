@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
+import { copyToClipboard } from '@/lib/utils/slug';
 import { SmartLinkApi } from '@/lib/api';
 
 const api = new SmartLinkApi();
@@ -18,6 +17,7 @@ interface LinkItem {
   campaignId?: string;
   campaignName?: string;
   clickCount: number;
+  conversionCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -41,6 +41,7 @@ export default function LinksPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const itemsPerPage = 10;
@@ -74,9 +75,27 @@ export default function LinksPage() {
         offset: (page - 1) * itemsPerPage,
       });
 
-      setLinks((data.links || []) as unknown as LinkItem[]);
+      const linkList = (data.links || []) as unknown as LinkItem[];
+      setLinks(linkList);
       const total = data.total || 0;
       setTotalPages(Math.ceil(total / itemsPerPage));
+
+      // Fetch analytics for each link in parallel (background)
+      setAnalyticsLoading(true);
+      Promise.allSettled(
+        linkList.map((l) => api.getLinkAnalytics(l._id))
+      ).then((results) => {
+        setLinks((prev) =>
+          prev.map((l, i) => {
+            const result = results[i];
+            if (result.status === 'fulfilled') {
+              return { ...l, conversionCount: result.value.conversions?.total ?? 0 };
+            }
+            return l;
+          })
+        );
+        setAnalyticsLoading(false);
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to load links');
     } finally {
@@ -101,12 +120,12 @@ export default function LinksPage() {
 
   async function handleCopyLink(shortCode: string) {
     try {
-      const domain = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+      const domain = typeof window !== 'undefined' ? window.location.origin : '';
       await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy', err);
+    } catch {
+      // ignore
     }
   }
 
@@ -203,12 +222,12 @@ export default function LinksPage() {
       )}
 
       {/* Links Table */}
-      {loading ? (
+      {loading && links.length === 0 ? (
         <div className="bg-card rounded-lg shadow-sm p-12 text-center">
           <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
           <p className="text-slate-600 mt-4">Loading links...</p>
         </div>
-      ) : links.length === 0 ? (
+      ) : !loading && links.length === 0 ? (
         <div className="bg-card rounded-lg shadow-sm p-12 text-center">
           <svg
             className="mx-auto w-12 h-12 text-slate-400 mb-4"
@@ -247,16 +266,13 @@ export default function LinksPage() {
                     Destination
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
-                    Type
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
                     Campaign
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
                     Clicks
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
-                    Created
+                    Conversions
                   </th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-slate-900">
                     Actions
@@ -293,28 +309,32 @@ export default function LinksPage() {
                         {link.destinationUrl}
                       </a>
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge status="active" size="sm">
-                        {link.linkType}
-                      </Badge>
-                    </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {link.campaignName ? (
-                        <Link
-                          href={`/dashboard/campaigns/${link.campaignId}`}
-                          className="text-primary-600 hover:text-primary-700"
-                        >
-                          {link.campaignName}
-                        </Link>
+                      {link.campaignId ? (() => {
+                        const camp = campaigns.find(c => c._id === link.campaignId);
+                        return camp ? (
+                          <Link
+                            href={`/dashboard/campaigns/${link.campaignId}`}
+                            className="text-primary-600 hover:text-primary-700"
+                          >
+                            {camp.name}
+                          </Link>
+                        ) : <span className="text-slate-400">—</span>;
+                      })() : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-6 py-4 text-slate-900 font-medium">
+                      {analyticsLoading ? (
+                        <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        link.clickCount.toLocaleString()
                       )}
                     </td>
                     <td className="px-6 py-4 text-slate-900 font-medium">
-                      {link.clickCount}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {formatRelativeTime(link.createdAt)}
+                      {analyticsLoading ? (
+                        <div className="h-4 w-10 bg-slate-200 animate-pulse rounded" />
+                      ) : (
+                        (link.conversionCount ?? 0).toLocaleString()
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -326,10 +346,10 @@ export default function LinksPage() {
                           {copiedCode === link.shortCode ? '✓' : '📋'}
                         </button>
                         <Link
-                          href={`/dashboard/links/${link._id}`}
-                          className="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded transition"
+                          href={`/dashboard/links/${link._id}/edit`}
+                          className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded transition"
                         >
-                          View
+                          Edit
                         </Link>
                         <button
                           onClick={() => setDeleteConfirm(link._id)}
