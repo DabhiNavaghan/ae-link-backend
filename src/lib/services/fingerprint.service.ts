@@ -373,17 +373,21 @@ export class FingerprintService {
     const createdAt = candidate.createdAt instanceof Date
       ? candidate.createdAt.getTime()
       : new Date(candidate.createdAt).getTime();
-    const hoursSince = (Date.now() - createdAt) / (1000 * 60 * 60);
+    const minutesSince = (Date.now() - createdAt) / (1000 * 60);
 
     let proximityScore = 0;
-    if (hoursSince <= 1) {
-      proximityScore = 15;       // Within 1 hour: full points
-    } else if (hoursSince <= 6) {
-      proximityScore = 12;       // Within 6 hours: high confidence
-    } else if (hoursSince <= 24) {
-      proximityScore = 8;        // Within 24 hours: moderate
-    } else if (hoursSince <= 48) {
-      proximityScore = 4;        // Within 48 hours: low
+    if (minutesSince <= 10) {
+      proximityScore = 15;       // Within 10 minutes: full points
+    } else if (minutesSince <= 30) {
+      proximityScore = 12;       // Within 30 minutes: high confidence
+    } else if (minutesSince <= 60) {
+      proximityScore = 10;       // Within 1 hour: good
+    } else if (minutesSince <= 360) {
+      proximityScore = 8;        // Within 6 hours: moderate
+    } else if (minutesSince <= 1440) {
+      proximityScore = 4;        // Within 24 hours: low
+    } else if (minutesSince <= 2880) {
+      proximityScore = 2;        // Within 48 hours: very low
     } else {
       proximityScore = 1;        // Beyond 48 hours: minimal
     }
