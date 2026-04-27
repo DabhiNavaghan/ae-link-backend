@@ -249,15 +249,54 @@ export class FingerprintService {
     let score = 0;
     const details: IMatchDetails = {};
 
-    // ── IP match: 40 points ──
-    // Same public IP = very likely same device/network
+    // ── IP match: up to 40 points ──
+    // Mobile carriers use CGNAT with multiple exit IPs, so exact match
+    // is rare. Instead, use subnet/prefix matching:
+    //   Exact match (/32):     40 points — same IP, very strong
+    //   Same /24 subnet:       30 points — same network block (e.g., 152.59.34.x)
+    //   Same /16 subnet:       20 points — same carrier region (e.g., 152.59.x.x)
     if (incoming.ipAddress && candidate.ipAddress) {
-      const ipMatch = incoming.ipAddress === candidate.ipAddress;
-      if (ipMatch) {
+      const inParts = incoming.ipAddress.split('.');
+      const candParts = candidate.ipAddress.split('.');
+
+      if (incoming.ipAddress === candidate.ipAddress) {
+        // Exact match
         score += 40;
         details.ipMatch = true;
         details.ipScore = 40;
+        details.ipMatchType = 'exact';
+      } else if (
+        inParts.length === 4 && candParts.length === 4 &&
+        inParts[0] === candParts[0] &&
+        inParts[1] === candParts[1] &&
+        inParts[2] === candParts[2]
+      ) {
+        // Same /24 subnet (first 3 octets match)
+        score += 30;
+        details.ipMatch = true;
+        details.ipScore = 30;
+        details.ipMatchType = 'subnet_24';
+      } else if (
+        inParts.length === 4 && candParts.length === 4 &&
+        inParts[0] === candParts[0] &&
+        inParts[1] === candParts[1]
+      ) {
+        // Same /16 subnet (first 2 octets match)
+        score += 20;
+        details.ipMatch = true;
+        details.ipScore = 20;
+        details.ipMatchType = 'subnet_16';
       }
+
+      logger.debug(
+        {
+          incomingIp: incoming.ipAddress,
+          candidateIp: candidate.ipAddress,
+          ipScore: details.ipScore || 0,
+          matchType: details.ipMatchType || 'none',
+        },
+        'IP comparison'
+      );
     }
 
     // ── Screen resolution match: 20 points ──
