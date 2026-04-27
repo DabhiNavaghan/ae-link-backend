@@ -8,6 +8,7 @@ import { applyCors } from '@/lib/middleware/cors';
 import DeferredService from '@/lib/services/deferred.service';
 import TenantModel from '@/lib/models/Tenant';
 import InstallModel from '@/lib/models/Install';
+import ConversionModel from '@/lib/models/Conversion';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
@@ -198,6 +199,29 @@ export async function POST(request: NextRequest) {
       },
       '✅ Deferred link matched from app'
     );
+
+    // Create a Conversion record for analytics tracking
+    try {
+      await ConversionModel.create({
+        linkId: deferredLink.linkId,
+        tenantId: auth.tenantId,
+        deferredLinkId: deferredLink._id,
+        conversionType: 'app_open',
+        deviceId: deviceId || undefined,
+        metadata: {
+          matchScore: deferredLink.matchScore,
+          matchDetails: deferredLink.matchDetails,
+          source: 'deferred_match',
+        },
+      });
+      logger.info(
+        { linkId: deferredLink.linkId, deferredLinkId: deferredLink._id },
+        'Conversion recorded for deferred match'
+      );
+    } catch (convErr) {
+      // Non-blocking — don't fail the match if conversion tracking fails
+      logger.warn({ error: String(convErr) }, 'Failed to create conversion record');
+    }
 
     const response = NextResponse.json(
       successResponse({
