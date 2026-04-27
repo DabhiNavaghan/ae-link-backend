@@ -48,6 +48,7 @@ export default function RedirectPage({
   storeUrls,
 }: RedirectPageProps) {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'done'>('loading');
+  const [debugData, setDebugData] = useState<any>(null);
 
   useEffect(() => {
     handleRedirectFlow();
@@ -100,6 +101,9 @@ export default function RedirectPage({
       console.log('[SmartLink] 💾 FINGERPRINT STORED IN DB:');
       console.log(JSON.stringify(fpResult, null, 2));
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      // Show debug data on screen for mobile debugging
+      setDebugData({ collected: fingerprint, stored: fpResult?.data?.debug });
     } catch (err) {
       // Non-blocking — redirect should proceed even if fingerprint fails
       console.error('[SmartLink] ❌ Fingerprint collection error:', err);
@@ -108,17 +112,23 @@ export default function RedirectPage({
     setStatus('redirecting');
 
     // Step 2: Redirect based on platform
+    // === DEBUG MODE: Pause redirect so we can inspect browser console ===
+    // TODO: Remove this debug block after testing
+    console.log('[SmartLink] 🛑 DEBUG MODE — redirect paused for inspection');
+    console.log('[SmartLink] Device OS:', deviceOS);
+    console.log('[SmartLink] isMobile:', isMobile);
+    setStatus('done');
+    return;
+
+    // --- Normal redirect logic (temporarily disabled for debugging) ---
+    /*
     if (!isMobile) {
-      // Desktop/web: go to web destination
       const webUrl = link.platformOverrides?.web?.url || link.destinationUrl;
       window.location.href = webUrl;
       setStatus('done');
       return;
     }
 
-    // Mobile: redirect to app store
-    // The fingerprint + DeferredLink is already created above,
-    // so the Flutter SDK will match it after install + first launch
     if (isAndroid) {
       const storeUrl =
         link.platformOverrides?.android?.fallback ||
@@ -134,6 +144,7 @@ export default function RedirectPage({
     }
 
     setStatus('done');
+    */
   };
 
   const collectFingerprint = (): BrowserFingerprint => {
@@ -239,6 +250,34 @@ export default function RedirectPage({
           ? 'Taking you to the app store'
           : 'Taking you to the destination'}
       </p>
+
+      {/* DEBUG: Show fingerprint data on screen */}
+      {debugData && (
+        <div
+          style={{
+            marginTop: 24,
+            padding: 16,
+            backgroundColor: '#1e293b',
+            borderRadius: 12,
+            width: '100%',
+            maxWidth: 400,
+            overflow: 'auto',
+          }}
+        >
+          <h3 style={{ color: '#22d3ee', fontSize: 14, margin: '0 0 8px', fontWeight: 600 }}>
+            🌐 Browser Fingerprint (Collected)
+          </h3>
+          <pre style={{ color: '#e2e8f0', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {JSON.stringify(debugData.collected, null, 2)}
+          </pre>
+          <h3 style={{ color: '#a78bfa', fontSize: 14, margin: '12px 0 8px', fontWeight: 600 }}>
+            💾 Stored in DB
+          </h3>
+          <pre style={{ color: '#e2e8f0', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {JSON.stringify(debugData.stored, null, 2)}
+          </pre>
+        </div>
+      )}
 
       {/* Manual fallback link */}
       <div style={{ marginTop: 40, textAlign: 'center' }}>
