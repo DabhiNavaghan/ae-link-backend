@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface SidebarItem {
   label: string;
@@ -18,6 +19,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const pathname = usePathname();
+  const { apps, selectedAppId, setSelectedAppId } = useDashboard();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('sidebar-collapsed') === 'true';
@@ -162,6 +164,126 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
             </svg>
           </button>
         </div>
+
+        {/* App Switcher */}
+        {apps.length > 0 && !isCollapsed && (
+          <div
+            className="flex-shrink-0 px-4 pt-4 pb-2"
+          >
+            <button
+              className="w-full flex items-center gap-2.5 transition-all duration-200"
+              style={{
+                padding: '10px 12px',
+                border: '1px solid var(--color-border-hover)',
+                background: 'var(--color-bg)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                position: 'relative',
+              }}
+              onClick={(e) => {
+                // Toggle a native select below
+                const select = e.currentTarget.nextElementSibling as HTMLSelectElement | null;
+                if (select) select.click();
+              }}
+            >
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  background: selectedAppId ? 'var(--color-primary)' : 'var(--color-text-tertiary)',
+                  flexShrink: 0,
+                }}
+              />
+              <span className="flex-1 text-left truncate" style={{ color: 'var(--color-text)' }}>
+                {selectedAppId
+                  ? apps.find((a) => a.id === selectedAppId)?.name || 'Select app'
+                  : 'All apps'}
+              </span>
+              <span style={{ color: 'var(--color-text-tertiary)' }}>▾</span>
+            </button>
+            <select
+              value={selectedAppId}
+              onChange={(e) => setSelectedAppId(e.target.value)}
+              style={{
+                position: 'absolute',
+                opacity: 0,
+                width: 0,
+                height: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              <option value="">All apps</option>
+              {apps.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {app.name}
+                </option>
+              ))}
+            </select>
+            {/* Visible native select overlay — cleaner UX */}
+            <select
+              value={selectedAppId}
+              onChange={(e) => setSelectedAppId(e.target.value)}
+              className="w-full mt-0"
+              style={{
+                position: 'absolute',
+                left: 16,
+                right: 16,
+                marginTop: -42,
+                height: 42,
+                opacity: 0,
+                cursor: 'pointer',
+                width: 'calc(100% - 32px)',
+              }}
+            >
+              <option value="">All apps</option>
+              {apps.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {app.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {apps.length > 0 && isCollapsed && (
+          <div className="flex-shrink-0 px-2 pt-3 pb-1">
+            <div
+              className="mx-auto w-8 h-8 flex items-center justify-center cursor-pointer"
+              style={{
+                background: selectedAppId ? 'var(--color-primary)' : 'var(--color-bg-hover)',
+                border: '1px solid var(--color-border-hover)',
+                position: 'relative',
+              }}
+              title={selectedAppId ? apps.find((a) => a.id === selectedAppId)?.name : 'All apps'}
+            >
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: selectedAppId ? 'var(--color-bg)' : 'var(--color-text-tertiary)' }}>
+                {selectedAppId
+                  ? (apps.find((a) => a.id === selectedAppId)?.name || 'A').charAt(0).toUpperCase()
+                  : '⊡'}
+              </span>
+              <select
+                value={selectedAppId}
+                onChange={(e) => setSelectedAppId(e.target.value)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="">All apps</option>
+                {apps.map((app) => (
+                  <option key={app.id} value={app.id}>
+                    {app.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

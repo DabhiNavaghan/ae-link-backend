@@ -261,42 +261,64 @@ export class AnalyticsService {
   }
 
   /**
-   * Get dashboard overview for a tenant
+   * Get dashboard overview for a tenant with optional filters
    */
-  static async getDashboardOverview(tenantId: string): Promise<DashboardOverview> {
+  static async getDashboardOverview(
+    tenantId: string,
+    filters?: { appId?: string; channel?: string }
+  ): Promise<DashboardOverview> {
+    const tenantObjId = new Types.ObjectId(tenantId);
+
+    // Build base match filters for clicks
+    const clickMatch: Record<string, any> = { tenantId: tenantObjId };
+    if (filters?.channel) {
+      clickMatch.channel = filters.channel;
+    }
+
+    // Build link match filter (for appId filtering)
+    const linkMatch: Record<string, any> = { tenantId: tenantObjId };
+    if (filters?.appId) {
+      linkMatch.appId = new Types.ObjectId(filters.appId);
+    }
+
+    // If appId filter, get linkIds belonging to that app first
+    let filteredLinkIds: Types.ObjectId[] | null = null;
+    if (filters?.appId) {
+      const appLinks = await LinkModel.find(linkMatch, { _id: 1 }).lean();
+      filteredLinkIds = appLinks.map((l) => new Types.ObjectId(l._id));
+      clickMatch.linkId = { $in: filteredLinkIds };
+    }
+
     // Total clicks
-    const clickCount = await ClickModel.countDocuments({
-      tenantId: new Types.ObjectId(tenantId),
-    });
+    const clickCount = await ClickModel.countDocuments(clickMatch);
 
     // Total conversions
-    const conversionCount = await ConversionModel.countDocuments({
-      tenantId: new Types.ObjectId(tenantId),
-    });
+    const conversionMatch: Record<string, any> = { tenantId: tenantObjId };
+    if (filteredLinkIds) {
+      conversionMatch.linkId = { $in: filteredLinkIds };
+    }
+    const conversionCount = await ConversionModel.countDocuments(conversionMatch);
 
     // Total links
-    const linkCount = await LinkModel.countDocuments({
-      tenantId: new Types.ObjectId(tenantId),
-      isActive: true,
-    });
+    const linkCountMatch: Record<string, any> = { ...linkMatch, isActive: true };
+    const linkCount = await LinkModel.countDocuments(linkCountMatch);
 
     // Active campaigns
-    const campaignCount = await CampaignModel.countDocuments({
-      tenantId: new Types.ObjectId(tenantId),
-      status: 'active',
-    });
+    const campaignMatch: Record<string, any> = { tenantId: tenantObjId, status: 'active' };
+    const campaignCount = await CampaignModel.countDocuments(campaignMatch);
 
     // Deferred links matched
-    const deferredMatched = await DeferredLinkModel.countDocuments({
-      tenantId: new Types.ObjectId(tenantId),
-      status: 'matched',
-    });
+    const deferredMatch: Record<string, any> = { tenantId: tenantObjId, status: 'matched' };
+    if (filteredLinkIds) {
+      deferredMatch.linkId = { $in: filteredLinkIds };
+    }
+    const deferredMatched = await DeferredLinkModel.countDocuments(deferredMatch);
 
-    // Top links by clicks
-    const topLinks = await LinkModel.aggregate([
-      { $match: { tenantId: new Types.ObjectId(tenantId) } },
+    // Top links by clicks with destination and campaign name
+    const topLinksPipeline: any[] = [
+      { $match: linkCountMatch },
       { $sort: { clickCount: -1 } },
-      { $limit: 5 },
+      { $limit: 6 },
       {
         $lookup: {
           from: 'conversions',
@@ -306,84 +328,217 @@ export class AnalyticsService {
         },
       },
       {
-        $project: {
-          shortCode: 1,
-          clicks: '$clickCount',
-          conversions: { $size: '$conversions' },
+        $lookup: {
+          from: 'campaigns',
+          localField: 'campaignId',
+          foreignField: '_id',
+          as: 'campaign',
         },
       },
-    ]);
+      {
+        $project: {
+          shortCode: 1,
+          destinationUrl: 1,
+          clicks: '$clickCount',
+          conversions: { $size: '$conversions' },
+          campaignName: { $arrayElemAt: ['$campaign.name', 0] },
+        },
+      },
+    ];
+    const topLinks = await LinkModel.aggregate(topLinksPipeline);
 
-    // Top campaigns
-    const topCampaigns = await CampaignModel.aggregate([
-      { $match: { tenantId: new Types.ObjectId(tenantId) } },
+    // Top campaigns with full details
+    const topCampaignsPipeline: any[] = [
+      { $match: { tenantId: tenantObjId } },
       {
         $lookup: {
           from: 'links',
-          localField: '_id',
-          foreignField: 'campaignId',
+          let: { campaignId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$campaignId', '$$campaignId'] },
+                    ...(filters?.appId
+                      ? [{ $eq: ['$appId', new Types.ObjectId(filters.appId)] }]
+                      : []),
+                  ],
+                },
+              },
+            },
+          ],
           as: 'links',
         },
       },
       {
-        $unwind: '$links',
+        $addFields: {
+          linkCount: { $size: '$links' },
+          totalClicks: { $sum: '$links.clickCount' },
+        },
       },
       {
-        $group: {
-          _id: {
-            campaignId: '$_id',
-            name: '$name',
-          },
-          clicks: { $sum: '$links.clickCount' },
+        $lookup: {
+          from: 'conversions',
+          localField: 'links._id',
+          foreignField: 'linkId',
+          as: 'allConversions',
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          status: 1,
+          linkCount: 1,
+          clicks: '$totalClicks',
+          conversions: { $size: '$allConversions' },
+          metadata: 1,
         },
       },
       { $sort: { clicks: -1 } },
-      { $limit: 5 },
-    ]);
+      { $limit: 6 },
+    ];
+    const topCampaigns = await CampaignModel.aggregate(topCampaignsPipeline);
 
-    // Clicks trend (last 30 days)
+    // Clicks trend (last 30 days) with conversions
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    const trendClickMatch = { ...clickMatch, createdAt: { $gte: thirtyDaysAgo } };
     const clicksTrend = await ClickModel.aggregate([
-      {
-        $match: {
-          tenantId: new Types.ObjectId(tenantId),
-          createdAt: { $gte: thirtyDaysAgo },
-        },
-      },
+      { $match: trendClickMatch },
       {
         $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-          },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           clicks: { $sum: 1 },
         },
       },
       { $sort: { _id: 1 } },
     ]);
 
+    // Conversions trend for the same period
+    const convTrendMatch: Record<string, any> = {
+      tenantId: tenantObjId,
+      createdAt: { $gte: thirtyDaysAgo },
+    };
+    if (filteredLinkIds) {
+      convTrendMatch.linkId = { $in: filteredLinkIds };
+    }
+    const conversionsTrend = await ConversionModel.aggregate([
+      { $match: convTrendMatch },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          conversions: { $sum: 1 },
+        },
+      },
+    ]);
+    const convTrendMap = new Map(conversionsTrend.map((c) => [c._id, c.conversions]));
+
+    // Channel breakdown
+    const channelBreakdown = await ClickModel.aggregate([
+      { $match: clickMatch },
+      {
+        $group: {
+          _id: '$channel',
+          clicks: { $sum: 1 },
+        },
+      },
+      { $sort: { clicks: -1 } },
+    ]);
+
+    const totalChannelClicks = channelBreakdown.reduce((sum, c) => sum + c.clicks, 0);
+
+    // Platform breakdown (OS)
+    const platformBreakdown = await ClickModel.aggregate([
+      { $match: clickMatch },
+      {
+        $group: {
+          _id: '$device.os',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const android = platformBreakdown.find((p) => p._id === 'android')?.count || 0;
+    const ios = platformBreakdown.find((p) => p._id === 'ios')?.count || 0;
+    const webClicks = platformBreakdown
+      .filter((p) => !['android', 'ios'].includes(p._id))
+      .reduce((sum, p) => sum + p.count, 0);
+
+    // Recent clicks (last 20) for live stream
+    const recentClicks = await ClickModel.aggregate([
+      { $match: clickMatch },
+      { $sort: { createdAt: -1 } },
+      { $limit: 20 },
+      {
+        $lookup: {
+          from: 'links',
+          localField: 'linkId',
+          foreignField: '_id',
+          as: 'link',
+        },
+      },
+      {
+        $lookup: {
+          from: 'campaigns',
+          localField: 'link.campaignId',
+          foreignField: '_id',
+          as: 'campaign',
+        },
+      },
+      {
+        $project: {
+          time: { $dateToString: { format: '%H:%M:%S', date: '$createdAt' } },
+          platform: '$device.os',
+          campaign: { $ifNull: [{ $arrayElemAt: ['$campaign.name', 0] }, 'direct'] },
+          action: '$actionTaken',
+          channel: { $ifNull: ['$channel', 'direct'] },
+        },
+      },
+    ]);
+
     return {
       totalClicks: clickCount,
       totalConversions: conversionCount,
-      conversionRate:
-        clickCount > 0 ? (conversionCount / clickCount) * 100 : 0,
+      conversionRate: clickCount > 0 ? (conversionCount / clickCount) * 100 : 0,
       totalLinks: linkCount,
       activeCampaigns: campaignCount,
       deferredLinksMatched: deferredMatched,
       topLinks: topLinks.map((l) => ({
         shortCode: l.shortCode,
+        destinationUrl: l.destinationUrl,
+        campaignName: l.campaignName || undefined,
         clicks: l.clicks,
         conversions: l.conversions,
       })),
       topCampaigns: topCampaigns.map((c) => ({
-        name: c._id.name,
+        id: c._id.toString(),
+        name: c.name,
+        status: c.status,
+        channels: (c.metadata?.channels as string) || '',
+        linkCount: c.linkCount,
         clicks: c.clicks,
-        conversions: 0,
+        conversions: c.conversions,
+        conversionRate: c.clicks > 0 ? (c.conversions / c.clicks) * 100 : 0,
       })),
       clicksTrend: clicksTrend.map((ct) => ({
         date: ct._id,
         clicks: ct.clicks,
+        conversions: convTrendMap.get(ct._id) || 0,
+      })),
+      channelBreakdown: channelBreakdown.map((cb) => ({
+        channel: cb._id || 'direct',
+        clicks: cb.clicks,
+        percentage: totalChannelClicks > 0 ? Math.round((cb.clicks / totalChannelClicks) * 1000) / 10 : 0,
+      })),
+      platformBreakdown: { android, ios, web: webClicks },
+      recentClicks: recentClicks.map((rc) => ({
+        time: rc.time,
+        platform: rc.platform,
+        campaign: rc.campaign,
+        action: rc.action,
+        channel: rc.channel,
       })),
     };
   }

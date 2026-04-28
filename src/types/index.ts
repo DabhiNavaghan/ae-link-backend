@@ -166,6 +166,7 @@ export interface ILink extends Document {
 export type DeviceOS = 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'other';
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
 export type ActionTaken = 'app_opened' | 'store_redirect' | 'web_fallback';
+export type ClickChannel = 'whatsapp' | 'email' | 'qr' | 'instagram' | 'sms' | 'push' | 'web' | 'direct' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'other';
 
 export interface IDeviceInfo {
   os: DeviceOS;
@@ -186,6 +187,7 @@ export interface IClick extends Document {
   ipAddress: string;
   userAgent: string;
   referer?: string;
+  channel: ClickChannel;
   device: IDeviceInfo;
   geo: IGeoInfo;
   isAppInstalled: boolean;
@@ -432,17 +434,42 @@ export interface DashboardOverview {
   deferredLinksMatched: number;
   topLinks: Array<{
     shortCode: string;
+    destinationUrl: string;
+    campaignName?: string;
     clicks: number;
     conversions: number;
   }>;
   topCampaigns: Array<{
+    id: string;
     name: string;
+    status: string;
+    channels: string;
+    linkCount: number;
     clicks: number;
     conversions: number;
+    conversionRate: number;
   }>;
   clicksTrend: Array<{
     date: string;
     clicks: number;
+    conversions: number;
+  }>;
+  channelBreakdown: Array<{
+    channel: string;
+    clicks: number;
+    percentage: number;
+  }>;
+  platformBreakdown: {
+    android: number;
+    ios: number;
+    web: number;
+  };
+  recentClicks: Array<{
+    time: string;
+    platform: string;
+    campaign: string;
+    action: string;
+    channel: string;
   }>;
 }
 

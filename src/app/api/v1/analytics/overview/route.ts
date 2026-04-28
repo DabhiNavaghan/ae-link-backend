@@ -43,7 +43,15 @@ export async function GET(request: NextRequest) {
 
   try {
 
-    const overview = await AnalyticsService.getDashboardOverview(auth.tenantId);
+    // Parse optional filter params
+    const { searchParams } = new URL(request.url);
+    const appId = searchParams.get('appId') || undefined;
+    const channel = searchParams.get('channel') || undefined;
+
+    const overview = await AnalyticsService.getDashboardOverview(auth.tenantId, {
+      appId,
+      channel,
+    });
 
     const response = NextResponse.json(
       successResponse(overview),

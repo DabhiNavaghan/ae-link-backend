@@ -1,12 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { smartLinkApi } from '@/lib/api';
+import { IApp } from '@/types';
 
 interface Tenant {
   id: string;
   name: string;
   email: string;
   apiKey: string;
+}
+
+interface AppOption {
+  id: string;
+  name: string;
 }
 
 interface DashboardContextType {
@@ -16,6 +23,10 @@ interface DashboardContextType {
   setApiKey: (key: string | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  // App selection
+  apps: AppOption[];
+  selectedAppId: string;
+  setSelectedAppId: (id: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -26,11 +37,14 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [apps, setApps] = useState<AppOption[]>([]);
+  const [selectedAppId, setSelectedAppId] = useState<string>('');
 
   // Initialize from localStorage
-  React.useEffect(() => {
+  useEffect(() => {
     const storedApiKey = localStorage.getItem('smartlink-api-key');
     const storedTenant = localStorage.getItem('smartlink-tenant');
+    const storedAppId = localStorage.getItem('smartlink-selected-app');
 
     if (storedApiKey) {
       setApiKey(storedApiKey);
@@ -43,7 +57,28 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Failed to parse stored tenant:', err);
       }
     }
+
+    if (storedAppId) {
+      setSelectedAppId(storedAppId);
+    }
   }, []);
+
+  // Fetch apps list once API key is available
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('smartlink-api-key');
+    if (!storedApiKey) return;
+
+    smartLinkApi
+      .listApps({ limit: 100 })
+      .then((res) => {
+        const appList = (res.apps || []).map((a: any) => ({
+          id: a._id?.toString() || a.id,
+          name: a.name,
+        }));
+        setApps(appList);
+      })
+      .catch(() => {});
+  }, [apiKey]);
 
   const updateTenant = useCallback((t: Tenant | null) => {
     setTenant(t);
@@ -63,6 +98,15 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  const updateSelectedAppId = useCallback((id: string) => {
+    setSelectedAppId(id);
+    if (id) {
+      localStorage.setItem('smartlink-selected-app', id);
+    } else {
+      localStorage.removeItem('smartlink-selected-app');
+    }
+  }, []);
+
   return (
     <DashboardContext.Provider
       value={{
@@ -72,6 +116,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         setApiKey: updateApiKey,
         isLoading,
         setIsLoading,
+        apps,
+        selectedAppId,
+        setSelectedAppId: updateSelectedAppId,
       }}
     >
       {children}

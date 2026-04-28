@@ -314,9 +314,14 @@ export class SmartLinkApi {
   // Analytics Methods
   // ============================================================================
 
-  async getOverview(): Promise<DashboardOverview> {
+  async getOverview(filters?: { appId?: string; channel?: string }): Promise<DashboardOverview> {
+    const queryString = new URLSearchParams();
+    if (filters?.appId) queryString.append('appId', filters.appId);
+    if (filters?.channel) queryString.append('channel', filters.channel);
+    const qs = queryString.toString();
+    const endpoint = `/analytics/overview${qs ? '?' + qs : ''}`;
     const response = await this.request<ApiResponse<DashboardOverview>>(
-      '/analytics/overview',
+      endpoint,
       { method: 'GET' }
     );
     return response.data as DashboardOverview;

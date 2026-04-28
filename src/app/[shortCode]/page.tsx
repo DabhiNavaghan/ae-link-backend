@@ -8,6 +8,42 @@ import AppModel from '@/lib/models/App';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { Logger } from '@/lib/logger';
 import RedirectPage from '@/components/RedirectPage';
+import { ClickChannel } from '@/types';
+
+/**
+ * Auto-detect channel from referer URL and UTM params
+ */
+function detectChannel(referer: string, utmSource?: string, utmMedium?: string): ClickChannel {
+  const ref = (referer || '').toLowerCase();
+  const src = (utmSource || '').toLowerCase();
+  const med = (utmMedium || '').toLowerCase();
+
+  // UTM source takes priority
+  if (src.includes('whatsapp') || med === 'whatsapp') return 'whatsapp';
+  if (src.includes('email') || med === 'email') return 'email';
+  if (src === 'qr' || med === 'qr') return 'qr';
+  if (src.includes('instagram') || src === 'ig') return 'instagram';
+  if (src.includes('sms') || med === 'sms') return 'sms';
+  if (src.includes('push') || med === 'push') return 'push';
+  if (src.includes('facebook') || src === 'fb') return 'facebook';
+  if (src.includes('twitter') || src === 'x.com') return 'twitter';
+  if (src.includes('tiktok')) return 'tiktok';
+  if (src.includes('youtube') || src === 'yt') return 'youtube';
+
+  // Fallback to referer detection
+  if (ref.includes('whatsapp') || ref.includes('wa.me')) return 'whatsapp';
+  if (ref.includes('mail.google') || ref.includes('outlook') || ref.includes('yahoo.com/mail')) return 'email';
+  if (ref.includes('instagram.com') || ref.includes('l.instagram')) return 'instagram';
+  if (ref.includes('facebook.com') || ref.includes('fb.com') || ref.includes('l.facebook')) return 'facebook';
+  if (ref.includes('twitter.com') || ref.includes('t.co') || ref.includes('x.com')) return 'twitter';
+  if (ref.includes('tiktok.com')) return 'tiktok';
+  if (ref.includes('youtube.com') || ref.includes('youtu.be')) return 'youtube';
+
+  // If there's a referer but we couldn't match it, it's web
+  if (ref && ref.length > 0) return 'web';
+
+  return 'direct';
+}
 
 const logger = Logger.child({ page: 'redirect' });
 
@@ -95,12 +131,21 @@ export default async function ResolvePage({ params }: { params: Params }) {
     // Record click
     let clickId: string | undefined = undefined;
     try {
+      // Detect channel from referer and link UTM params
+      const linkParams = (link as any).params || {};
+      const channel = detectChannel(
+        referer,
+        linkParams.utmSource,
+        linkParams.utmMedium
+      );
+
       const click = new ClickModel({
         linkId: link._id,
         tenantId: link.tenantId,
         ipAddress: ip,
         userAgent: userAgent,
         referer: referer,
+        channel,
         device: deviceInfo,
         geo: {},
         isAppInstalled: false,

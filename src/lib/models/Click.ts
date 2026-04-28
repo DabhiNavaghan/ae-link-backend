@@ -1,5 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { IClick, IDeviceInfo, IGeoInfo } from '@/types';
+import { IClick, IDeviceInfo, IGeoInfo, ClickChannel } from '@/types';
 
 const deviceInfoSchema = new Schema<IDeviceInfo>(
   {
@@ -52,6 +52,12 @@ const clickSchema = new Schema<IClick>(
       required: true,
     },
     referer: String,
+    channel: {
+      type: String,
+      enum: ['whatsapp', 'email', 'qr', 'instagram', 'sms', 'push', 'web', 'direct', 'facebook', 'twitter', 'tiktok', 'youtube', 'other'],
+      default: 'direct',
+      index: true,
+    },
     device: {
       type: deviceInfoSchema,
       required: true,
@@ -78,6 +84,7 @@ clickSchema.index({ tenantId: 1, createdAt: -1 });
 clickSchema.index({ linkId: 1, createdAt: -1 });
 clickSchema.index({ 'device.os': 1, createdAt: -1 });
 clickSchema.index({ 'device.type': 1, createdAt: -1 });
+clickSchema.index({ tenantId: 1, channel: 1, createdAt: -1 });
 
 const ClickModel: Model<IClick> =
   mongoose.models.Click || mongoose.model<IClick>('Click', clickSchema);
