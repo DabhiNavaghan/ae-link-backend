@@ -15,6 +15,7 @@ export class CampaignService {
   ): Promise<ICampaign> {
     const campaign = new CampaignModel({
       tenantId,
+      appId: dto.appId ? new Types.ObjectId(dto.appId) : undefined,
       name: dto.name,
       slug: dto.slug,
       description: dto.description,
@@ -100,6 +101,7 @@ export class CampaignService {
 
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.slug !== undefined) updateData.slug = dto.slug;
+    if (dto.appId !== undefined) updateData.appId = dto.appId ? new Types.ObjectId(dto.appId) : null;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.fallbackUrl !== undefined) updateData.fallbackUrl = dto.fallbackUrl;

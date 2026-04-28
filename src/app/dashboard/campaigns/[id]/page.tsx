@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Badge from '@/components/ui/Badge';
-import Button from '@/components/ui/Button';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { SmartLinkApi } from '@/lib/api';
 
@@ -46,6 +44,7 @@ interface Analytics {
   totalConversions: number;
   conversionRate: number;
   deferredMatches: number;
+  topReferrers: Array<{ referrer: string; clicks: number }>;
 }
 
 export default function CampaignDetailPage() {
@@ -92,6 +91,7 @@ export default function CampaignDetailPage() {
             totalConversions: analyticsData.totalConversions || 0,
             conversionRate: analyticsData.conversionRate || 0,
             deferredMatches: 0,
+            topReferrers: analyticsData.topReferrers || [],
           };
           setAnalytics(fresh);
           pageCache.set(campaignId, { ...cached, analytics: fresh });
@@ -142,12 +142,13 @@ export default function CampaignDetailPage() {
             totalConversions: analyticsData.totalConversions || 0,
             conversionRate: analyticsData.conversionRate || 0,
             deferredMatches: 0,
+            topReferrers: analyticsData.topReferrers || [],
           };
           setAnalytics(fresh);
           pageCache.set(campaignId, { campaign: typedCampaign, links: typedLinks, analytics: fresh });
         })
         .catch(() => {
-          setAnalytics({ totalClicks: 0, totalConversions: 0, conversionRate: 0, deferredMatches: 0 });
+          setAnalytics({ totalClicks: 0, totalConversions: 0, conversionRate: 0, deferredMatches: 0, topReferrers: [] });
         })
         .finally(() => setAnalyticsLoading(false));
     } catch (err: any) {
@@ -226,14 +227,29 @@ export default function CampaignDetailPage() {
     }
   }
 
+  const sectionHeader = (num: string, label: string) => (
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+      <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>{num}</span>
+      // {label}
+    </span>
+  );
+
+  const statBox = (label: string, value: string | number, accent = false) => (
+    <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{label}</div>
+      {analyticsLoading ? (
+        <div style={{ height: 32, width: 60, background: 'var(--color-bg-secondary)' }} />
+      ) : (
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: accent ? 'var(--color-primary)' : 'var(--color-text)', letterSpacing: '-0.02em' }}>{value}</div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-base p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin mb-4" style={{ borderColor: 'var(--color-primary-light)', borderTopColor: 'var(--color-primary)' }}></div>
-            <p style={{ color: 'var(--color-text-secondary)' }}>Loading campaign...</p>
-          </div>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>loading campaign...</div>
         </div>
       </div>
     );
@@ -241,16 +257,10 @@ export default function CampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <div className="min-h-screen bg-base p-8">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="font-medium mb-4"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            ← Back
-          </button>
-          <div className="border rounded-lg p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16 }}>← back</button>
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-warning)', padding: 20, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
             {error || 'Campaign not found'}
           </div>
         </div>
@@ -259,346 +269,211 @@ export default function CampaignDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base p-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="font-medium mb-4"
-          style={{ color: 'var(--color-primary)' }}
-        >
-          ← Back
-        </button>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
-        {/* Error Message */}
+        {/* Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => router.push(`/dashboard/campaigns/create?duplicate=${campaignId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
+            {campaign.status === 'active' ? (
+              <button onClick={() => handleStatusChange('paused')} className="btn-dashboard btn-dashboard-sm">pause</button>
+            ) : campaign.status === 'paused' ? (
+              <button onClick={() => handleStatusChange('active')} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">resume</button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Error */}
         {error && (
-          <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--color-warning)', padding: '12px 16px', marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
             {error}
           </div>
         )}
 
-        {/* Header */}
-        <div className="rounded-lg shadow-sm p-8 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              {editingName ? (
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    autoFocus
-                    className="flex-1 px-4 py-2 border rounded-lg"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
-                  />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleUpdateName}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingName(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
-                  {campaign.name}
-                </h1>
-              )}
-              <p className="font-mono text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
-                Slug: /{campaign.slug}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Badge status={campaign.status}>
-                {campaign.status.charAt(0).toUpperCase() +
-                  campaign.status.slice(1)}
-              </Badge>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/dashboard/campaigns/${campaignId}/edit`)}
-              >
-                ✏️ Edit
-              </Button>
-
-              {campaign.status === 'active' ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('paused')}
-                >
-                  Pause
-                </Button>
-              ) : campaign.status === 'paused' ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('active')}
-                >
-                  Resume
-                </Button>
-              ) : null}
-            </div>
+        {/* 01 Header */}
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {sectionHeader('01', 'campaign')}
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 10px',
+              border: '1px solid',
+              color: campaign.status === 'active' ? 'var(--color-primary)' : campaign.status === 'paused' ? 'var(--color-warning)' : 'var(--color-text-tertiary)',
+              borderColor: campaign.status === 'active' ? 'var(--color-primary)' : campaign.status === 'paused' ? 'var(--color-warning)' : 'var(--color-text-tertiary)',
+            }}>
+              {campaign.status}
+            </span>
           </div>
-
-          {/* Description */}
-          {editingDescription ? (
-            <div className="mb-6">
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={3}
-                autoFocus
-                className="w-full px-4 py-2 border rounded-lg mb-2"
-                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleUpdateDescription}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingDescription(false)}
-                >
-                  Cancel
-                </Button>
+          <div style={{ padding: 20 }}>
+            {editingName ? (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <input
+                  type="text" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus
+                  style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 14, padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+                />
+                <button onClick={handleUpdateName} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">save</button>
+                <button onClick={() => setEditingName(false)} className="btn-dashboard btn-dashboard-sm">cancel</button>
               </div>
+            ) : (
+              <h1
+                onClick={() => { setEditingName(true); }}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: 'var(--color-text)', cursor: 'pointer', marginBottom: 8 }}
+              >
+                {campaign.name}
+              </h1>
+            )}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 12 }}>
+              slug: <span style={{ color: 'var(--color-secondary)' }}>/{campaign.slug}</span>
             </div>
-          ) : (
-            <div
-              onClick={() => setEditingDescription(true)}
-              className="cursor-pointer rounded p-2 -m-2 transition"
-              style={{ '--hover-bg': 'var(--color-bg-secondary)' } as any}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              {campaign.description ? (
-                <p style={{ color: 'var(--color-text-secondary)' }}>{campaign.description}</p>
-              ) : (
-                <p style={{ color: 'var(--color-text-tertiary)' }}>Add a description...</p>
+            {editingDescription ? (
+              <div>
+                <textarea
+                  value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} autoFocus
+                  style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)', marginBottom: 8, resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={handleUpdateDescription} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">save</button>
+                  <button onClick={() => setEditingDescription(false)} className="btn-dashboard btn-dashboard-sm">cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => setEditingDescription(true)}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: campaign.description ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)', cursor: 'pointer', padding: '4px 0' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = campaign.description ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)'; }}
+              >
+                {campaign.description || '+ add description'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 02 Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {statBox('links', links.length)}
+          {statBox('clicks', analytics?.totalClicks || 0, true)}
+          {statBox('conversions', analytics?.totalConversions || 0)}
+          {statBox('cvr', `${(analytics?.conversionRate || 0).toFixed(2)}%`)}
+        </div>
+
+        {/* Duration */}
+        {(campaign.startDate || campaign.endDate) && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24, padding: 20 }}>
+            <div style={{ marginBottom: 12 }}>{sectionHeader('03', 'duration')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {campaign.startDate && (
+                <div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>start</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text)' }}>{formatDate(campaign.startDate)}</div>
+                </div>
+              )}
+              {campaign.endDate && (
+                <div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>end</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text)' }}>{formatDate(campaign.endDate)}</div>
+                </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Links</p>
-            {analyticsLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-            ) : (
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{links.length}</p>
-            )}
           </div>
+        )}
 
-          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Clicks</p>
-            {analyticsLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-            ) : (
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{analytics?.totalClicks || 0}</p>
-            )}
-          </div>
-
-          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Conversions</p>
-            {analyticsLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-            ) : (
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{analytics?.totalConversions || 0}</p>
-            )}
-          </div>
-
-          <div className="rounded-lg shadow-sm p-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <p className="text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Conv. Rate</p>
-            {analyticsLoading ? (
-              <div className="h-8 w-20 animate-pulse rounded mt-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-            ) : (
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{(analytics?.conversionRate || 0).toFixed(2)}%</p>
-            )}
-          </div>
-        </div>
-
-        {/* Campaign Metadata */}
+        {/* Metadata */}
         {campaign.metadata && Object.keys(campaign.metadata).length > 0 && (
-          <div className="rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
-              Metadata
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24, padding: 20 }}>
+            <div style={{ marginBottom: 12 }}>{sectionHeader('04', 'metadata')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {Object.entries(campaign.metadata).map(([key, value]) => (
-                <div key={key} className="rounded p-3" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                  <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{key}</p>
-                  <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                    {String(value)}
-                  </p>
+                <div key={key} style={{ background: 'var(--color-bg)', padding: 12, border: '1px solid var(--color-border)' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{key}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text)' }}>{String(value)}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Dates */}
-        {(campaign.startDate || campaign.endDate) && (
-          <div className="rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
-              Duration
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {campaign.startDate && (
-                <div>
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Start Date</p>
-                  <p className="font-medium" style={{ color: 'var(--color-text)' }}>
-                    {formatDate(campaign.startDate)}
-                  </p>
-                </div>
-              )}
-              {campaign.endDate && (
-                <div>
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>End Date</p>
-                  <p className="font-medium" style={{ color: 'var(--color-text)' }}>
-                    {formatDate(campaign.endDate)}
-                  </p>
-                </div>
-              )}
+        {/* Top Referrers */}
+        {(analytics?.topReferrers || []).length > 0 && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {sectionHeader('05', 'top referrers')}
             </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {['referrer', 'clicks'].map((h) => (
+                    <th key={h} style={{ textAlign: h === 'clicks' ? 'right' : 'left', padding: '12px 16px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', fontWeight: 500, borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(analytics?.topReferrers || []).map((ref, idx) => {
+                  let displayRef = ref.referrer;
+                  try { const u = new URL(ref.referrer); displayRef = u.hostname + (u.pathname !== '/' ? u.pathname : ''); } catch {}
+                  return (
+                    <tr key={idx} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)' }} title={ref.referrer}>{displayRef}</td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-primary)' }}>{ref.clicks.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
-        {/* Links in Campaign */}
-        <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="p-6 flex items-center justify-between" style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-              Links ({links.length})
-            </h3>
-            <Link
-              href={`/dashboard/links/create?campaignId=${campaignId}`}
-              className="px-4 py-2 text-white rounded-lg transition"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              + Add Link
+        {/* Links Table */}
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {sectionHeader('06', `links (${links.length})`)}
+            <Link href={`/dashboard/links/create?campaignId=${campaignId}`}>
+              <button className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">+ new link</button>
             </Link>
           </div>
 
           {links.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-                No links created for this campaign yet
-              </p>
-              <Link
-                href={`/dashboard/links/create?campaignId=${campaignId}`}
-                className="inline-block px-4 py-2 text-white rounded-lg transition"
-                style={{ backgroundColor: 'var(--color-primary)' }}
-              >
-                Create First Link
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              <p style={{ marginBottom: 16 }}>No links created yet</p>
+              <Link href={`/dashboard/links/create?campaignId=${campaignId}`}>
+                <button className="btn-dashboard btn-dashboard-primary">create first link</button>
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderTopColor: 'var(--color-border)', borderBottomColor: 'var(--color-border)', borderTopWidth: '1px', borderBottomWidth: '1px' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                <thead>
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                      Short Code
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                      Destination
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                      Clicks
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                      Conversions
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                      Actions
-                    </th>
+                    {['slug', 'destination', 'clicks', 'conversions', ''].map((h) => (
+                      <th key={h} style={{ textAlign: h === 'clicks' || h === 'conversions' ? 'right' : 'left', padding: '12px 16px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', fontWeight: 500, borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {links.map((link, idx) => (
-                    <tr
-                      key={link._id}
-                      className="transition"
-                      style={{
-                        borderTopColor: 'var(--color-border)',
-                        borderTopWidth: '1px',
-                        backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--color-bg-secondary)',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'var(--color-bg-secondary)'}
-                    >
-                      <td className="px-6 py-4">
-                        <span className="font-medium font-mono" style={{ color: 'var(--color-text)' }}>
-                          {link.shortCode}
-                        </span>
-                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                          {typeof window !== 'undefined' ? window.location.host : ''}/{link.shortCode}
-                        </p>
+                  {links.map((link) => (
+                    <tr key={link._id} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                        <Link href={`/dashboard/links/${link._id}`} style={{ textDecoration: 'none' }}>
+                          <span style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>{link.shortCode}</span>
+                        </Link>
                       </td>
-                      <td className="px-6 py-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                        <span
-                          title={link.destinationUrl}
-                          className="truncate block max-w-xs"
-                        >
-                          {link.destinationUrl}
-                        </span>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-secondary)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.destinationUrl}>
+                        {link.destinationUrl}
                       </td>
-                      <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
-                        {linkAnalyticsLoading ? (
-                          <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-                        ) : (
-                          link.clickCount.toLocaleString()
-                        )}
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-primary)' }}>
+                        {linkAnalyticsLoading ? <span style={{ color: 'var(--color-text-tertiary)' }}>...</span> : link.clickCount.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
-                        {linkAnalyticsLoading ? (
-                          <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
-                        ) : (
-                          (link.conversionCount ?? 0).toLocaleString()
-                        )}
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-text)' }}>
+                        {linkAnalyticsLoading ? <span style={{ color: 'var(--color-text-tertiary)' }}>...</span> : (link.conversionCount ?? 0).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleCopyLink(link.shortCode)}
-                            className="px-3 py-1 text-sm rounded transition"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                            title="Copy link"
-                          >
-                            {copiedCode === link.shortCode ? '✓' : '📋'}
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                          <button onClick={() => handleCopyLink(link.shortCode)} className="btn-dashboard btn-dashboard-sm" style={{ fontSize: 10, padding: '3px 8px' }}>
+                            {copiedCode === link.shortCode ? 'copied' : 'copy'}
                           </button>
-                          <Link
-                            href={`/dashboard/links/${link._id}/edit`}
-                            className="px-3 py-1 text-sm rounded transition"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                          >
-                            Edit
-                          </Link>
-                          <button
-                            onClick={() => setLinkDeleteConfirm(link._id)}
-                            className="px-2 py-1 text-sm rounded transition"
-                            style={{ color: 'var(--color-danger)' }}
-                            title="Delete link"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                          <button onClick={() => setLinkDeleteConfirm(link._id)} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 8px', color: 'var(--color-warning)', background: 'transparent', border: '1px solid var(--color-warning)', cursor: 'pointer' }}>
+                            del
                           </button>
                         </div>
                       </td>
@@ -610,35 +485,26 @@ export default function CampaignDetailPage() {
           )}
         </div>
 
-        {/* Campaign Info */}
-        <div className="bg-slate-50 rounded-lg p-4 mt-6 text-xs text-slate-500">
-          <p>Created {formatRelativeTime(campaign.createdAt)}</p>
-          <p>Last updated {formatRelativeTime(campaign.updatedAt)}</p>
+        {/* Footer info */}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', gap: 24 }}>
+          <span>created {formatRelativeTime(campaign.createdAt)}</span>
+          <span>updated {formatRelativeTime(campaign.updatedAt)}</span>
         </div>
       </div>
 
-      {/* Link Delete Confirmation Modal */}
+      {/* Delete Modal */}
       {linkDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !linkDeleting && setLinkDeleteConfirm(null)}>
-          <div className="bg-card rounded-xl shadow-xl p-6 max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-danger-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900">Delete Link?</h3>
-            </div>
-            <p className="text-slate-600 mb-6 text-sm">
-              This action cannot be undone. Historical data will be preserved.
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => !linkDeleting && setLinkDeleteConfirm(null)}>
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 24, maxWidth: 400, width: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>delete link?</div>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
+              this action cannot be undone. historical data will be preserved.
             </p>
-            <div className="flex gap-3">
-              <Button variant="ghost" fullWidth onClick={() => setLinkDeleteConfirm(null)} disabled={linkDeleting}>
-                Cancel
-              </Button>
-              <Button variant="danger" fullWidth onClick={() => handleDeleteLink(linkDeleteConfirm)} disabled={linkDeleting}>
-                {linkDeleting ? 'Deleting...' : 'Delete'}
-              </Button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setLinkDeleteConfirm(null)} disabled={linkDeleting} className="btn-dashboard" style={{ flex: 1 }}>cancel</button>
+              <button onClick={() => handleDeleteLink(linkDeleteConfirm)} disabled={linkDeleting} style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 12, padding: '8px 16px', background: 'var(--color-warning)', color: 'var(--color-bg)', border: 'none', cursor: linkDeleting ? 'not-allowed' : 'pointer' }}>
+                {linkDeleting ? 'deleting...' : 'delete'}
+              </button>
             </div>
           </div>
         </div>

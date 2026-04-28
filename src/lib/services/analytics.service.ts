@@ -93,6 +93,19 @@ export class AnalyticsService {
       { $limit: 5 },
     ]);
 
+    // Get top referrers
+    const topReferrers = await ClickModel.aggregate([
+      { $match: { linkId: new Types.ObjectId(linkId), referer: { $nin: [null, ''] } } },
+      {
+        $group: {
+          _id: '$referer',
+          clicks: { $sum: 1 },
+        },
+      },
+      { $sort: { clicks: -1 } },
+      { $limit: 10 },
+    ]);
+
     // Get latest clicks
     const latestClicks = await ClickModel.findOne(
       { linkId: new Types.ObjectId(linkId) },
@@ -139,6 +152,10 @@ export class AnalyticsService {
       topBrowsers: topBrowsers.map((b) => ({
         browser: b._id || 'Unknown',
         clicks: b.clicks,
+      })),
+      topReferrers: topReferrers.map((r) => ({
+        referrer: r._id || 'Unknown',
+        clicks: r.clicks,
       })),
       createdAt: (link as any).createdAt,
       lastClicked: latestClicks?.createdAt || (link as any).createdAt,
@@ -231,6 +248,19 @@ export class AnalyticsService {
       { $limit: 10 },
     ]);
 
+    // Get top referrers for campaign
+    const topReferrers = await ClickModel.aggregate([
+      { $match: { linkId: { $in: linkIds }, referer: { $nin: [null, ''] } } },
+      {
+        $group: {
+          _id: '$referer',
+          clicks: { $sum: 1 },
+        },
+      },
+      { $sort: { clicks: -1 } },
+      { $limit: 10 },
+    ]);
+
     const totalClicks = clickStats[0]?.totalClicks || 0;
     const totalConversions = conversionStats.reduce((sum, s) => sum + s.conversions, 0);
 
@@ -256,6 +286,10 @@ export class AnalyticsService {
         shortCode: l.shortCode,
         clicks: l.clicks,
         conversions: l.conversions,
+      })),
+      topReferrers: topReferrers.map((r) => ({
+        referrer: r._id || 'Unknown',
+        clicks: r.clicks,
       })),
     };
   }
@@ -435,6 +469,21 @@ export class AnalyticsService {
     ]);
     const convTrendMap = new Map(conversionsTrend.map((c) => [c._id, c.conversions]));
 
+    // Top referrers
+    const topReferrers = await ClickModel.aggregate([
+      { $match: { ...clickMatch, referer: { $nin: [null, ''] } } },
+      {
+        $group: {
+          _id: '$referer',
+          clicks: { $sum: 1 },
+        },
+      },
+      { $sort: { clicks: -1 } },
+      { $limit: 10 },
+    ]);
+
+    const totalReferrerClicks = topReferrers.reduce((sum, r) => sum + r.clicks, 0);
+
     // Channel breakdown
     const channelBreakdown = await ClickModel.aggregate([
       { $match: clickMatch },
@@ -489,7 +538,7 @@ export class AnalyticsService {
       },
       {
         $project: {
-          time: { $dateToString: { format: '%H:%M:%S', date: '$createdAt' } },
+          time: { $dateToString: { format: '%Y-%m-%dT%H:%M:%S.%LZ', date: '$createdAt' } },
           platform: '$device.os',
           campaign: { $ifNull: [{ $arrayElemAt: ['$campaign.name', 0] }, 'direct'] },
           action: '$actionTaken',
@@ -506,11 +555,17 @@ export class AnalyticsService {
       activeCampaigns: campaignCount,
       deferredLinksMatched: deferredMatched,
       topLinks: topLinks.map((l) => ({
+        linkId: l._id.toString(),
         shortCode: l.shortCode,
         destinationUrl: l.destinationUrl,
         campaignName: l.campaignName || undefined,
         clicks: l.clicks,
         conversions: l.conversions,
+      })),
+      topReferrers: topReferrers.map((r) => ({
+        referrer: r._id || 'Unknown',
+        clicks: r.clicks,
+        percentage: totalReferrerClicks > 0 ? Math.round((r.clicks / totalReferrerClicks) * 1000) / 10 : 0,
       })),
       topCampaigns: topCampaigns.map((c) => ({
         id: c._id.toString(),

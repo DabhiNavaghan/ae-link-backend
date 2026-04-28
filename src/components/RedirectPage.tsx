@@ -48,7 +48,6 @@ export default function RedirectPage({
   storeUrls,
 }: RedirectPageProps) {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'done'>('loading');
-  const [debugData, setDebugData] = useState<any>(null);
 
   useEffect(() => {
     handleRedirectFlow();
@@ -69,20 +68,6 @@ export default function RedirectPage({
     // This creates a DeferredLink record server-side for attribution
     const fingerprint = collectFingerprint();
 
-    // === DEBUG: Log collected browser fingerprint ===
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('[SmartLink] 🌐 BROWSER FINGERPRINT COLLECTED:');
-    console.log('  screen (CSS pixels):', fingerprint.screen.width, 'x', fingerprint.screen.height);
-    console.log('  pixelRatio:', fingerprint.pixelRatio);
-    console.log('  physical pixels:', fingerprint.screen.width * fingerprint.pixelRatio, 'x', fingerprint.screen.height * fingerprint.pixelRatio);
-    console.log('  language:', fingerprint.language);
-    console.log('  timezone:', fingerprint.timezone);
-    console.log('  timezoneOffset:', fingerprint.timezoneOffset);
-    console.log('  platform:', fingerprint.platform);
-    console.log('  vendor:', fingerprint.vendor);
-    console.log('  Full data:', JSON.stringify(fingerprint, null, 2));
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
     try {
       const fpResponse = await fetch('/api/v1/fingerprint', {
         method: 'POST',
@@ -94,16 +79,7 @@ export default function RedirectPage({
           fingerprint,
         }),
       });
-      const fpResult = await fpResponse.json();
-
-      // === DEBUG: Log what was stored in DB ===
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('[SmartLink] 💾 FINGERPRINT STORED IN DB:');
-      console.log(JSON.stringify(fpResult, null, 2));
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-      // Show debug data on screen for mobile debugging
-      setDebugData({ collected: fingerprint, stored: fpResult?.data?.debug });
+      await fpResponse.json();
     } catch (err) {
       // Non-blocking — redirect should proceed even if fingerprint fails
       console.error('[SmartLink] ❌ Fingerprint collection error:', err);
@@ -112,39 +88,80 @@ export default function RedirectPage({
     setStatus('redirecting');
 
     // Step 2: Redirect based on platform
-    // === DEBUG MODE: Pause redirect so we can inspect browser console ===
-    // TODO: Remove this debug block after testing
-    console.log('[SmartLink] 🛑 DEBUG MODE — redirect paused for inspection');
-    console.log('[SmartLink] Device OS:', deviceOS);
-    console.log('[SmartLink] isMobile:', isMobile);
-    setStatus('done');
-    return;
-
-    // --- Normal redirect logic (temporarily disabled for debugging) ---
-    /*
     if (!isMobile) {
+      // Desktop — go straight to the web destination
       const webUrl = link.platformOverrides?.web?.url || link.destinationUrl;
       window.location.href = webUrl;
       setStatus('done');
       return;
     }
 
+    // Mobile — try to open the app via deep link first.
+    // If the app is installed, the intent/universal link will open it.
+    // If not, after a short timeout we redirect to the store.
+
     if (isAndroid) {
+      const appUrl = link.platformOverrides?.android?.url;
       const storeUrl =
         link.platformOverrides?.android?.fallback ||
-        storeUrls.android ||
-        link.destinationUrl;
-      window.location.href = storeUrl;
+        storeUrls.android;
+
+      if (appUrl) {
+        // Try app link — if app isn't installed, the intent will fail silently
+        // and we fall back to the store after a timeout
+        tryOpenApp(appUrl, storeUrl);
+      } else {
+        // No app deep link configured — go directly to Play Store
+        window.location.href = storeUrl;
+        setStatus('done');
+      }
     } else if (isIOS) {
+      const appUrl = link.platformOverrides?.ios?.url;
       const storeUrl =
         link.platformOverrides?.ios?.fallback ||
-        storeUrls.ios ||
-        link.destinationUrl;
-      window.location.href = storeUrl;
-    }
+        storeUrls.ios;
 
-    setStatus('done');
-    */
+      if (appUrl) {
+        // Try universal link — if app isn't installed, fall back to store
+        tryOpenApp(appUrl, storeUrl);
+      } else {
+        // No app deep link configured — go directly to App Store
+        window.location.href = storeUrl;
+        setStatus('done');
+      }
+    }
+  };
+
+  /**
+   * Try to open the app via a deep link URL.
+   * If the app is not installed the page stays visible — after a short
+   * delay we redirect to the store. If the app opens, the page loses
+   * focus/visibility and we skip the store redirect.
+   */
+  const tryOpenApp = (appUrl: string, storeUrl: string) => {
+    let didLeave = false;
+
+    const onBlur = () => { didLeave = true; };
+    const onVisibilityChange = () => {
+      if (document.hidden) didLeave = true;
+    };
+
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Attempt to open the app
+    window.location.href = appUrl;
+
+    // If we're still here after 1.5s, the app is not installed → go to store
+    setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+
+      if (!didLeave) {
+        window.location.href = storeUrl;
+      }
+      setStatus('done');
+    }, 1500);
   };
 
   const collectFingerprint = (): BrowserFingerprint => {
@@ -250,35 +267,6 @@ export default function RedirectPage({
           ? 'Taking you to the app store'
           : 'Taking you to the destination'}
       </p>
-
-      {/* DEBUG: Show fingerprint data on screen */}
-      {debugData && (
-        <div
-          style={{
-            marginTop: 24,
-            padding: 16,
-            backgroundColor: 'var(--color-bg-secondary)',
-            borderRadius: 12,
-            width: '100%',
-            maxWidth: 400,
-            overflow: 'auto',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <h3 style={{ color: 'var(--color-secondary)', fontSize: 14, margin: '0 0 8px', fontWeight: 600 }}>
-            🌐 Browser Fingerprint (Collected)
-          </h3>
-          <pre style={{ color: 'var(--color-text)', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            {JSON.stringify(debugData.collected, null, 2)}
-          </pre>
-          <h3 style={{ color: 'var(--color-primary)', fontSize: 14, margin: '12px 0 8px', fontWeight: 600 }}>
-            💾 Stored in DB
-          </h3>
-          <pre style={{ color: 'var(--color-text)', fontSize: 11, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            {JSON.stringify(debugData.stored, null, 2)}
-          </pre>
-        </div>
-      )}
 
       {/* Manual fallback link */}
       <div style={{ marginTop: 40, textAlign: 'center' }}>

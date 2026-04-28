@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { smartLinkApi } from '@/lib/api';
-import { DashboardOverview } from '@/types';
-import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import { DashboardOverview } from '@/types';
+import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ─── Channel colors ─────────────────────────────────────────────
 const CHANNEL_COLORS: Record<string, string> = {
@@ -49,6 +50,22 @@ function actionLabel(action: string): { text: string; warn: boolean } {
   }
 }
 
+function smoothPath(points: Array<{ x: number; y: number }>): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const tension = 0.3;
+    const dx = curr.x - prev.x;
+    const cp1x = prev.x + dx * tension;
+    const cp2x = curr.x - dx * tension;
+    d += ` C ${cp1x} ${prev.y}, ${cp2x} ${curr.y}, ${curr.x} ${curr.y}`;
+  }
+  return d;
+}
+
 function generateSparkPath(data: number[], w = 200, h = 36): { line: string; area: string } {
   if (data.length === 0) return { line: '', area: '' };
   const max = Math.max(...data, 1);
@@ -57,7 +74,7 @@ function generateSparkPath(data: number[], w = 200, h = 36): { line: string; are
     x: i * step,
     y: h - (v / max) * (h - 4) - 2,
   }));
-  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const line = smoothPath(points);
   const area = `${line} L ${w} ${h} L 0 ${h} Z`;
   return { line, area };
 }
@@ -67,9 +84,9 @@ function generateChartPaths(
   viewW = 650,
   viewH = 180,
   padL = 40
-): { clicksPath: string; clicksArea: string; conversionsPath: string } {
+): { clicksPath: string; clicksArea: string; conversionsPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }> } {
   const usableW = viewW - padL;
-  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '' };
+  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', clickPts: [], convPts: [] };
   const maxClicks = Math.max(...data.map((d) => d.clicks), 1);
   const step = usableW / Math.max(data.length - 1, 1);
 
@@ -82,11 +99,11 @@ function generateChartPaths(
     y: viewH - (d.conversions / maxClicks) * (viewH - 40) - 20,
   }));
 
-  const clicksPath = clickPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const clicksArea = `${clicksPath} L ${padL + (data.length - 1) * step} ${viewH} L ${padL} ${viewH} Z`;
-  const conversionsPath = convPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const clicksPathStr = smoothPath(clickPts);
+  const clicksArea = `${clicksPathStr} L ${padL + (data.length - 1) * step} ${viewH} L ${padL} ${viewH} Z`;
+  const conversionsPath = smoothPath(convPts);
 
-  return { clicksPath, clicksArea, conversionsPath };
+  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, clickPts, convPts };
 }
 
 // ─── Main Dashboard Component ────────────────────────────────────
@@ -96,8 +113,24 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
   const { selectedAppId } = useDashboard();
+  const router = useRouter();
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    if (openMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openMenu]);
 
   const displayName = user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'user';
 
@@ -183,7 +216,8 @@ export default function DashboardPage() {
 
   // Chart paths
   const chartData = overview?.clicksTrend || [];
-  const { clicksPath, clicksArea, conversionsPath } = generateChartPaths(chartData);
+  const { clicksPath, clicksArea, conversionsPath, clickPts, convPts } = generateChartPaths(chartData);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   // Date labels for chart
   const chartDates = chartData.length > 0
@@ -270,77 +304,6 @@ export default function DashboardPage() {
             <button className="btn-dashboard btn-dashboard-primary">→ New link</button>
           </Link>
         </div>
-      </div>
-
-      {/* ─── Filter Bar ────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 12,
-          alignItems: 'center',
-          marginBottom: 24,
-          padding: '14px 16px',
-          border: '1px solid var(--color-border)',
-          background: 'var(--color-bg-card)',
-        }}
-      >
-        {/* Channel Filter */}
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            textTransform: 'uppercase',
-            letterSpacing: '0.14em',
-            color: 'var(--color-text-tertiary)',
-            marginRight: 4,
-          }}
-        >
-          Channel
-        </span>
-        <div style={{ display: 'inline-flex', border: '1px solid var(--color-border-hover)' }}>
-          {['', 'whatsapp', 'email', 'qr', 'instagram', 'sms', 'push', 'web'].map((ch) => (
-            <button
-              key={ch}
-              onClick={() => setSelectedChannel(ch)}
-              style={{
-                padding: '7px 12px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: selectedChannel === ch ? 'var(--color-bg)' : 'var(--color-text-tertiary)',
-                background: selectedChannel === ch ? 'var(--color-primary)' : 'transparent',
-                fontWeight: selectedChannel === ch ? 700 : 400,
-                border: 'none',
-                borderRight: '1px solid var(--color-border-hover)',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-            >
-              {ch || 'all'}
-            </button>
-          ))}
-        </div>
-
-        {/* Refresh */}
-        <button
-          onClick={fetchOverview}
-          style={{
-            marginLeft: 'auto',
-            padding: '7px 12px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--color-text-secondary)',
-            background: 'transparent',
-            border: '1px solid var(--color-border-hover)',
-            cursor: 'pointer',
-          }}
-        >
-          ↻ Refresh
-        </button>
       </div>
 
       {/* ─── KPI Strip ─────────────────────────────────────── */}
@@ -445,10 +408,33 @@ export default function DashboardPage() {
               <>
                 {(overview?.recentClicks || []).slice(0, 12).map((click, i) => {
                   const action = actionLabel(click.action);
+                  const isNonOrganic = click.campaign && click.campaign !== 'direct';
+                  // Format time in user's local timezone
+                  let localTime = click.time;
+                  try {
+                    const d = new Date(click.time);
+                    if (!isNaN(d.getTime())) {
+                      localTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    }
+                  } catch {}
                   return (
-                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, lineHeight: 1.55, flexWrap: 'wrap' }}>
-                      <span style={{ color: 'var(--color-primary)' }}>▸</span>
-                      <span style={{ color: 'var(--color-text-secondary)' }}>{click.time}</span>
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        marginBottom: 4,
+                        lineHeight: 1.55,
+                        flexWrap: 'wrap',
+                        padding: '3px 6px',
+                        marginLeft: -6,
+                        marginRight: -6,
+                        borderRadius: 4,
+                        background: isNonOrganic ? 'rgba(74, 222, 128, 0.1)' : 'transparent',
+                      }}
+                    >
+                      <span style={{ color: isNonOrganic ? '#4ade80' : 'var(--color-primary)' }}>▸</span>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>{localTime}</span>
                       <span style={{ color: 'var(--color-secondary)' }}>{click.platform}</span>
                       <span style={{ color: 'var(--color-primary)' }}>"{click.campaign}"</span>
                       <span
@@ -518,24 +504,48 @@ export default function DashboardPage() {
                 No trend data yet
               </div>
             ) : (
-              <svg viewBox="0 0 700 260" preserveAspectRatio="none" style={{ width: '100%', height: 300 }}>
+              <svg viewBox="0 0 700 260" preserveAspectRatio="none" style={{ width: '100%', height: 300 }} onMouseLeave={() => setHoveredPoint(null)}>
                 {/* Gridlines */}
-                <g stroke="var(--color-border)" strokeWidth="1">
+                <g stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="4 4">
                   <line x1="40" y1="40" x2="690" y2="40" />
                   <line x1="40" y1="100" x2="690" y2="100" />
                   <line x1="40" y1="160" x2="690" y2="160" />
                   <line x1="40" y1="220" x2="690" y2="220" />
                 </g>
-                {/* Clicks area + line */}
-                <path d={clicksArea} fill="rgba(201, 255, 61, 0.12)" />
-                <path d={clicksPath} fill="none" stroke="var(--color-primary)" strokeWidth="1.6" />
-                {/* Conversions line */}
-                <path d={conversionsPath} fill="none" stroke="var(--color-accent)" strokeWidth="1.6" />
-                {/* End markers */}
-                {chartData.length > 0 && (
-                  <>
-                    <circle cx={40 + ((chartData.length - 1) / Math.max(chartData.length - 1, 1)) * 650} cy={260 - 20 - ((chartData[chartData.length - 1]?.clicks || 0) / Math.max(...chartData.map((d) => d.clicks), 1)) * 200} r="4" fill="var(--color-primary)" />
-                  </>
+                {/* Clicks area + smooth line */}
+                <path d={clicksArea} fill="rgba(201, 255, 61, 0.08)" />
+                <path d={clicksPath} fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Conversions smooth line */}
+                <path d={conversionsPath} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Interactive hover zones */}
+                {clickPts.map((pt, i) => (
+                  <g key={i} onMouseEnter={() => setHoveredPoint(i)}>
+                    {/* Invisible wider hit area */}
+                    <rect x={pt.x - (i === 0 ? 20 : (clickPts[1]?.x - clickPts[0]?.x) / 2)} y={0} width={i === 0 || i === clickPts.length - 1 ? 20 + (clickPts[1]?.x - clickPts[0]?.x) / 2 : clickPts[1]?.x - clickPts[0]?.x} height={260} fill="transparent" />
+                    {hoveredPoint === i && (
+                      <>
+                        {/* Vertical guide line */}
+                        <line x1={pt.x} y1={20} x2={pt.x} y2={220} stroke="var(--color-border-hover)" strokeWidth="1" strokeDasharray="3 3" />
+                        {/* Click dot */}
+                        <circle cx={pt.x} cy={pt.y} r="4" fill="var(--color-primary)" stroke="var(--color-bg)" strokeWidth="2" />
+                        {/* Conversion dot */}
+                        <circle cx={convPts[i].x} cy={convPts[i].y} r="4" fill="var(--color-accent)" stroke="var(--color-bg)" strokeWidth="2" />
+                        {/* Tooltip background */}
+                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={38} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
+                        {/* Tooltip text */}
+                        <text x={Math.min(pt.x - 50, 585)} y={16} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-primary)">
+                          clicks: {chartData[i]?.clicks}
+                        </text>
+                        <text x={Math.min(pt.x - 50, 585)} y={32} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
+                          conv: {chartData[i]?.conversions}
+                        </text>
+                      </>
+                    )}
+                  </g>
+                ))}
+                {/* End marker */}
+                {clickPts.length > 0 && hoveredPoint === null && (
+                  <circle cx={clickPts[clickPts.length - 1].x} cy={clickPts[clickPts.length - 1].y} r="3" fill="var(--color-primary)" />
                 )}
                 {/* X labels */}
                 <g fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-text-tertiary)">
@@ -588,7 +598,7 @@ export default function DashboardPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
               <thead>
                 <tr>
-                  {['name', 'status', 'channels', 'links', 'clicks', 'conversions', 'cvr', ''].map((h) => (
+                  {['name', 'status', 'links', 'clicks', 'conversions', 'cvr', ''].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -618,16 +628,15 @@ export default function DashboardPage() {
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
                     <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 500 }}>
-                        <span style={{ display: 'inline-block', width: 6, height: 18, background: CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length] }} />
-                        {campaign.name}
-                      </div>
+                      <Link href={`/dashboard/campaigns/${campaign.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 500, cursor: 'pointer' }}>
+                          <span style={{ display: 'inline-block', width: 6, height: 18, background: CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length] }} />
+                          {campaign.name}
+                        </div>
+                      </Link>
                     </td>
                     <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
                       <StatusPill status={campaign.status} />
-                    </td>
-                    <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                      {campaign.channels || '—'}
                     </td>
                     <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
                       {campaign.linkCount}
@@ -641,10 +650,37 @@ export default function DashboardPage() {
                     <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-text)' }}>
                       {campaign.conversionRate.toFixed(2)}%
                     </td>
-                    <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
-                      <Link href={`/dashboard/campaigns`}>
-                        <button style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 8px', color: 'var(--color-text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}>⋯</button>
-                      </Link>
+                    <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === `campaign-${campaign.id}` ? null : `campaign-${campaign.id}`); }}
+                        style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 8px', color: 'var(--color-text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      >⋯</button>
+                      {openMenu === `campaign-${campaign.id}` && (
+                        <div ref={menuRef} style={{ position: 'absolute', right: 16, top: '100%', zIndex: 50, background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', minWidth: 160, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                          {[
+                            { label: '▸ view', action: () => router.push(`/dashboard/campaigns/${campaign.id}`) },
+                            { label: '▸ edit', action: () => router.push(`/dashboard/campaigns/${campaign.id}`) },
+                            { label: '▸ duplicate', action: () => router.push(`/dashboard/campaigns/create?duplicate=${campaign.id}`) },
+                            { label: '▸ copy slug', action: () => { navigator.clipboard.writeText(campaign.name); } },
+                            { label: campaign.status === 'active' ? '▸ pause' : '▸ resume', action: () => {} },
+                            { label: '▸ archive', action: () => {}, danger: true },
+                          ].map((item) => (
+                            <button
+                              key={item.label}
+                              onClick={() => { item.action(); setOpenMenu(null); }}
+                              style={{
+                                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                                fontFamily: 'var(--font-mono)', fontSize: 11, color: (item as any).danger ? 'var(--color-warning)' : 'var(--color-text)',
+                                background: 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em',
+                              }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-hover)'; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -732,7 +768,9 @@ export default function DashboardPage() {
                         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                       >
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>{link.shortCode}</span>
+                          <Link href={`/dashboard/links/${link.linkId}`} style={{ textDecoration: 'none' }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)', cursor: 'pointer' }}>{link.shortCode}</span>
+                          </Link>
                         </td>
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-secondary)', fontSize: 11, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {link.destinationUrl ? new URL(link.destinationUrl, 'https://x.com').pathname : '—'}
@@ -746,15 +784,37 @@ export default function DashboardPage() {
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-text)' }}>
                           {cvr}%
                         </td>
-                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(link.shortCode);
-                            }}
-                            className="btn-dashboard btn-dashboard-sm"
-                          >
-                            copy
-                          </button>
+                            onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === `link-${link.linkId}` ? null : `link-${link.linkId}`); }}
+                            style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 8px', color: 'var(--color-text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          >⋯</button>
+                          {openMenu === `link-${link.linkId}` && (
+                            <div ref={menuRef} style={{ position: 'absolute', right: 16, top: '100%', zIndex: 50, background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', minWidth: 160, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                              {[
+                                { label: '▸ view', action: () => router.push(`/dashboard/links/${link.linkId}`) },
+                                { label: '▸ edit', action: () => router.push(`/dashboard/links/${link.linkId}`) },
+                                { label: '▸ duplicate', action: () => router.push(`/dashboard/links/create?duplicate=${link.linkId}`) },
+                                { label: '▸ copy link', action: () => { navigator.clipboard.writeText(`${window.location.origin}/${link.shortCode}`); } },
+                                { label: '▸ copy slug', action: () => { navigator.clipboard.writeText(link.shortCode); } },
+                                { label: '▸ delete', action: () => {}, danger: true },
+                              ].map((item) => (
+                                <button
+                                  key={item.label}
+                                  onClick={() => { item.action(); setOpenMenu(null); }}
+                                  style={{
+                                    display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                                    fontFamily: 'var(--font-mono)', fontSize: 11, color: (item as any).danger ? 'var(--color-warning)' : 'var(--color-text)',
+                                    background: 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em',
+                                  }}
+                                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-hover)'; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                                >
+                                  {item.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -833,6 +893,91 @@ export default function DashboardPage() {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ─── Top Referrers ──────────────────────────────── */}
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+            <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>06</span>
+            // top referrers
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>30d</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          {loading ? (
+            <div style={{ padding: 20 }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} style={{ height: 36, marginBottom: 4, width: '100%' }} />
+              ))}
+            </div>
+          ) : (overview?.topReferrers || []).length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+              No referrer data yet
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {['referrer', 'clicks', '%'].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: h === 'referrer' ? 'left' : 'right',
+                        padding: '12px 16px',
+                        fontSize: 10,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.16em',
+                        color: 'var(--color-text-tertiary)',
+                        fontWeight: 500,
+                        borderBottom: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-secondary)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(overview?.topReferrers || []).map((ref, idx) => {
+                  let displayRef = ref.referrer;
+                  try {
+                    const u = new URL(ref.referrer);
+                    displayRef = u.hostname + (u.pathname !== '/' ? u.pathname : '');
+                  } catch { }
+                  return (
+                    <tr
+                      key={idx}
+                      style={{ transition: 'background 0.15s' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ref.referrer}>
+                        {displayRef}
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-primary)' }}>
+                        {ref.clicks.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-text-secondary)' }}>
+                        {ref.percentage}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 

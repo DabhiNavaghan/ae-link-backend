@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
 import { generateQRCodeSVG } from '@/lib/utils/qr-code';
 import { SmartLinkApi } from '@/lib/api';
 
@@ -18,6 +17,8 @@ interface Campaign {
 interface AppOption {
   _id: string;
   name: string;
+  android?: { package?: string; storeUrl?: string };
+  ios?: { bundleId?: string; storeUrl?: string };
 }
 
 interface FormData {
@@ -47,19 +48,33 @@ interface FormData {
 }
 
 const LINK_TYPES = ['event', 'ticket', 'profile', 'category', 'custom'];
-const ACTIONS = [
-  'view_event',
-  'view_ticket',
-  'buy_ticket',
-  'view_profile',
-  'view_category',
-  'custom',
-];
+const ACTIONS = ['view_event', 'view_ticket', 'buy_ticket', 'view_profile', 'view_category', 'custom'];
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 12,
+  padding: '10px 12px',
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 10,
+  textTransform: 'uppercase',
+  letterSpacing: '0.16em',
+  color: 'var(--color-text-tertiary)',
+  marginBottom: 6,
+};
 
 export default function EditLinkPage() {
   const router = useRouter();
-  const params = useParams();
-  const linkId = params.id as string;
+  const routeParams = useParams();
+  const linkId = routeParams.id as string;
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -109,39 +124,48 @@ export default function EditLinkPage() {
     });
   }, [linkId]);
 
-  useEffect(() => {
-    generateQRCode();
-  }, [formData.destinationUrl]);
+  useEffect(() => { generateQRCode(); }, [formData.destinationUrl]);
 
   async function fetchLink() {
     try {
       const link = await api.getLink(linkId);
-      const typedLink = link as any;
+      const l = link as any;
+      const params = l.params || {};
+      const po = l.platformOverrides || {};
 
       setFormData({
-        appId: typedLink.appId || '',
-        campaignId: typedLink.campaignId || '',
-        destinationUrl: typedLink.destinationUrl || '',
-        linkType: typedLink.linkType || 'event',
-        eventId: typedLink.params?.eventId || '',
-        action: typedLink.params?.action || 'view_event',
-        utmSource: typedLink.params?.utmSource || '',
-        utmMedium: typedLink.params?.utmMedium || '',
-        utmCampaign: typedLink.params?.utmCampaign || '',
-        utmTerm: typedLink.params?.utmTerm || '',
-        utmContent: typedLink.params?.utmContent || '',
-        userEmail: typedLink.params?.userEmail || '',
-        userId: typedLink.params?.userId || '',
-        couponCode: typedLink.params?.couponCode || '',
-        referralCode: typedLink.params?.referralCode || '',
-        customParams: typedLink.params?.custom || {},
-        androidUrl: typedLink.platformOverrides?.android?.url || '',
-        androidFallback: typedLink.platformOverrides?.android?.fallback || '',
-        iosUrl: typedLink.platformOverrides?.ios?.url || '',
-        iosFallback: typedLink.platformOverrides?.ios?.fallback || '',
-        webUrl: typedLink.platformOverrides?.web?.url || '',
-        shortCode: typedLink.shortCode || '',
-        expiryDate: typedLink.expiresAt ? typedLink.expiresAt.split('T')[0] : '',
+        appId: l.appId || '',
+        campaignId: l.campaignId || '',
+        destinationUrl: l.destinationUrl || '',
+        linkType: l.linkType || 'event',
+        eventId: params.eventId || '',
+        action: params.action || 'view_event',
+        utmSource: params.utmSource || '',
+        utmMedium: params.utmMedium || '',
+        utmCampaign: params.utmCampaign || '',
+        utmTerm: params.utmTerm || '',
+        utmContent: params.utmContent || '',
+        userEmail: params.userEmail || '',
+        userId: params.userId || '',
+        couponCode: params.couponCode || '',
+        referralCode: params.referralCode || '',
+        customParams: params.custom || {},
+        androidUrl: po.android?.url || '',
+        androidFallback: po.android?.fallback || '',
+        iosUrl: po.ios?.url || '',
+        iosFallback: po.ios?.fallback || '',
+        webUrl: po.web?.url || '',
+        shortCode: l.shortCode || '',
+        expiryDate: l.expiresAt ? new Date(l.expiresAt).toISOString().split('T')[0] : '',
+      });
+
+      // Expand sections that have data
+      setExpandedSections({
+        utm: !!(params.utmSource || params.utmMedium || params.utmCampaign || params.utmTerm || params.utmContent),
+        user: !!(params.userEmail || params.userId || params.couponCode || params.referralCode),
+        custom: !!(params.custom && Object.keys(params.custom).length > 0),
+        platform: !!(po.android || po.ios || po.web),
+        advanced: !!(l.expiresAt),
       });
     } catch (err) {
       console.error('Failed to load link', err);
@@ -153,93 +177,78 @@ export default function EditLinkPage() {
     try {
       const data = await api.listCampaigns({ limit: 100 });
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
-    } catch (err) {
-      console.error('Failed to load campaigns', err);
-    }
+    } catch (err) { console.error('Failed to load campaigns', err); }
   }
 
   async function fetchApps() {
     try {
       const data = await api.listApps();
       setApps((data.apps || []) as unknown as AppOption[]);
-    } catch (err) {
-      console.error('Failed to load apps', err);
-    }
+    } catch (err) { console.error('Failed to load apps', err); }
   }
 
   async function generateQRCode() {
-    if (!formData.destinationUrl) {
-      setQrCodeUrl('');
-      return;
-    }
-
+    if (!formData.destinationUrl) { setQrCodeUrl(''); return; }
     try {
       const svg = generateQRCodeSVG(formData.destinationUrl, 200);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
-    } catch (err) {
-      console.error('Failed to generate QR code', err);
-    }
+    } catch (err) { console.error('Failed to generate QR code', err); }
   }
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const addCustomParam = () => {
     if (customParamKey.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        customParams: {
-          ...prev.customParams,
-          [customParamKey]: customParamValue,
-        },
-      }));
-      setCustomParamKey('');
-      setCustomParamValue('');
+      setFormData((prev) => ({ ...prev, customParams: { ...prev.customParams, [customParamKey]: customParamValue } }));
+      setCustomParamKey(''); setCustomParamValue('');
     }
   };
 
   const removeCustomParam = (key: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      customParams: Object.fromEntries(
-        Object.entries(prev.customParams).filter(([k]) => k !== key)
-      ),
-    }));
+    setFormData((prev) => ({ ...prev, customParams: Object.fromEntries(Object.entries(prev.customParams).filter(([k]) => k !== key)) }));
   };
 
-  const getPreviewDeepLink = () => {
-    const url = new URL(formData.destinationUrl || 'https://allevents.in');
-    const params = new URLSearchParams();
+  const handleCampaignChange = (campaignId: string) => {
+    const selected = campaigns.find(c => c._id === campaignId);
+    const updates: any = { campaignId };
+    if (selected?.metadata?.utmCampaign) {
+      updates.utmCampaign = selected.metadata.utmCampaign;
+    } else if (selected?.slug) {
+      updates.utmCampaign = selected.slug;
+    }
+    if (selected?.metadata?.utmSource && !formData.utmSource) updates.utmSource = selected.metadata.utmSource;
+    if (selected?.metadata?.utmMedium && !formData.utmMedium) updates.utmMedium = selected.metadata.utmMedium;
+    if (Object.keys(updates).length > 1) setExpandedSections((prev) => ({ ...prev, utm: true }));
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
 
-    if (formData.eventId) params.append('eventId', formData.eventId);
-    if (formData.action) params.append('action', formData.action);
-    if (formData.utmSource) params.append('utm_source', formData.utmSource);
-    if (formData.utmMedium) params.append('utm_medium', formData.utmMedium);
-    if (formData.utmCampaign)
-      params.append('utm_campaign', formData.utmCampaign);
-    if (formData.utmTerm) params.append('utm_term', formData.utmTerm);
-    if (formData.utmContent) params.append('utm_content', formData.utmContent);
-    if (formData.userEmail) params.append('userEmail', formData.userEmail);
-    if (formData.userId) params.append('userId', formData.userId);
-    if (formData.couponCode) params.append('couponCode', formData.couponCode);
-    if (formData.referralCode)
-      params.append('referralCode', formData.referralCode);
-
-    Object.entries(formData.customParams).forEach(([key, value]) => {
-      params.append(key, value);
-    });
-
-    const query = params.toString();
-    return `${url.toString()}${query ? '?' + query : ''}`;
+  const handleAppChange = (appId: string) => {
+    const selected = apps.find(a => a._id === appId);
+    const updates: any = { appId };
+    if (selected?.android?.package) {
+      updates.androidUrl = `allevents://app?package=${selected.android.package}`;
+      if (selected.android.storeUrl) updates.androidFallback = selected.android.storeUrl;
+    }
+    if (selected?.ios?.bundleId) {
+      updates.iosUrl = `allevents://app?bundleId=${selected.ios.bundleId}`;
+      if (selected.ios.storeUrl) updates.iosFallback = selected.ios.storeUrl;
+    }
+    if (selected?.android || selected?.ios) {
+      setExpandedSections((prev) => ({ ...prev, platform: true }));
+    }
+    if (!appId) {
+      updates.androidUrl = '';
+      updates.androidFallback = '';
+      updates.iosUrl = '';
+      updates.iosFallback = '';
+    }
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const getAppReceives = () => {
     const data: Record<string, any> = {};
-
     if (formData.eventId) data.eventId = formData.eventId;
     if (formData.action) data.action = formData.action;
     if (formData.utmSource) data.utm_source = formData.utmSource;
@@ -251,60 +260,18 @@ export default function EditLinkPage() {
     if (formData.userId) data.userId = formData.userId;
     if (formData.couponCode) data.couponCode = formData.couponCode;
     if (formData.referralCode) data.referralCode = formData.referralCode;
-
-    Object.entries(formData.customParams).forEach(([key, value]) => {
-      data[key] = value;
-    });
-
+    Object.entries(formData.customParams).forEach(([key, value]) => { data[key] = value; });
     return data;
-  };
-
-  const handleCampaignChange = (campaignId: string) => {
-    const selectedCampaign = campaigns.find(c => c._id === campaignId);
-
-    const updates: any = { campaignId };
-
-    // Auto-fill utmCampaign if not already set
-    if (selectedCampaign?.slug && !formData.utmCampaign) {
-      updates.utmCampaign = selectedCampaign.slug;
-    }
-
-    // Auto-fill utmSource from metadata if available
-    if (selectedCampaign?.metadata?.utmSource && !formData.utmSource) {
-      updates.utmSource = selectedCampaign.metadata.utmSource;
-    }
-
-    // Auto-fill utmMedium from metadata if available
-    if (selectedCampaign?.metadata?.utmMedium && !formData.utmMedium) {
-      updates.utmMedium = selectedCampaign.metadata.utmMedium;
-    }
-
-    // Expand UTM section if any values were auto-filled
-    if (Object.keys(updates).length > 1) {
-      setExpandedSections((prev) => ({
-        ...prev,
-        utm: true,
-      }));
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      ...updates,
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.destinationUrl.trim()) {
-      setError('Destination URL is required');
-      return;
-    }
+    if (!formData.campaignId) { setError('Campaign is required'); return; }
+    if (!formData.appId) { setError('App is required'); return; }
+    if (!formData.destinationUrl.trim()) { setError('Destination URL is required'); return; }
 
     try {
-      setLoading(true);
-      setError(null);
-
+      setLoading(true); setError(null);
       const payload: any = {
         destinationUrl: formData.destinationUrl,
         linkType: formData.linkType,
@@ -319,26 +286,12 @@ export default function EditLinkPage() {
           ...(formData.userEmail && { userEmail: formData.userEmail }),
           ...(formData.userId && { userId: formData.userId }),
           ...(formData.couponCode && { couponCode: formData.couponCode }),
-          ...(formData.referralCode && {
-            referralCode: formData.referralCode,
-          }),
-          ...(Object.keys(formData.customParams).length > 0 && {
-            custom: formData.customParams,
-          }),
+          ...(formData.referralCode && { referralCode: formData.referralCode }),
+          ...(Object.keys(formData.customParams).length > 0 && { custom: formData.customParams }),
         },
         platformOverrides: {
-          ...(formData.androidUrl && {
-            android: {
-              url: formData.androidUrl,
-              ...(formData.androidFallback && { fallback: formData.androidFallback }),
-            },
-          }),
-          ...(formData.iosUrl && {
-            ios: {
-              url: formData.iosUrl,
-              ...(formData.iosFallback && { fallback: formData.iosFallback }),
-            },
-          }),
+          ...(formData.androidUrl && { android: { url: formData.androidUrl, ...(formData.androidFallback && { fallback: formData.androidFallback }) } }),
+          ...(formData.iosUrl && { ios: { url: formData.iosUrl, ...(formData.iosFallback && { fallback: formData.iosFallback }) } }),
           ...(formData.webUrl && { web: { url: formData.webUrl } }),
         },
         ...(formData.appId && { appId: formData.appId }),
@@ -355,765 +308,282 @@ export default function EditLinkPage() {
     }
   };
 
+  const sectionHeader = (num: string, label: string) => (
+    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+        <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>{num}</span>
+        // {label}
+      </span>
+    </div>
+  );
+
+  const collapsibleHeader = (label: string, section: keyof typeof expandedSections) => (
+    <button
+      type="button"
+      onClick={() => toggleSection(section)}
+      style={{ width: '100%', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+    >
+      <span>{label}</span>
+      <span style={{ color: 'var(--color-text-tertiary)', fontSize: 12 }}>{expandedSections[section] ? '−' : '+'}</span>
+    </button>
+  );
+
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-base p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin mb-4" style={{ borderColor: 'var(--color-primary-light)', borderTopColor: 'var(--color-primary)' }}></div>
-            <p style={{ color: 'var(--color-text-secondary)' }}>Loading link...</p>
-          </div>
-        </div>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>loading link...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-base p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="font-medium mb-4"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            ← Back
-          </button>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Edit Link</h1>
-          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Update your deep link parameters and platform overrides
-          </p>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+        {/* Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
         </div>
 
+        {/* Title */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>edit link</h1>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>update deep link parameters and platform overrides</p>
+        </div>
+
+        {/* Error */}
         {error && (
-          <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', borderWidth: '1px', color: 'var(--color-danger)' }}>
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--color-warning)', padding: '12px 16px', marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Form */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Campaign & Destination */}
-            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <div className="space-y-6">
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+          {/* Left – Form */}
+          <div>
+            {/* 01 Basic */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {sectionHeader('01', 'basic info')}
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Campaign
-                  </label>
-                  <select
-                    value={formData.campaignId}
-                    onChange={(e) => handleCampaignChange(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  >
-                    <option value="">No Campaign (Optional)</option>
-                    {campaigns.map((camp) => (
-                      <option key={camp._id} value={camp._id}>
-                        {camp.name}
-                      </option>
-                    ))}
+                  <label style={labelStyle}>campaign *</label>
+                  <select value={formData.campaignId} onChange={(e) => handleCampaignChange(e.target.value)} style={inputStyle} required>
+                    <option value="">Select a campaign</option>
+                    {campaigns.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    App
-                  </label>
-                  <select
-                    value={formData.appId}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        appId: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  >
-                    <option value="">No App (Optional)</option>
-                    {apps.map((app) => (
-                      <option key={app._id} value={app._id}>
-                        {app.name}
-                      </option>
-                    ))}
+                  <label style={labelStyle}>app *</label>
+                  <select value={formData.appId} onChange={(e) => handleAppChange(e.target.value)} style={inputStyle} required>
+                    <option value="">Select an app</option>
+                    {apps.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
                   </select>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 4 }}>select an app to use its store URLs for mobile redirects</div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Destination URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.destinationUrl}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        destinationUrl: e.target.value,
-                      }))
-                    }
-                    placeholder="https://allevents.in"
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                    required
-                  />
+                  <label style={labelStyle}>destination url *</label>
+                  <input type="url" value={formData.destinationUrl} onChange={(e) => setFormData((prev) => ({ ...prev, destinationUrl: e.target.value }))} placeholder="https://allevents.in" style={inputStyle} required />
                 </div>
-
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>link type</label>
+                    <select value={formData.linkType} onChange={(e) => setFormData((prev) => ({ ...prev, linkType: e.target.value as any }))} style={inputStyle}>
+                      {LINK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>action</label>
+                    <select value={formData.action} onChange={(e) => setFormData((prev) => ({ ...prev, action: e.target.value }))} style={inputStyle}>
+                      {ACTIONS.map((a) => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Link Type
-                  </label>
-                  <select
-                    value={formData.linkType}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        linkType: e.target.value as any,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  >
-                    {LINK_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+                  <label style={labelStyle}>event id</label>
+                  <input type="text" value={formData.eventId} onChange={(e) => setFormData((prev) => ({ ...prev, eventId: e.target.value }))} placeholder="evt_123456" style={inputStyle} />
                 </div>
               </div>
             </div>
 
-            {/* Event/Content Data */}
-            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
-                Event/Content Data
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Event ID
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.eventId}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        eventId: e.target.value,
-                      }))
-                    }
-                    placeholder="evt_123456"
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Action
-                  </label>
-                  <select
-                    value={formData.action}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        action: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  >
-                    {ACTIONS.map((action) => (
-                      <option key={action} value={action}>
-                        {action.replace(/_/g, ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* UTM Parameters */}
-            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <button
-                type="button"
-                onClick={() => toggleSection('utm')}
-                className="w-full px-6 py-4 flex items-center justify-between transition"
-                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                  UTM Parameters
-                </h3>
-                <svg
-                  className={`w-5 h-5 transform transition ${
-                    expandedSections.utm ? 'rotate-180' : ''
-                  }`}
-                  style={{ color: 'var(--color-text-secondary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </button>
+            {/* UTM */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {collapsibleHeader('utm parameters', 'utm')}
               {expandedSections.utm && (
-                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                  <input
-                    type="text"
-                    placeholder="UTM Source (e.g., facebook)"
-                    value={formData.utmSource}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        utmSource: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="UTM Medium (e.g., cpc)"
-                    value={formData.utmMedium}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        utmMedium: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="UTM Campaign"
-                    value={formData.utmCampaign}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        utmCampaign: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="UTM Term"
-                    value={formData.utmTerm}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        utmTerm: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="UTM Content"
-                    value={formData.utmContent}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        utmContent: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* User Attribution */}
-            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <button
-                type="button"
-                onClick={() => toggleSection('user')}
-                className="w-full px-6 py-4 flex items-center justify-between transition"
-                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                  User Attribution
-                </h3>
-                <svg
-                  className={`w-5 h-5 transform transition ${
-                    expandedSections.user ? 'rotate-180' : ''
-                  }`}
-                  style={{ color: 'var(--color-text-secondary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </button>
-              {expandedSections.user && (
-                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                  <input
-                    type="email"
-                    placeholder="User Email"
-                    value={formData.userEmail}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        userEmail: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="User ID"
-                    value={formData.userId}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        userId: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Coupon Code"
-                    value={formData.couponCode}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        couponCode: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Referral Code"
-                    value={formData.referralCode}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        referralCode: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Custom Parameters */}
-            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <button
-                type="button"
-                onClick={() => toggleSection('custom')}
-                className="w-full px-6 py-4 flex items-center justify-between transition"
-                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                  Custom Parameters
-                </h3>
-                <svg
-                  className={`w-5 h-5 transform transition ${
-                    expandedSections.custom ? 'rotate-180' : ''
-                  }`}
-                  style={{ color: 'var(--color-text-secondary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </button>
-              {expandedSections.custom && (
-                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                  {Object.entries(formData.customParams).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex gap-2 items-start p-3 rounded-lg"
-                      style={{ backgroundColor: 'var(--color-bg-secondary)' }}
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                          {key}
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{value}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeCustomParam(key)}
-                        className="text-sm"
-                        style={{ color: 'var(--color-danger)' }}
-                      >
-                        ✕
-                      </button>
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {(['utmSource', 'utmMedium', 'utmCampaign', 'utmTerm', 'utmContent'] as const).map((field) => (
+                    <div key={field}>
+                      <label style={labelStyle}>{field.replace('utm', 'utm_').toLowerCase()}</label>
+                      <input type="text" value={formData[field]} onChange={(e) => setFormData((prev) => ({ ...prev, [field]: e.target.value }))} placeholder={field.replace('utm', '')} style={inputStyle} />
                     </div>
                   ))}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Key"
-                      value={customParamKey}
-                      onChange={(e) => setCustomParamKey(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-lg text-sm"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Value"
-                      value={customParamValue}
-                      onChange={(e) => setCustomParamValue(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-lg text-sm"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={addCustomParam}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap"
-                      style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                    >
-                      Add
-                    </button>
+                </div>
+              )}
+            </div>
+
+            {/* User */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {collapsibleHeader('user attribution', 'user')}
+              {expandedSections.user && (
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {([
+                    ['userEmail', 'email', 'email'],
+                    ['userId', 'user id', 'text'],
+                    ['couponCode', 'coupon code', 'text'],
+                    ['referralCode', 'referral code', 'text'],
+                  ] as const).map(([field, label, type]) => (
+                    <div key={field}>
+                      <label style={labelStyle}>{label}</label>
+                      <input type={type} value={formData[field]} onChange={(e) => setFormData((prev) => ({ ...prev, [field]: e.target.value }))} placeholder={label} style={inputStyle} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Params */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {collapsibleHeader('custom parameters', 'custom')}
+              {expandedSections.custom && (
+                <div style={{ padding: 20 }}>
+                  {Object.entries(formData.customParams).map(([key, value]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', marginBottom: 8 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text)', flex: 1 }}>{key}: <span style={{ color: 'var(--color-text-secondary)' }}>{value}</span></span>
+                      <button type="button" onClick={() => removeCustomParam(key)} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-warning)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input type="text" value={customParamKey} onChange={(e) => setCustomParamKey(e.target.value)} placeholder="key" style={{ ...inputStyle, flex: 1 }} />
+                    <input type="text" value={customParamValue} onChange={(e) => setCustomParamValue(e.target.value)} placeholder="value" style={{ ...inputStyle, flex: 1 }} />
+                    <button type="button" onClick={addCustomParam} className="btn-dashboard btn-dashboard-sm" style={{ whiteSpace: 'nowrap' }}>+ add</button>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Platform Overrides */}
-            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <button
-                type="button"
-                onClick={() => toggleSection('platform')}
-                className="w-full px-6 py-4 flex items-center justify-between transition"
-                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                  Platform Overrides
-                </h3>
-                <svg
-                  className={`w-5 h-5 transform transition ${
-                    expandedSections.platform ? 'rotate-180' : ''
-                  }`}
-                  style={{ color: 'var(--color-text-secondary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </button>
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {collapsibleHeader('platform overrides', 'platform')}
               {expandedSections.platform && (
-                <div className="p-6 space-y-6" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
-                      Android
-                    </h4>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="Android App URL"
-                        value={formData.androidUrl}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            androidUrl: e.target.value,
-                          }))
-                        }
-                        className="w-full px-4 py-2 rounded-lg text-sm"
-                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Android Store Fallback"
-                        value={formData.androidFallback}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            androidFallback: e.target.value,
-                          }))
-                        }
-                        className="w-full px-4 py-2 rounded-lg text-sm"
-                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                      />
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ borderLeft: '3px solid var(--color-primary)', paddingLeft: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-primary)', marginBottom: 8 }}>android</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input type="text" value={formData.androidUrl} onChange={(e) => setFormData((prev) => ({ ...prev, androidUrl: e.target.value }))} placeholder="app deep link url" style={inputStyle} />
+                      <input type="text" value={formData.androidFallback} onChange={(e) => setFormData((prev) => ({ ...prev, androidFallback: e.target.value }))} placeholder="store fallback url" style={inputStyle} />
                     </div>
                   </div>
-
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
-                      iOS
-                    </h4>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="iOS App URL"
-                        value={formData.iosUrl}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            iosUrl: e.target.value,
-                          }))
-                        }
-                        className="w-full px-4 py-2 rounded-lg text-sm"
-                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="iOS Store Fallback"
-                        value={formData.iosFallback}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            iosFallback: e.target.value,
-                          }))
-                        }
-                        className="w-full px-4 py-2 rounded-lg text-sm"
-                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                      />
+                  <div style={{ borderLeft: '3px solid var(--color-accent)', paddingLeft: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-accent)', marginBottom: 8 }}>ios</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input type="text" value={formData.iosUrl} onChange={(e) => setFormData((prev) => ({ ...prev, iosUrl: e.target.value }))} placeholder="app deep link url" style={inputStyle} />
+                      <input type="text" value={formData.iosFallback} onChange={(e) => setFormData((prev) => ({ ...prev, iosFallback: e.target.value }))} placeholder="store fallback url" style={inputStyle} />
                     </div>
                   </div>
-
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
-                      Web
-                    </h4>
-                    <input
-                      type="text"
-                      placeholder="Web URL (overrides destination URL)"
-                      value={formData.webUrl}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          webUrl: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-2 rounded-lg text-sm"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                    />
+                  <div style={{ borderLeft: '3px solid var(--color-secondary)', paddingLeft: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-secondary)', marginBottom: 8 }}>web</div>
+                    <input type="text" value={formData.webUrl} onChange={(e) => setFormData((prev) => ({ ...prev, webUrl: e.target.value }))} placeholder="override web url" style={inputStyle} />
                   </div>
                 </div>
               )}
             </div>
 
             {/* Advanced */}
-            <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <button
-                type="button"
-                onClick={() => toggleSection('advanced')}
-                className="w-full px-6 py-4 flex items-center justify-between transition"
-                style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                  Advanced
-                </h3>
-                <svg
-                  className={`w-5 h-5 transform transition ${
-                    expandedSections.advanced ? 'rotate-180' : ''
-                  }`}
-                  style={{ color: 'var(--color-text-secondary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </button>
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {collapsibleHeader('advanced', 'advanced')}
               {expandedSections.advanced && (
-                <div className="p-6 space-y-4" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                      Expiry Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.expiryDate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          expiryDate: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-2 rounded-lg text-sm"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px' }}
-                    />
+                    <label style={labelStyle}>short code</label>
+                    <input type="text" value={formData.shortCode} style={{ ...inputStyle, color: 'var(--color-text-tertiary)' }} disabled />
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 4 }}>short code cannot be changed after creation</div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>expiry date</label>
+                    <input type="date" value={formData.expiryDate} onChange={(e) => setFormData((prev) => ({ ...prev, expiryDate: e.target.value }))} style={inputStyle} />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Submit Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="lg"
-                fullWidth
-                onClick={() => router.back()}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-              >
-                Update Link
-              </Button>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => router.back()} disabled={loading} className="btn-dashboard" style={{ flex: 1, padding: '12px 0' }}>cancel</button>
+              <button type="submit" disabled={loading} className="btn-dashboard btn-dashboard-primary" style={{ flex: 1, padding: '12px 0' }}>
+                {loading ? 'saving...' : 'save changes'}
+              </button>
             </div>
           </div>
 
-          {/* Right Column - Live Preview */}
-          <div className="lg:col-span-1">
-            <div className="rounded-lg shadow-sm p-6 sticky top-8 space-y-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                Live Preview
-              </h3>
+          {/* Right – Preview */}
+          <div style={{ position: 'sticky', top: 32, alignSelf: 'start' }}>
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>// live preview</span>
+              </div>
 
               {formData.destinationUrl ? (
-                <>
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Deep Link */}
                   <div>
-                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
-                      DEEP LINK
-                    </p>
-                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
-                      <p className="text-sm font-mono break-all" style={{ color: 'var(--color-primary)' }}>
-                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode}
-                      </p>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>short link</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', wordBreak: 'break-all', padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                      {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{formData.shortCode || '<auto>'}
                     </div>
                   </div>
 
-                  {/* QR Code */}
+                  {/* QR */}
                   {qrCodeUrl && (
-                    <div>
-                      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
-                        QR CODE
-                      </p>
-                      <div className="rounded-lg p-4 flex justify-center" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
-                        <img
-                          src={qrCodeUrl}
-                          alt="QR Code"
-                          className="w-32 h-32"
-                        />
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: 16, background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                      <img src={qrCodeUrl} alt="QR Code" style={{ width: 120, height: 120 }} />
                     </div>
                   )}
 
                   {/* App Receives */}
                   <div>
-                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
-                      APP RECEIVES
-                    </p>
-                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
-                      <pre className="text-xs overflow-auto max-h-48" style={{ color: 'var(--color-text-secondary)' }}>
-                        {JSON.stringify(getAppReceives(), null, 2) || '{}'}
-                      </pre>
-                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>app receives</div>
+                    <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)', padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', overflow: 'auto', maxHeight: 200, margin: 0 }}>
+                      {JSON.stringify(getAppReceives(), null, 2) || '{}'}
+                    </pre>
                   </div>
 
-                  {/* Full URL */}
-                  <div>
-                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
-                      FULL URL
-                    </p>
-                    <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
-                      <p className="text-xs break-all font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-                        {getPreviewDeepLink()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Platform Breakdown */}
-                  {(formData.androidUrl ||
-                    formData.iosUrl ||
-                    formData.webUrl) && (
+                  {/* Platform Routes */}
+                  {(formData.androidUrl || formData.iosUrl || formData.webUrl) && (
                     <div>
-                      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
-                        PLATFORM ROUTES
-                      </p>
-                      <div className="space-y-2">
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>platform routes</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {formData.androidUrl && (
-                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', borderWidth: '1px' }}>
-                            <p className="font-medium" style={{ color: 'rgba(59, 130, 246, 1)' }}>
-                              Android
-                            </p>
-                            <p className="truncate" style={{ color: 'rgba(59, 130, 246, 0.8)' }}>
-                              {formData.androidUrl}
-                            </p>
+                          <div style={{ padding: '6px 10px', borderLeft: '3px solid var(--color-primary)', background: 'var(--color-bg)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                            <span style={{ color: 'var(--color-primary)' }}>android</span>
+                            <span style={{ color: 'var(--color-text-secondary)', marginLeft: 8 }}>{formData.androidUrl}</span>
                           </div>
                         )}
                         {formData.iosUrl && (
-                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.3)', borderWidth: '1px' }}>
-                            <p className="font-medium" style={{ color: 'rgba(168, 85, 247, 1)' }}>iOS</p>
-                            <p className="truncate" style={{ color: 'rgba(168, 85, 247, 0.8)' }}>
-                              {formData.iosUrl}
-                            </p>
+                          <div style={{ padding: '6px 10px', borderLeft: '3px solid var(--color-accent)', background: 'var(--color-bg)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                            <span style={{ color: 'var(--color-accent)' }}>ios</span>
+                            <span style={{ color: 'var(--color-text-secondary)', marginLeft: 8 }}>{formData.iosUrl}</span>
                           </div>
                         )}
                         {formData.webUrl && (
-                          <div className="text-xs rounded p-2" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
-                            <p className="font-medium" style={{ color: 'var(--color-text)' }}>Web</p>
-                            <p className="truncate" style={{ color: 'var(--color-text-secondary)' }}>
-                              {formData.webUrl}
-                            </p>
+                          <div style={{ padding: '6px 10px', borderLeft: '3px solid var(--color-secondary)', background: 'var(--color-bg)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                            <span style={{ color: 'var(--color-secondary)' }}>web</span>
+                            <span style={{ color: 'var(--color-text-secondary)', marginLeft: 8 }}>{formData.webUrl}</span>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
-                <p className="text-sm text-center py-12" style={{ color: 'var(--color-text-secondary)' }}>
-                  Enter a destination URL to see preview
-                </p>
+                <div style={{ padding: '60px 20px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+                  enter a destination URL to see preview
+                </div>
               )}
+
+              <div style={{ padding: '12px 20px', borderTop: '1px dashed var(--color-border)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)' }}>
+                editing: <span style={{ color: 'var(--color-secondary)' }}>{linkId}</span>
+              </div>
             </div>
           </div>
         </form>

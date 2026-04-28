@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 /* ─── Icons ─── */
 const ArrowLeftIcon = () => (
@@ -261,7 +261,7 @@ export default function DocsPage() {
               {
                 field: 'Package Name',
                 where: 'app/build.gradle > applicationId',
-                example: 'com.amitech.allevents',
+                example: 'com.example.app',
               },
               {
                 field: 'SHA256 Fingerprint',
@@ -271,7 +271,7 @@ export default function DocsPage() {
               {
                 field: 'Play Store URL',
                 where: 'Google Play Console > your app page URL',
-                example: 'https://play.google.com/store/apps/details?id=com.amitech.allevents',
+                example: 'https://play.google.com/store/apps/details?id=com.example.app',
               },
             ]} />
 
@@ -285,7 +285,7 @@ export default function DocsPage() {
               </p>
               <p>
                 Alternatively, if your app is on the Play Store, go to <strong>Google Play Console &gt;
-                Setup &gt; App Signing</strong> and copy the SHA-256 certificate fingerprint.
+                  Setup &gt; App Signing</strong> and copy the SHA-256 certificate fingerprint.
               </p>
             </div>
 
@@ -324,22 +324,22 @@ export default function DocsPage() {
               {
                 field: 'Bundle ID',
                 where: 'Xcode > Target > General > Bundle Identifier',
-                example: 'com.amitech.allevents',
+                example: 'com.example.app',
               },
               {
                 field: 'Team ID',
                 where: 'developer.apple.com > Account > Membership',
-                example: '53V82MSR2T',
+                example: '52F56SDF2T',
               },
               {
                 field: 'App ID (Numeric)',
                 where: 'App Store Connect > Apps > Your App > General Info > Apple ID',
-                example: '488116646',
+                example: '54637287',
               },
               {
                 field: 'App Store URL',
                 where: 'Browser URL when viewing your app on the App Store',
-                example: 'https://apps.apple.com/app/id488116646',
+                example: 'https://apps.apple.com/app/id54637287',
               },
             ]} />
 
@@ -445,7 +445,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize SmartLink (handles everything)
-  final deferredLink = await initSmartLink(navigatorKey: navigatorKey);
+  await initSmartLink(navigatorKey: navigatorKey);
 
   runApp(MyApp(
     navigatorKey: navigatorKey,
@@ -516,68 +516,84 @@ class MyApp extends StatelessWidget {
           {/* API Reference */}
           <DocSection id="api-reference" title="API Reference">
             <p>
-              All API endpoints require authentication via the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">X-API-Key</code> header.
-              The base URL is <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{appUrl}/api/v1</code>.
+              Access the full SmartLink REST API to programmatically create links, manage campaigns,
+              query analytics, and integrate deep linking into your backend workflows.
             </p>
 
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Method</th>
-                    <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Endpoint</th>
-                    <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['POST', '/tenants', 'Register a new app/tenant'],
-                    ['GET', '/tenants', 'Get current tenant details'],
-                    ['POST', '/tenants/regenerate-key', 'Regenerate API key'],
-                    ['POST', '/links', 'Create a new deep link'],
-                    ['GET', '/links', 'List all links'],
-                    ['GET', '/links/:id', 'Get a specific link'],
-                    ['POST', '/campaigns', 'Create a new campaign'],
-                    ['GET', '/campaigns', 'List campaigns'],
-                    ['POST', '/fingerprint', 'Store a device fingerprint (web-side)'],
-                    ['POST', '/deferred/match', 'Match a fingerprint (SDK-side)'],
-                    ['POST', '/deferred/confirm', 'Confirm a deferred link was opened'],
-                    ['GET', '/analytics/overview', 'Dashboard analytics overview'],
-                    ['GET', '/analytics/links/:id', 'Analytics for a specific link'],
-                    ['GET', '/analytics/campaigns/:id', 'Analytics for a specific campaign'],
-                  ].map(([method, endpoint, desc], i) => (
-                    <tr key={endpoint} className={i % 2 ? 'bg-slate-50' : 'bg-white'}>
-                      <td className="px-4 py-2 border-b border-slate-100">
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                          method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {method}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 border-b border-slate-100">
-                        <code className="text-xs text-slate-700">{endpoint}</code>
-                      </td>
-                      <td className="px-4 py-2 text-slate-600 border-b border-slate-100">{desc}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div className="relative rounded-lg border border-slate-200 overflow-hidden">
+              {/* Blurred preview of endpoints */}
+              <div className="pointer-events-none select-none" style={{ filter: 'blur(5px)', opacity: 0.45 }}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50">
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Method</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Endpoint</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ['POST', '/links', 'Create a new deep link'],
+                        ['GET', '/links', 'List all links'],
+                        ['GET', '/links/:id', 'Get a specific link'],
+                        ['POST', '/campaigns', 'Create a new campaign'],
+                        ['GET', '/campaigns', 'List campaigns'],
+                        ['GET', '/analytics/overview', 'Dashboard analytics overview'],
+                      ].map(([method, endpoint, desc], i) => (
+                        <tr key={endpoint} className={i % 2 ? 'bg-slate-50' : 'bg-white'}>
+                          <td className="px-4 py-2 border-b border-slate-100">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {method}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 border-b border-slate-100">
+                            <code className="text-xs text-slate-700">{endpoint}</code>
+                          </td>
+                          <td className="px-4 py-2 text-slate-600 border-b border-slate-100">{desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-            <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Example: Create a deep link</p>
-              <CodeBlock code={`curl -X POST ${appUrl}/api/v1/links \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "title": "Summer Music Festival",
-    "destinationUrl": "https://allevents.in/event/summer-music-fest",
-    "deepLinkPath": "/event/summer-music-fest",
-    "params": {
-      "source": "email",
-      "campaign": "summer-promo"
-    }
-  }'`} />
+              {/* Upgrade overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm">
+                <div className="text-center max-w-md px-6">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-slate-100 mb-4">
+                    <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    API Access requires Pro plan
+                  </h3>
+                  <p className="text-sm text-slate-600 mb-5">
+                    Unlock 14 REST API endpoints to programmatically create links, manage campaigns,
+                    query analytics, and integrate SmartLink into your backend. Includes full
+                    documentation, code examples, and webhook support.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a
+                      href="/#pricing"
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition"
+                      style={{ backgroundColor: 'var(--color-primary, #2563eb)' }}
+                    >
+                      View Plans &amp; Pricing
+                    </a>
+                    <a
+                      href="/#pricing"
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+                    >
+                      Compare Plans
+                    </a>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-4">
+                    Starts at $99/mo &middot; 14-day free trial &middot; No credit card required
+                  </p>
+                </div>
+              </div>
             </div>
           </DocSection>
 

@@ -9,6 +9,11 @@ const campaignSchema = new Schema<ICampaign>(
       required: true,
       index: true,
     },
+    appId: {
+      type: Schema.Types.ObjectId,
+      ref: 'App',
+      index: true,
+    },
     name: {
       type: String,
       required: true,

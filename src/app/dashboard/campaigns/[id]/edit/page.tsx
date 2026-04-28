@@ -2,26 +2,50 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
 import { generateSlug } from '@/lib/utils/slug';
 import { SmartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 const api = new SmartLinkApi();
 
 interface FormData {
   name: string;
   slug: string;
+  appId: string;
   description: string;
   fallbackUrl: string;
+  utmCampaign: string;
   startDate: string;
   endDate: string;
   metadata: Record<string, string>;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 12,
+  padding: '10px 12px',
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 10,
+  textTransform: 'uppercase',
+  letterSpacing: '0.16em',
+  color: 'var(--color-text-tertiary)',
+  marginBottom: 6,
+};
+
 export default function EditCampaignPage() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
+  const { apps } = useDashboard();
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -29,8 +53,10 @@ export default function EditCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     slug: '',
+    appId: '',
     description: '',
     fallbackUrl: '',
+    utmCampaign: '',
     startDate: '',
     endDate: '',
     metadata: {},
@@ -45,16 +71,22 @@ export default function EditCampaignPage() {
   async function fetchCampaign() {
     try {
       const campaign = await api.getCampaign(campaignId);
-      const typedCampaign = campaign as any;
+      const c = campaign as any;
+      // Extract utmCampaign from metadata if present
+      const meta = { ...(c.metadata || {}) };
+      const utmCampaign = meta.utmCampaign || '';
+      delete meta.utmCampaign;
 
       setFormData({
-        name: typedCampaign.name || '',
-        slug: typedCampaign.slug || '',
-        description: typedCampaign.description || '',
-        fallbackUrl: typedCampaign.fallbackUrl || '',
-        startDate: typedCampaign.startDate ? typedCampaign.startDate.split('T')[0] : '',
-        endDate: typedCampaign.endDate ? typedCampaign.endDate.split('T')[0] : '',
-        metadata: typedCampaign.metadata || {},
+        name: c.name || '',
+        slug: c.slug || '',
+        appId: c.appId || '',
+        description: c.description || '',
+        fallbackUrl: c.fallbackUrl || '',
+        utmCampaign,
+        startDate: c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : '',
+        endDate: c.endDate ? new Date(c.endDate).toISOString().split('T')[0] : '',
+        metadata: meta,
       });
     } catch (err) {
       console.error('Failed to load campaign', err);
@@ -65,75 +97,47 @@ export default function EditCampaignPage() {
   }
 
   const handleNameChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      name: value,
-      slug: generateSlug(value),
-    }));
+    const slug = generateSlug(value);
+    setFormData((prev) => ({ ...prev, name: value, slug, utmCampaign: slug }));
   };
 
   const handleSlugChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      slug: generateSlug(value),
-    }));
+    const slug = generateSlug(value);
+    setFormData((prev) => ({ ...prev, slug, utmCampaign: slug }));
   };
 
   const addMetadata = () => {
     if (metadataKey.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        metadata: {
-          ...prev.metadata,
-          [metadataKey]: metadataValue,
-        },
-      }));
+      setFormData((prev) => ({ ...prev, metadata: { ...prev.metadata, [metadataKey]: metadataValue } }));
       setMetadataKey('');
       setMetadataValue('');
     }
   };
 
   const removeMetadata = (key: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      metadata: Object.fromEntries(
-        Object.entries(prev.metadata).filter(([k]) => k !== key)
-      ),
-    }));
+    setFormData((prev) => ({ ...prev, metadata: Object.fromEntries(Object.entries(prev.metadata).filter(([k]) => k !== key)) }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.name.trim()) {
-      setError('Campaign name is required');
-      return;
-    }
-
-    if (!formData.slug.trim()) {
-      setError('Slug is required');
-      return;
-    }
+    if (!formData.appId) { setError('App is required'); return; }
+    if (!formData.name.trim()) { setError('Campaign name is required'); return; }
+    if (!formData.slug.trim()) { setError('Slug is required'); return; }
 
     try {
       setLoading(true);
       setError(null);
-
-      const payload: any = {
-        name: formData.name,
-        slug: formData.slug,
-      };
-
+      const payload: any = { name: formData.name, slug: formData.slug };
+      if (formData.appId) payload.appId = formData.appId;
       if (formData.description) payload.description = formData.description;
       if (formData.fallbackUrl) payload.fallbackUrl = formData.fallbackUrl;
       if (formData.startDate) payload.startDate = formData.startDate;
       if (formData.endDate) payload.endDate = formData.endDate;
-      if (Object.keys(formData.metadata).length > 0) {
-        payload.metadata = formData.metadata;
-      }
+      const metaWithUtm = { ...formData.metadata };
+      if (formData.utmCampaign) metaWithUtm.utmCampaign = formData.utmCampaign;
+      if (Object.keys(metaWithUtm).length > 0) payload.metadata = metaWithUtm;
 
       await api.updateCampaign(campaignId, payload);
-
       router.push(`/dashboard/campaigns/${campaignId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to update campaign');
@@ -142,326 +146,214 @@ export default function EditCampaignPage() {
     }
   };
 
+  const sectionHeader = (num: string, label: string) => (
+    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+        <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>{num}</span>
+        // {label}
+      </span>
+    </div>
+  );
+
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-base p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-600">Loading campaign...</p>
-          </div>
-        </div>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>loading campaign...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-base p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="font-medium mb-4"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            ← Back
-          </button>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Edit Campaign</h1>
-          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Update your campaign details and metadata
-          </p>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+
+        {/* Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Title */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>edit campaign</h1>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>update your campaign details and metadata</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
           {/* Form */}
-          <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              {/* Campaign Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                  Campaign Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g., Summer Festival 2024"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                />
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                  Give your campaign a descriptive name
-                </p>
-              </div>
-
-              {/* Slug */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                  Slug *
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-                    {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/
-                  </span>
-                  <input
-                    type="text"
-                    value={formData.slug}
-                    onChange={(e) => handleSlugChange(e.target.value)}
-                    placeholder="summer-festival-2024"
-                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  />
-                </div>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                  Auto-generated from campaign name. Only letters, numbers, and
-                  hyphens.
-                </p>
-              </div>
-
-              {/* Description */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Add details about this campaign..."
-                  rows={4}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                />
-              </div>
-
-              {/* Fallback URL */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                  Fallback URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.fallbackUrl}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      fallbackUrl: e.target.value,
-                    }))
-                  }
-                  placeholder="https://allevents.in"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                />
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                  Where users are redirected if no destination URL is found
-                </p>
-              </div>
-            </div>
-
-            {/* Dates Section */}
-            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
-                Campaign Duration
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit}>
+            {/* Basic Info */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {sectionHeader('01', 'basic info')}
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* App */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        startDate: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        endDate: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', '--tw-ring-color': 'var(--color-primary)' } as any}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Metadata Section */}
-            <div className="rounded-lg shadow-sm p-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
-                Custom Metadata
-              </h3>
-
-              <div className="space-y-4">
-                {Object.entries(formData.metadata).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex items-center gap-3 p-3 rounded-lg border"
-                    style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}
+                  <label style={labelStyle}>app *</label>
+                  <select
+                    value={formData.appId}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, appId: e.target.value }))}
+                    style={inputStyle}
+                    required
                   >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                        {key}
-                      </p>
-                      <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{value}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeMetadata(key)}
-                      className="px-3 py-1 text-sm rounded"
-                      style={{ color: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                    >
-                      Remove
-                    </button>
+                    <option value="">Select an app</option>
+                    {apps.map((app) => (<option key={app.id} value={app.id}>{app.name}</option>))}
+                  </select>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <label style={labelStyle}>campaign name *</label>
+                  <input type="text" value={formData.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g., Summer Festival 2024" style={inputStyle} />
+                </div>
+
+                {/* Slug */}
+                <div>
+                  <label style={labelStyle}>slug *</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)', padding: '10px 12px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRight: 'none', whiteSpace: 'nowrap' }}>/c/</span>
+                    <input type="text" value={formData.slug} onChange={(e) => handleSlugChange(e.target.value)} placeholder="summer-festival-2024" style={{ ...inputStyle }} />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label style={labelStyle}>description</label>
+                  <textarea value={formData.description} onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))} placeholder="campaign details..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+                </div>
+
+                {/* Fallback URL */}
+                <div>
+                  <label style={labelStyle}>fallback url</label>
+                  <input type="url" value={formData.fallbackUrl} onChange={(e) => setFormData((prev) => ({ ...prev, fallbackUrl: e.target.value }))} placeholder="https://allevents.in" style={inputStyle} />
+                </div>
+
+                {/* UTM Campaign */}
+                <div>
+                  <label style={labelStyle}>utm campaign</label>
+                  <input type="text" value={formData.utmCampaign} onChange={(e) => setFormData((prev) => ({ ...prev, utmCampaign: e.target.value }))} placeholder="auto-filled from slug" style={inputStyle} />
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 4 }}>auto-filled from campaign slug. links in this campaign will inherit this value.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {sectionHeader('02', 'duration')}
+              <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>start date</label>
+                  <input type="date" value={formData.startDate} onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>end date</label>
+                  <input type="date" value={formData.endDate} onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            {/* Metadata */}
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              {sectionHeader('03', 'metadata')}
+              <div style={{ padding: 20 }}>
+                {Object.entries(formData.metadata).map(([key, value]) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', marginBottom: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text)', flex: 1 }}>{key}: <span style={{ color: 'var(--color-text-secondary)' }}>{value}</span></span>
+                    <button type="button" onClick={() => removeMetadata(key)} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-warning)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
                   </div>
                 ))}
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={metadataKey}
-                    onChange={(e) => setMetadataKey(e.target.value)}
-                    placeholder="Key"
-                    className="flex-1 px-4 py-2 border rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
-                  />
-                  <input
-                    type="text"
-                    value={metadataValue}
-                    onChange={(e) => setMetadataValue(e.target.value)}
-                    placeholder="Value"
-                    className="flex-1 px-4 py-2 border rounded-lg text-sm"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={addMetadata}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition"
-                    style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                  >
-                    Add
-                  </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="text" value={metadataKey} onChange={(e) => setMetadataKey(e.target.value)} placeholder="key" style={{ ...inputStyle, flex: 1 }} />
+                  <input type="text" value={metadataValue} onChange={(e) => setMetadataValue(e.target.value)} placeholder="value" style={{ ...inputStyle, flex: 1 }} />
+                  <button type="button" onClick={addMetadata} className="btn-dashboard btn-dashboard-sm" style={{ whiteSpace: 'nowrap' }}>+ add</button>
                 </div>
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error */}
             {error && (
-              <div className="border rounded-lg p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--color-warning)', padding: '12px 16px', marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
                 {error}
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="lg"
-                fullWidth
-                onClick={() => router.back()}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-              >
-                Update Campaign
-              </Button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => router.back()} disabled={loading} className="btn-dashboard" style={{ flex: 1, padding: '12px 0' }}>cancel</button>
+              <button type="submit" disabled={loading} className="btn-dashboard btn-dashboard-primary" style={{ flex: 1, padding: '12px 0' }}>
+                {loading ? 'saving...' : 'save changes'}
+              </button>
             </div>
           </form>
 
-          {/* Preview Card */}
-          <div className="lg:col-span-1">
-            <div className="rounded-lg shadow-sm p-6 sticky top-8" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-              <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
-                Preview
-              </h3>
-
-              <div className="rounded-lg p-4 space-y-3 border" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
+          {/* Preview */}
+          <div style={{ position: 'sticky', top: 32, alignSelf: 'start' }}>
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+                  // preview
+                </span>
+              </div>
+              <div style={{ padding: 20 }}>
                 {formData.name ? (
-                  <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div>
-                      <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Campaign Name</p>
-                      <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
-                        {formData.name}
-                      </p>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>name</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>{formData.name}</div>
                     </div>
 
-                    <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                      <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>URL Path</p>
-                      <p className="text-sm font-mono break-all" style={{ color: 'var(--color-primary)' }}>
-                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/{formData.slug || 'slug'}
-                      </p>
-                    </div>
-
-                    {formData.description && (
-                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Description</p>
-                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                          {formData.description}
-                        </p>
+                    {formData.appId && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>app</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-secondary)' }}>{apps.find((a) => a.id === formData.appId)?.name || formData.appId}</div>
                       </div>
                     )}
 
-                    {formData.startDate && formData.endDate && (
-                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Duration</p>
-                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                          {new Date(formData.startDate).toLocaleDateString()}{' '}
-                          to{' '}
-                          {new Date(formData.endDate).toLocaleDateString()}
-                        </p>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>url</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                        {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/c/{formData.slug || 'slug'}
+                      </div>
+                    </div>
+
+                    {formData.description && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>description</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)' }}>{formData.description}</div>
+                      </div>
+                    )}
+
+                    {formData.utmCampaign && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>utm_campaign</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-accent)' }}>{formData.utmCampaign}</div>
+                      </div>
+                    )}
+
+                    {(formData.startDate || formData.endDate) && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>duration</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                          {formData.startDate && new Date(formData.startDate).toLocaleDateString()} → {formData.endDate && new Date(formData.endDate).toLocaleDateString()}
+                        </div>
                       </div>
                     )}
 
                     {Object.keys(formData.metadata).length > 0 && (
-                      <div className="pt-3" style={{ borderTopColor: 'var(--color-border)', borderTopWidth: '1px' }}>
-                        <p className="text-xs mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Metadata</p>
-                        <div className="space-y-1">
-                          {Object.entries(formData.metadata).map(
-                            ([key, value]) => (
-                              <p key={key} className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                <span className="font-medium">{key}:</span>{' '}
-                                {value}
-                              </p>
-                            )
-                          )}
-                        </div>
+                      <div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>metadata</div>
+                        {Object.entries(formData.metadata).map(([k, v]) => (
+                          <div key={k} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)' }}>{k}: {v}</div>
+                        ))}
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
-                  <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-tertiary)' }}>
-                    Fill in campaign details to see preview
-                  </p>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '40px 0' }}>
+                    fill in details to see preview
+                  </div>
                 )}
+              </div>
+              <div style={{ padding: '12px 20px', borderTop: '1px dashed var(--color-border)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)' }}>
+                editing: <span style={{ color: 'var(--color-secondary)' }}>{campaignId}</span>
               </div>
             </div>
           </div>

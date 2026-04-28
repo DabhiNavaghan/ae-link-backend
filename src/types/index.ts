@@ -96,6 +96,7 @@ export interface UpdateAppDto {
 
 export interface ICampaign extends Document {
   tenantId: Types.ObjectId;
+  appId?: Types.ObjectId;
   name: string;
   slug: string;
   description?: string;
@@ -338,6 +339,7 @@ export interface UpdateLinkDto {
 export interface CreateCampaignDto {
   name: string;
   slug: string;
+  appId?: string;
   description?: string;
   fallbackUrl?: string;
   startDate?: string;
@@ -348,6 +350,7 @@ export interface CreateCampaignDto {
 export interface UpdateCampaignDto {
   name?: string;
   slug?: string;
+  appId?: string;
   description?: string;
   status?: 'active' | 'paused' | 'archived';
   fallbackUrl?: string;
@@ -404,6 +407,7 @@ export interface LinkAnalytics {
   deferredMatchRate: number;
   topCountries: Array<{ country: string; clicks: number }>;
   topBrowsers: Array<{ browser: string; clicks: number }>;
+  topReferrers: Array<{ referrer: string; clicks: number }>;
   clicksTrend?: Array<{ date: string; clicks: number }>;
   createdAt?: Date;
   lastClicked?: Date;
@@ -423,6 +427,7 @@ export interface CampaignAnalytics {
     clicks: number;
     conversions: number;
   }>;
+  topReferrers: Array<{ referrer: string; clicks: number }>;
 }
 
 export interface DashboardOverview {
@@ -433,11 +438,17 @@ export interface DashboardOverview {
   activeCampaigns: number;
   deferredLinksMatched: number;
   topLinks: Array<{
+    linkId: string;
     shortCode: string;
     destinationUrl: string;
     campaignName?: string;
     clicks: number;
     conversions: number;
+  }>;
+  topReferrers: Array<{
+    referrer: string;
+    clicks: number;
+    percentage: number;
   }>;
   topCampaigns: Array<{
     id: string;

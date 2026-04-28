@@ -705,6 +705,7 @@ export default function LandingPage() {
                 <li>1 SDK platform</li>
                 <li>Basic attribution (7-day)</li>
                 <li>Community support</li>
+                <li className="muted">API access</li>
                 <li className="muted">Deferred deep links</li>
                 <li className="muted">Fraud shield</li>
               </ul>
@@ -729,6 +730,7 @@ export default function LandingPage() {
               <ul className="tl-tier-features">
                 <li><strong>250K</strong> routed links / month</li>
                 <li><strong>Deferred deep links</strong></li>
+                <li><strong>Full API access</strong> (14 endpoints)</li>
                 <li>Full attribution (90-day)</li>
                 <li>All SDK platforms</li>
                 <li>QR + OG previews</li>
@@ -757,6 +759,7 @@ export default function LandingPage() {
               <ul className="tl-tier-features">
                 <li><strong>2M</strong> routed links / month</li>
                 <li><strong>Fraud shield</strong> (ML-driven)</li>
+                <li><strong>Full API access</strong> + rate-limit boost</li>
                 <li>Custom subdomains + SSL</li>
                 <li>Multi-touch attribution</li>
                 <li>Real-time event streaming</li>
@@ -776,6 +779,7 @@ export default function LandingPage() {
               <ul className="tl-tier-features">
                 <li><strong>Unlimited</strong> routed links</li>
                 <li>Dedicated infrastructure</li>
+                <li><strong>Full API access</strong> + unlimited rate</li>
                 <li>SOC 2 Type II + HIPAA</li>
                 <li>On-prem / VPC deployment</li>
                 <li>Custom data residency</li>

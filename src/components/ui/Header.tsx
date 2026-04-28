@@ -14,8 +14,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   title,
-  showSearch = true,
-  showNotifications = true,
+  showSearch = false,
+  showNotifications = false,
   onProfileClick,
   onToggleSidebar,
   tenantName,
