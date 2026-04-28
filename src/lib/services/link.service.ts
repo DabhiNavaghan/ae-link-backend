@@ -87,6 +87,7 @@ export class LinkService {
     tenantId: string,
     options?: {
       campaignId?: string;
+      appId?: string;
       status?: 'active' | 'inactive' | 'expired';
       limit?: number;
       offset?: number;
@@ -96,6 +97,10 @@ export class LinkService {
 
     if (options?.campaignId) {
       query.campaignId = new Types.ObjectId(options.campaignId);
+    }
+
+    if (options?.appId) {
+      query.appId = new Types.ObjectId(options.appId);
     }
 
     if (options?.status === 'active') {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { copyToClipboard } from '@/lib/utils/slug';
 import { SmartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 const api = new SmartLinkApi();
 
@@ -30,6 +31,7 @@ interface Campaign {
 
 export default function LinksPage() {
   const router = useRouter();
+  const { selectedAppId } = useDashboard();
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,15 +51,15 @@ export default function LinksPage() {
 
   useEffect(() => {
     fetchCampaigns();
-  }, []);
+  }, [selectedAppId]);
 
   useEffect(() => {
     fetchLinks();
-  }, [campaignFilter, linkTypeFilter, searchQuery, page]);
+  }, [campaignFilter, linkTypeFilter, searchQuery, page, selectedAppId]);
 
   async function fetchCampaigns() {
     try {
-      const data = await api.listCampaigns({ limit: 100 });
+      const data = await api.listCampaigns({ appId: selectedAppId || undefined, limit: 100 });
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
     } catch (err) {
       console.error('Failed to load campaigns', err);
@@ -69,6 +71,7 @@ export default function LinksPage() {
       setLoading(true);
       const data = await api.listLinks({
         campaignId: campaignFilter || undefined,
+        appId: selectedAppId || undefined,
         linkType: linkTypeFilter || undefined,
         search: searchQuery || undefined,
         limit: itemsPerPage,

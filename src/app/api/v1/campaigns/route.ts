@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url);
     const status = url.searchParams.get('status') as any;
+    const appId = url.searchParams.get('appId') || undefined;
     const limit = parseInt(url.searchParams.get('limit') || '50', 10);
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       auth.tenantId,
       {
         status,
+        appId,
         limit,
         offset,
       }

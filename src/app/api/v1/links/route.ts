@@ -49,11 +49,13 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url);
     const campaignId = url.searchParams.get('campaignId');
+    const appId = url.searchParams.get('appId') || undefined;
     const limit = parseInt(url.searchParams.get('limit') || '50', 10);
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
     const { links, total } = await LinkService.listLinks(auth.tenantId, {
       campaignId: campaignId || undefined,
+      appId,
       limit,
       offset,
     });

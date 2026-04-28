@@ -76,6 +76,13 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
           name: a.name,
         }));
         setApps(appList);
+
+        // Auto-select first app if none selected yet
+        const storedAppId = localStorage.getItem('smartlink-selected-app');
+        if (!storedAppId && appList.length > 0) {
+          setSelectedAppId(appList[0].id);
+          localStorage.setItem('smartlink-selected-app', appList[0].id);
+        }
       })
       .catch(() => {});
   }, [apiKey]);

@@ -66,6 +66,7 @@ export class CampaignService {
     tenantId: string,
     options?: {
       status?: 'active' | 'paused' | 'archived';
+      appId?: string;
       limit?: number;
       offset?: number;
     }
@@ -74,6 +75,10 @@ export class CampaignService {
 
     if (options?.status) {
       query.status = options.status;
+    }
+
+    if (options?.appId) {
+      query.appId = new Types.ObjectId(options.appId);
     }
 
     const limit = options?.limit || 50;

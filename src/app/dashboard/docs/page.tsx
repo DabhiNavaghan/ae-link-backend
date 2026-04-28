@@ -397,7 +397,7 @@ Future<DeepLinkData?> initSmartLink({
 }) async {
   aeLink = SmartLinkService(
     apiKey: 'YOUR_API_KEY',  // From dashboard Settings
-    debug: true,  // false in production
+    logLevel: 0,  // -1 = detailed debug, 0 = minimal debug, 1 = release (no logs)
     onDeepLink: (data) {
       _handleDeepLink(data, navigatorKey);
     },

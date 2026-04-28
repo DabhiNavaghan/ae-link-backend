@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SmartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
@@ -27,6 +28,7 @@ const api = new SmartLinkApi();
 
 export default function CampaignsPage() {
   const router = useRouter();
+  const { selectedAppId } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     fetchCampaigns();
-  }, [statusFilter, searchQuery, page]);
+  }, [statusFilter, searchQuery, page, selectedAppId]);
 
   async function fetchCampaigns() {
     try {
@@ -52,6 +54,7 @@ export default function CampaignsPage() {
       const data = await api.listCampaigns({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: searchQuery,
+        appId: selectedAppId || undefined,
         limit: itemsPerPage,
         offset: (page - 1) * itemsPerPage,
       });
