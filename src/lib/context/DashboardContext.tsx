@@ -119,31 +119,51 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
       // Safety: ensure context is ready even if listApps hangs
       const safetyTimer = setTimeout(() => setIsContextReady(true), 10000);
 
+      const applyAppList = (res: any) => {
+        let appList = (res.apps || []).map((a: any) => ({
+          id: a._id?.toString() || a.id,
+          name: a.name,
+        }));
+
+        if (storedAllowedApps.length > 0) {
+          const allowedSet = new Set(storedAllowedApps);
+          appList = appList.filter((a: any) => allowedSet.has(a.id));
+        }
+
+        setApps(appList);
+
+        const storedStillValid = storedAppId && appList.some((a: any) => a.id === storedAppId);
+        if (!storedStillValid && appList.length > 0) {
+          setSelectedAppId(appList[0].id);
+          localStorage.setItem('smartlink-selected-app', appList[0].id);
+        }
+      };
+
       smartLinkApi
         .listApps({ limit: 100 })
-        .then((res) => {
-          let appList = (res.apps || []).map((a: any) => ({
-            id: a._id?.toString() || a.id,
-            name: a.name,
-          }));
-
-          // Filter by allowed apps if scoped (non-empty = restricted)
-          if (storedAllowedApps.length > 0) {
-            const allowedSet = new Set(storedAllowedApps);
-            appList = appList.filter((a) => allowedSet.has(a.id));
-          }
-
-          setApps(appList);
-
-          // Auto-select first app if none selected, OR if stored selection
-          // is no longer in the (possibly filtered) list
-          const storedStillValid = storedAppId && appList.some((a) => a.id === storedAppId);
-          if (!storedStillValid && appList.length > 0) {
-            setSelectedAppId(appList[0].id);
-            localStorage.setItem('smartlink-selected-app', appList[0].id);
+        .then(applyAppList)
+        .catch(async (err: any) => {
+          // Stale/invalid key — recover the real key from Clerk session then retry
+          if (err?.status === 401) {
+            try {
+              const recovered = await smartLinkApi.getTenantBySession();
+              if (recovered?.apiKey) {
+                localStorage.setItem('smartlink-api-key', recovered.apiKey);
+                smartLinkApi.setApiKey(recovered.apiKey);
+                setApiKey(recovered.apiKey);
+                if (recovered.tenantId) {
+                  const tenantData = { id: recovered.tenantId, name: recovered.name, email: '', apiKey: recovered.apiKey };
+                  setTenant(tenantData);
+                  localStorage.setItem('smartlink-tenant', JSON.stringify(tenantData));
+                }
+                const res = await smartLinkApi.listApps({ limit: 100 });
+                applyAppList(res);
+              }
+            } catch {
+              // Recovery failed — let the app handle the unauthenticated state
+            }
           }
         })
-        .catch(() => {})
         .finally(() => {
           clearTimeout(safetyTimer);
           setIsContextReady(true);

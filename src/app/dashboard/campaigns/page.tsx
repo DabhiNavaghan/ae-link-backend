@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { smartLinkApi } from '@/lib/api';
@@ -26,14 +26,10 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const router = useRouter();
-  const { selectedAppId, isContextReady, can } = useDashboard();
+  const { isContextReady, can } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'active' | 'paused' | 'archived'
-  >('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -49,18 +45,11 @@ export default function CampaignsPage() {
     }
   }, [isContextReady, can, router]);
 
-  useEffect(() => {
+  const fetchCampaigns = useCallback(async () => {
     if (!isContextReady || !can('manage:campaigns')) return;
-    fetchCampaigns();
-  }, [statusFilter, searchQuery, page, selectedAppId, isContextReady]);
-
-  async function fetchCampaigns() {
     try {
       setLoading(true);
       const data = await smartLinkApi.listCampaigns({
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        search: searchQuery,
-        appId: selectedAppId || undefined,
         limit: itemsPerPage,
         offset: (page - 1) * itemsPerPage,
       });
@@ -96,7 +85,11 @@ export default function CampaignsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, isContextReady, can]);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   async function handleDelete(id: string) {
     setDeleting(true);
@@ -130,48 +123,6 @@ export default function CampaignsPage() {
         >
           + New Campaign
         </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-            >
-              <option value="all">All Campaigns</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-              Search
-            </label>
-            <input
-              type="text"
-              placeholder="Search by name..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Error Message */}

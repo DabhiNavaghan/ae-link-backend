@@ -124,7 +124,6 @@ export default function EditCampaignPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.appId) { setError('App is required'); return; }
     if (!formData.name.trim()) { setError('Campaign name is required'); return; }
     if (!formData.slug.trim()) { setError('Slug is required'); return; }
 

@@ -58,7 +58,7 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     slug: '',
-    appId: selectedAppId || '',
+    appId: '',
     description: '',
     fallbackUrl: '',
     utmCampaign: '',
@@ -68,6 +68,13 @@ export default function CreateCampaignPage() {
   });
   const [metadataKey, setMetadataKey] = useState('');
   const [metadataValue, setMetadataValue] = useState('');
+
+  // Sync selectedAppId into form once context finishes loading
+  useEffect(() => {
+    if (selectedAppId) {
+      setFormData((prev) => prev.appId ? prev : { ...prev, appId: selectedAppId });
+    }
+  }, [selectedAppId]);
 
   // Duplicate pre-fill
   useEffect(() => {
@@ -120,7 +127,6 @@ export default function CreateCampaignPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.appId) { setError('App is required'); return; }
     if (!formData.name.trim()) { setError('Campaign name is required'); return; }
     if (!formData.slug.trim()) { setError('Slug is required'); return; }
 
