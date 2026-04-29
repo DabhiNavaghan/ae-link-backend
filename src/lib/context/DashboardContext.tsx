@@ -41,6 +41,7 @@ interface Tenant {
 interface AppOption {
   id: string;
   name: string;
+  slug?: string;
   androidStoreUrl?: string;
   iosStoreUrl?: string;
 }
@@ -125,6 +126,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         let appList = (res.apps || []).map((a: any) => ({
           id: a._id?.toString() || a.id,
           name: a.name,
+          slug: a.slug || null,
           androidStoreUrl: a.android?.storeUrl || '',
           iosStoreUrl: a.ios?.storeUrl || '',
         }));

@@ -117,9 +117,18 @@ export async function POST(request: NextRequest) {
       return applyCors(request, errorRes);
     }
 
+    const slugBase = body.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const slugSuffix = Math.random().toString(36).slice(2, 8);
+    const slug = `${slugBase}-${slugSuffix}`;
+
     const app = new AppModel({
       tenantId: auth.tenantId,
       name: body.name,
+      slug,
       android: body.android || {},
       ios: body.ios || {},
     });

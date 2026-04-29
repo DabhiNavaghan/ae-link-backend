@@ -40,6 +40,41 @@ const TrashIcon = () => (
   </svg>
 );
 
+/* ─── Copy Store Link ─── */
+function AppCopyStoreLink({ app }: { app: IApp }) {
+  const [copied, setCopied] = useState(false);
+  const storeKey = (app as any).slug || String((app as any)._id);
+  const storeUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/apps/${storeKey}/store`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(storeUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      title={storeUrl}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+      style={{
+        border: '1px solid var(--color-primary)',
+        color: copied ? '#000' : 'var(--color-primary)',
+        background: copied ? 'var(--color-primary)' : 'transparent',
+        borderRadius: 2,
+        fontFamily: 'var(--font-mono)',
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+      }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+      </svg>
+      {copied ? 'copied!' : 'copy store link'}
+    </button>
+  );
+}
+
 /* ─── App Card ─── */
 function AppCard({
   app,
@@ -113,61 +148,10 @@ function AppCard({
         )}
       </div>
 
-      {/* Store links */}
+      {/* Smart store link copy button */}
       {(app.android?.storeUrl || app.ios?.storeUrl) && (
         <div className="flex gap-2 mb-3 flex-wrap">
-          {app.android?.storeUrl && (
-            <a
-              href={app.android.storeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
-              style={{
-                border: '1px solid var(--color-success)',
-                color: 'var(--color-success)',
-                textDecoration: 'none',
-                borderRadius: 2,
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.04em',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'var(--color-success)';
-                (e.currentTarget as HTMLElement).style.color = '#000';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'transparent';
-                (e.currentTarget as HTMLElement).style.color = 'var(--color-success)';
-              }}
-            >
-              <AndroidIcon /> Play Store ↗
-            </a>
-          )}
-          {app.ios?.storeUrl && (
-            <a
-              href={app.ios.storeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
-              style={{
-                border: '1px solid var(--color-text-secondary)',
-                color: 'var(--color-text-secondary)',
-                textDecoration: 'none',
-                borderRadius: 2,
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.04em',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'var(--color-text-secondary)';
-                (e.currentTarget as HTMLElement).style.color = 'var(--color-bg)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'transparent';
-                (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)';
-              }}
-            >
-              <AppleIcon /> App Store ↗
-            </a>
-          )}
+          <AppCopyStoreLink app={app} />
         </div>
       )}
 
