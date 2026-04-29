@@ -88,6 +88,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (storedApiKey) {
       setApiKey(storedApiKey);
+      // Ensure the singleton API client also has the key
+      smartLinkApi.setApiKey(storedApiKey);
     }
 
     if (storedTenant) {
@@ -164,8 +166,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
     setApiKey(key);
     if (key) {
       localStorage.setItem('smartlink-api-key', key);
+      smartLinkApi.setApiKey(key);
     } else {
       localStorage.removeItem('smartlink-api-key');
+      smartLinkApi.clearApiKey();
     }
   }, []);
 
