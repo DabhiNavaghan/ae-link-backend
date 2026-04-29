@@ -5,10 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { copyToClipboard } from '@/lib/utils/slug';
-import { SmartLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
-
-const api = new SmartLinkApi();
 
 interface LinkItem {
   _id: string;
@@ -31,7 +29,7 @@ interface Campaign {
 
 export default function LinksPage() {
   const router = useRouter();
-  const { selectedAppId, isContextReady } = useDashboard();
+  const { selectedAppId, isContextReady, can } = useDashboard();
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,19 +47,26 @@ export default function LinksPage() {
   const itemsPerPage = 10;
   const linkTypes = ['event', 'ticket', 'profile', 'category', 'custom'];
 
+  // Permission gate: redirect if no link access
   useEffect(() => {
-    if (!isContextReady) return;
+    if (isContextReady && !can('manage:links')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
+  useEffect(() => {
+    if (!isContextReady || !can('manage:links')) return;
     fetchCampaigns();
   }, [selectedAppId, isContextReady]);
 
   useEffect(() => {
-    if (!isContextReady) return;
+    if (!isContextReady || !can('manage:links')) return;
     fetchLinks();
   }, [campaignFilter, linkTypeFilter, searchQuery, page, selectedAppId, isContextReady]);
 
   async function fetchCampaigns() {
     try {
-      const data = await api.listCampaigns({ appId: selectedAppId || undefined, limit: 100 });
+      const data = await smartLinkApi.listCampaigns({ appId: selectedAppId || undefined, limit: 100 });
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
     } catch (err) {
       console.error('Failed to load campaigns', err);
@@ -71,7 +76,7 @@ export default function LinksPage() {
   async function fetchLinks() {
     try {
       setLoading(true);
-      const data = await api.listLinks({
+      const data = await smartLinkApi.listLinks({
         campaignId: campaignFilter || undefined,
         appId: selectedAppId || undefined,
         linkType: linkTypeFilter || undefined,
@@ -88,7 +93,7 @@ export default function LinksPage() {
       // Fetch analytics for each link in parallel (background)
       setAnalyticsLoading(true);
       Promise.allSettled(
-        linkList.map((l) => api.getLinkAnalytics(l._id))
+        linkList.map((l) => smartLinkApi.getLinkAnalytics(l._id))
       ).then((results) => {
         setLinks((prev) =>
           prev.map((l, i) => {
@@ -111,7 +116,7 @@ export default function LinksPage() {
   async function handleDelete(id: string) {
     setDeleting(true);
     try {
-      await api.deleteLink(id);
+      await smartLinkApi.deleteLink(id);
       setLinks(links.filter((l) => l._id !== id));
       setDeleteConfirm(null);
       setError(null);

@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateSlug } from '@/lib/utils/slug';
-import { SmartLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
-
-const api = new SmartLinkApi();
 
 interface FormData {
   name: string;
@@ -45,7 +43,15 @@ export default function CreateCampaignPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get('duplicate');
-  const { apps, selectedAppId } = useDashboard();
+  const { apps, selectedAppId, can, isContextReady } = useDashboard();
+
+  // Permission gate
+  useEffect(() => {
+    if (isContextReady && !can('manage:campaigns')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
   const [loading, setLoading] = useState(false);
   const [duplicateLoading, setDuplicateLoading] = useState(!!duplicateId);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +75,7 @@ export default function CreateCampaignPage() {
     (async () => {
       try {
         setDuplicateLoading(true);
-        const source = await api.getCampaign(duplicateId);
+        const source = await smartLinkApi.getCampaign(duplicateId);
         const newSlug = generateSlug(source.name + ' copy');
         setFormData({
           name: `Copy of ${source.name}`,
@@ -131,7 +137,7 @@ export default function CreateCampaignPage() {
       if (formData.utmCampaign) metaWithUtm.utmCampaign = formData.utmCampaign;
       if (Object.keys(metaWithUtm).length > 0) payload.metadata = metaWithUtm;
 
-      const campaign = await api.createCampaign(payload);
+      const campaign = await smartLinkApi.createCampaign(payload);
       router.push(`/dashboard/campaigns/${campaign._id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create campaign');

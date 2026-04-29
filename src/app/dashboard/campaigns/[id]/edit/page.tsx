@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { generateSlug } from '@/lib/utils/slug';
-import { SmartLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
-
-const api = new SmartLinkApi();
 
 interface FormData {
   name: string;
@@ -45,7 +43,7 @@ export default function EditCampaignPage() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
-  const { apps } = useDashboard();
+  const { apps, can, isContextReady } = useDashboard();
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -68,9 +66,15 @@ export default function EditCampaignPage() {
     fetchCampaign();
   }, [campaignId]);
 
+  useEffect(() => {
+    if (isContextReady && !can('manage:campaigns')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
   async function fetchCampaign() {
     try {
-      const campaign = await api.getCampaign(campaignId);
+      const campaign = await smartLinkApi.getCampaign(campaignId);
       const c = campaign as any;
       // Extract utmCampaign from metadata if present
       const meta = { ...(c.metadata || {}) };
@@ -137,7 +141,7 @@ export default function EditCampaignPage() {
       if (formData.utmCampaign) metaWithUtm.utmCampaign = formData.utmCampaign;
       if (Object.keys(metaWithUtm).length > 0) payload.metadata = metaWithUtm;
 
-      await api.updateCampaign(campaignId, payload);
+      await smartLinkApi.updateCampaign(campaignId, payload);
       router.push(`/dashboard/campaigns/${campaignId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to update campaign');

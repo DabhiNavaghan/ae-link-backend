@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { SmartLinkApi } from '@/lib/api';
+import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -24,11 +24,9 @@ interface Campaign {
   updatedAt: string;
 }
 
-const api = new SmartLinkApi();
-
 export default function CampaignsPage() {
   const router = useRouter();
-  const { selectedAppId, isContextReady } = useDashboard();
+  const { selectedAppId, isContextReady, can } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,15 +42,22 @@ export default function CampaignsPage() {
 
   const itemsPerPage = 10;
 
+  // Permission gate: redirect if no campaign access
   useEffect(() => {
-    if (!isContextReady) return;
+    if (isContextReady && !can('manage:campaigns')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
+  useEffect(() => {
+    if (!isContextReady || !can('manage:campaigns')) return;
     fetchCampaigns();
   }, [statusFilter, searchQuery, page, selectedAppId, isContextReady]);
 
   async function fetchCampaigns() {
     try {
       setLoading(true);
-      const data = await api.listCampaigns({
+      const data = await smartLinkApi.listCampaigns({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: searchQuery,
         appId: selectedAppId || undefined,
@@ -68,7 +73,7 @@ export default function CampaignsPage() {
       // Fetch analytics for all campaigns in parallel (background)
       setAnalyticsLoading(true);
       Promise.allSettled(
-        campaignList.map((c) => api.getCampaignAnalytics(c._id))
+        campaignList.map((c) => smartLinkApi.getCampaignAnalytics(c._id))
       ).then((results) => {
         setCampaigns((prev) =>
           prev.map((c, i) => {
@@ -96,7 +101,7 @@ export default function CampaignsPage() {
   async function handleDelete(id: string) {
     setDeleting(true);
     try {
-      await api.deleteCampaign(id);
+      await smartLinkApi.deleteCampaign(id);
       setCampaigns(campaigns.filter((c) => c._id !== id));
       setDeleteConfirm(null);
       setError(null);

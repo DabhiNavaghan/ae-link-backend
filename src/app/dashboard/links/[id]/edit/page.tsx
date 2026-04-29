@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { generateQRCodeSVG } from '@/lib/utils/qr-code';
-import { SmartLinkApi } from '@/lib/api';
-
-const api = new SmartLinkApi();
+import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface Campaign {
   _id: string;
@@ -75,6 +74,7 @@ export default function EditLinkPage() {
   const router = useRouter();
   const routeParams = useParams();
   const linkId = routeParams.id as string;
+  const { can, isContextReady } = useDashboard();
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -124,11 +124,17 @@ export default function EditLinkPage() {
     });
   }, [linkId]);
 
+  useEffect(() => {
+    if (isContextReady && !can('manage:links')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
   useEffect(() => { generateQRCode(); }, [formData.destinationUrl]);
 
   async function fetchLink() {
     try {
-      const link = await api.getLink(linkId);
+      const link = await smartLinkApi.getLink(linkId);
       const l = link as any;
       const params = l.params || {};
       const po = l.platformOverrides || {};
@@ -175,14 +181,14 @@ export default function EditLinkPage() {
 
   async function fetchCampaigns() {
     try {
-      const data = await api.listCampaigns({ limit: 100 });
+      const data = await smartLinkApi.listCampaigns({ limit: 100 });
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
     } catch (err) { console.error('Failed to load campaigns', err); }
   }
 
   async function fetchApps() {
     try {
-      const data = await api.listApps();
+      const data = await smartLinkApi.listApps();
       setApps((data.apps || []) as unknown as AppOption[]);
     } catch (err) { console.error('Failed to load apps', err); }
   }
@@ -299,7 +305,7 @@ export default function EditLinkPage() {
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
       };
 
-      await api.updateLink(linkId, payload);
+      await smartLinkApi.updateLink(linkId, payload);
       router.push(`/dashboard/links/${linkId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to update link');

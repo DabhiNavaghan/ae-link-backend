@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateQRCodeSVG } from '@/lib/utils/qr-code';
-import { SmartLinkApi } from '@/lib/api';
-
-const api = new SmartLinkApi();
+import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface Campaign {
   _id: string;
@@ -76,6 +75,14 @@ export default function CreateLinkPage() {
   const searchParams = useSearchParams();
   const campaignIdFromUrl = searchParams.get('campaignId');
   const duplicateId = searchParams.get('duplicate');
+  const { can, isContextReady } = useDashboard();
+
+  // Permission gate
+  useEffect(() => {
+    if (isContextReady && !can('manage:links')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
 
   const [loading, setLoading] = useState(false);
   const [duplicateLoading, setDuplicateLoading] = useState(!!duplicateId);
@@ -128,7 +135,7 @@ export default function CreateLinkPage() {
     (async () => {
       try {
         setDuplicateLoading(true);
-        const source = await api.getLink(duplicateId);
+        const source = await smartLinkApi.getLink(duplicateId);
         const params = (source as any).params || {};
         const platformOverrides = (source as any).platformOverrides || {};
         setFormData({
@@ -174,14 +181,14 @@ export default function CreateLinkPage() {
 
   async function fetchCampaigns() {
     try {
-      const data = await api.listCampaigns({ limit: 100 });
+      const data = await smartLinkApi.listCampaigns({ limit: 100 });
       setCampaigns((data.campaigns || []) as unknown as Campaign[]);
     } catch (err) { console.error('Failed to load campaigns', err); }
   }
 
   async function fetchApps() {
     try {
-      const data = await api.listApps();
+      const data = await smartLinkApi.listApps();
       setApps((data.apps || []) as unknown as AppOption[]);
     } catch (err) { console.error('Failed to load apps', err); }
   }
@@ -299,7 +306,7 @@ export default function CreateLinkPage() {
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
       };
 
-      const link = await api.createLink(payload);
+      const link = await smartLinkApi.createLink(payload);
       router.push(`/dashboard/links/${link._id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create link');

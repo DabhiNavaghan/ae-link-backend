@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { generateQRCodeSVG } from '@/lib/utils/qr-code';
-import { SmartLinkApi } from '@/lib/api';
-
-const api = new SmartLinkApi();
+import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface LinkData {
   _id: string;
@@ -40,6 +39,7 @@ export default function LinkDetailPage() {
   const router = useRouter();
   const params = useParams();
   const linkId = params.id as string;
+  const { can, isContextReady } = useDashboard();
 
   const [link, setLink] = useState<LinkData | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -52,12 +52,18 @@ export default function LinkDetailPage() {
     fetchData();
   }, [linkId]);
 
+  useEffect(() => {
+    if (isContextReady && !can('manage:links')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
   async function fetchData() {
     try {
       setLoading(true);
       const [linkData, analyticsData] = await Promise.all([
-        api.getLink(linkId),
-        api.getLinkAnalytics(linkId),
+        smartLinkApi.getLink(linkId),
+        smartLinkApi.getLinkAnalytics(linkId),
       ]);
 
       setLink(linkData as unknown as LinkData);

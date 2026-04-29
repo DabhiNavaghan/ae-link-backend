@@ -116,7 +116,7 @@ export default function DashboardPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
-  const { selectedAppId, isContextReady } = useDashboard();
+  const { selectedAppId, isContextReady, can } = useDashboard();
   const router = useRouter();
 
   // Close menu on click outside
@@ -298,12 +298,16 @@ export default function DashboardPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/dashboard/campaigns">
-            <button className="btn-dashboard">+ New campaign</button>
-          </Link>
-          <Link href="/dashboard/links">
-            <button className="btn-dashboard btn-dashboard-primary">→ New link</button>
-          </Link>
+          {can('manage:campaigns') && (
+            <Link href="/dashboard/campaigns">
+              <button className="btn-dashboard">+ New campaign</button>
+            </Link>
+          )}
+          {can('manage:links') && (
+            <Link href="/dashboard/links">
+              <button className="btn-dashboard btn-dashboard-primary">→ New link</button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -576,9 +580,11 @@ export default function DashboardPage() {
             // active campaigns
           </span>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/dashboard/campaigns">
-              <button className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">+ new</button>
-            </Link>
+            {can('manage:campaigns') && (
+              <Link href="/dashboard/campaigns">
+                <button className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">+ new</button>
+              </Link>
+            )}
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -591,9 +597,11 @@ export default function DashboardPage() {
           ) : (overview?.topCampaigns || []).length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
               <p style={{ marginBottom: 16 }}>No campaigns yet</p>
-              <Link href="/dashboard/campaigns">
-                <button className="btn-dashboard btn-dashboard-primary">Create Campaign</button>
-              </Link>
+              {can('manage:campaigns') && (
+                <Link href="/dashboard/campaigns">
+                  <button className="btn-dashboard btn-dashboard-primary">Create Campaign</button>
+                </Link>
+              )}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
@@ -715,9 +723,11 @@ export default function DashboardPage() {
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>04</span>
               // top performing links
             </span>
-            <Link href="/dashboard/links">
-              <button className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">+ new link</button>
-            </Link>
+            {can('manage:links') && (
+              <Link href="/dashboard/links">
+                <button className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">+ new link</button>
+              </Link>
+            )}
           </div>
           <div style={{ overflowX: 'auto' }}>
             {loading ? (
@@ -729,9 +739,11 @@ export default function DashboardPage() {
             ) : (overview?.topLinks || []).length === 0 ? (
               <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
                 <p style={{ marginBottom: 16 }}>No links created yet</p>
-                <Link href="/dashboard/links">
-                  <button className="btn-dashboard btn-dashboard-primary">Create First Link</button>
-                </Link>
+                {can('manage:links') && (
+                  <Link href="/dashboard/links">
+                    <button className="btn-dashboard btn-dashboard-primary">Create First Link</button>
+                  </Link>
+                )}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
