@@ -64,8 +64,15 @@ export class SmartLinkApi {
       Object.assign(headers, options.headers as Record<string, string>);
     }
 
-    if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
+    // Always re-read from localStorage if apiKey is not set on the instance
+    // (handles SSR → client hydration where constructor ran server-side)
+    let key = this.apiKey;
+    if (!key && typeof window !== 'undefined') {
+      key = localStorage.getItem('smartlink-api-key');
+      if (key) this.apiKey = key; // cache for subsequent calls
+    }
+    if (key) {
+      headers['X-API-Key'] = key;
     }
 
     const response = await fetch(url, {
