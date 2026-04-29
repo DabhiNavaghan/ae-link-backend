@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
+const isClerkApiRoute = createRouteMatcher(['/api/v1/tenants/me']);
 
 export default clerkMiddleware((auth, request: NextRequest) => {
   // Handle CORS preflight before any auth check
@@ -42,5 +43,6 @@ export const config = {
     '/sign-in(.*)',
     '/sign-up(.*)',
     '/',
+    '/api/v1/tenants/me',
   ],
 };

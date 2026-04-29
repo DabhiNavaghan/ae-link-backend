@@ -1,7 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface TenantSettings {
   name: string;
@@ -47,8 +50,119 @@ const SettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'app' | 'deep-link' | 'integration' | 'danger'>('general');
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'general' | 'team' | 'app' | 'deep-link' | 'integration' | 'danger'>('general');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const { user } = useUser();
+  const { can, apps: dashboardApps } = useDashboard();
+
+  // Read ?tab= query param on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const validTabs = ['general', 'team', 'app', 'deep-link', 'integration', 'danger'];
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
+
+  // Team state
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<string>('editor');
+  const [inviting, setInviting] = useState(false);
+  const [inviteAllowedApps, setInviteAllowedApps] = useState<string[]>([]); // empty = all apps
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+
+  const fetchTeamMembers = useCallback(async () => {
+    try {
+      setTeamLoading(true);
+      const data = await smartLinkApi.listTeamMembers();
+      setTeamMembers(data.members || []);
+    } catch (err) {
+      console.error('Failed to load team members', err);
+    } finally {
+      setTeamLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'team') {
+      fetchTeamMembers();
+    }
+  }, [activeTab, fetchTeamMembers]);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    const currentEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+    if (currentEmail && inviteEmail.trim().toLowerCase() === currentEmail) {
+      setMessage({ type: 'error', text: 'You cannot invite yourself' });
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+    try {
+      setInviting(true);
+      await smartLinkApi.inviteTeamMember({
+        email: inviteEmail.trim(),
+        role: inviteRole,
+        inviterName: user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'Team admin',
+        allowedApps: inviteAllowedApps.length > 0 ? inviteAllowedApps : undefined,
+      });
+      setInviteEmail('');
+      setInviteAllowedApps([]);
+      setMessage({ type: 'success', text: `Invite sent to ${inviteEmail.trim()}` });
+      setTimeout(() => setMessage(null), 3000);
+      fetchTeamMembers();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err?.data?.error?.message || err.message || 'Failed to send invite' });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleUpdateRole = async (memberId: string, newRole: string) => {
+    try {
+      await smartLinkApi.updateTeamMember(memberId, { role: newRole });
+      setEditingRole(null);
+      setMessage({ type: 'success', text: 'Role updated' });
+      setTimeout(() => setMessage(null), 2000);
+      fetchTeamMembers();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update role' });
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      await smartLinkApi.removeTeamMember(memberId);
+      setRemoveConfirm(null);
+      setMessage({ type: 'success', text: 'Team member removed' });
+      setTimeout(() => setMessage(null), 2000);
+      fetchTeamMembers();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to remove member' });
+    }
+  };
+
+  const handleResendInvite = async (member: any) => {
+    try {
+      setResendingInvite(member._id);
+      await smartLinkApi.inviteTeamMember({
+        email: member.email,
+        role: member.role,
+        inviterName: user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'Team admin',
+      });
+      setMessage({ type: 'success', text: `Invite resent to ${member.email}` });
+      setTimeout(() => setMessage(null), 3000);
+      fetchTeamMembers();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err?.data?.error?.message || err.message || 'Failed to resend invite' });
+    } finally {
+      setResendingInvite(null);
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -142,7 +256,7 @@ const SettingsPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-3"></div>
+          <div className="animate-spin rounded-full h-8 w-8 mx-auto mb-3" style={{ border: '3px solid var(--color-border)', borderTopColor: 'var(--color-primary)' }}></div>
           <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Loading settings...</p>
         </div>
       </div>
@@ -175,11 +289,12 @@ const SettingsPage: React.FC = () => {
       <div className="card border-b mb-6 flex overflow-x-auto" style={{ borderColor: 'var(--color-border)' }}>
         {[
           { key: 'general', label: 'General' },
+          { key: 'team', label: 'Team', permission: 'manage:team' },
           { key: 'app', label: 'App Config' },
           { key: 'deep-link', label: 'Deep Link' },
-          { key: 'integration', label: 'Integration' },
-          { key: 'danger', label: 'Danger zone' },
-        ].map(tab => (
+          { key: 'integration', label: 'Integration', permission: 'view:api-keys' },
+          { key: 'danger', label: 'Danger zone', permission: 'manage:team' },
+        ].filter(tab => !tab.permission || can(tab.permission)).map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
@@ -262,14 +377,14 @@ const SettingsPage: React.FC = () => {
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
                   style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-80"
+                  className="px-4 py-2 font-medium transition-colors text-sm hover:opacity-80"
                 >
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
                 <button
                   onClick={() => copyToClipboard(settings.apiKey || '')}
                   style={{ backgroundColor: 'var(--color-primary)', color: '#000' }}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-90"
+                  className="px-4 py-2 font-medium transition-colors text-sm hover:opacity-90"
                 >
                   Copy
                 </button>
@@ -285,6 +400,350 @@ const SettingsPage: React.FC = () => {
                 <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
                   Warning: this will invalidate the current key immediately.
                 </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Team Management */}
+        {activeTab === 'team' && (
+          <div className="space-y-6">
+            {/* Invite Form */}
+            <div>
+              <h3 style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16 }}>
+                <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>01</span>
+                // invite member
+              </h3>
+              <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', padding: 20 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 240px' }}>
+                    <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>
+                      email
+                    </label>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="colleague@company.com"
+                      className="input-base"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
+                      onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                    />
+                  </div>
+                  <div style={{ flex: '0 0 180px' }}>
+                    <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>
+                      role
+                    </label>
+                    <select
+                      value={inviteRole}
+                      onChange={e => setInviteRole(e.target.value)}
+                      className="input-base"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 13, cursor: 'pointer' }}
+                    >
+                      <option value="administrator">Administrator</option>
+                      <option value="admin">Admin</option>
+                      <option value="editor">Editor</option>
+                      <option value="analyst">Data Analyst</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleInvite}
+                    disabled={inviting || !inviteEmail.trim()}
+                    style={{
+                      background: 'var(--color-primary)',
+                      color: '#000',
+                      border: 'none',
+                      padding: '11px 24px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      cursor: inviting || !inviteEmail.trim() ? 'not-allowed' : 'pointer',
+                      opacity: inviting || !inviteEmail.trim() ? 0.5 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {inviting ? 'Sending...' : '→ Send Invite'}
+                  </button>
+                </div>
+
+                {/* App Access Selector */}
+                {dashboardApps.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 8 }}>
+                      app access
+                    </label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setInviteAllowedApps([])}
+                        style={{
+                          padding: '6px 14px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                          border: '1px solid',
+                          borderColor: inviteAllowedApps.length === 0 ? 'var(--color-primary)' : 'var(--color-border)',
+                          background: inviteAllowedApps.length === 0 ? 'var(--color-primary-light)' : 'transparent',
+                          color: inviteAllowedApps.length === 0 ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                          cursor: 'pointer',
+                          fontWeight: inviteAllowedApps.length === 0 ? 700 : 400,
+                        }}
+                      >
+                        All apps
+                      </button>
+                      {dashboardApps.map(app => {
+                        const isSelected = inviteAllowedApps.includes(app.id);
+                        return (
+                          <button
+                            key={app.id}
+                            onClick={() => {
+                              setInviteAllowedApps(prev =>
+                                isSelected ? prev.filter(id => id !== app.id) : [...prev, app.id]
+                              );
+                            }}
+                            style={{
+                              padding: '6px 14px',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 11,
+                              border: '1px solid',
+                              borderColor: isSelected ? 'var(--color-primary)' : 'var(--color-border)',
+                              background: isSelected ? 'var(--color-primary-light)' : 'transparent',
+                              color: isSelected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              cursor: 'pointer',
+                              fontWeight: isSelected ? 700 : 400,
+                            }}
+                          >
+                            {app.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, marginTop: 6 }}>
+                      {inviteAllowedApps.length === 0
+                        ? 'Member will have access to all current and future apps'
+                        : `Access limited to ${inviteAllowedApps.length} app${inviteAllowedApps.length > 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                )}
+
+                <p style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 11, marginTop: 12 }}>
+                  Invite expires in 7 days. The invited user will receive an email with a link to accept.
+                </p>
+              </div>
+            </div>
+
+            {/* Role descriptions */}
+            <div>
+              <h3 style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16 }}>
+                <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>02</span>
+                // roles
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                {[
+                  { role: 'Administrator', color: '#FF3D8A', desc: 'Full access to everything including billing and team management' },
+                  { role: 'Admin', color: '#C9FF3D', desc: 'Manage apps, campaigns, links, and settings' },
+                  { role: 'Editor', color: '#FFB84D', desc: 'Create and edit campaigns & links, view analytics' },
+                  { role: 'Data Analyst', color: '#7DD3FC', desc: 'View-only access to dashboard and analytics' },
+                ].map(r => (
+                  <div key={r.role} style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ width: 6, height: 6, background: r.color, display: 'inline-block' }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {r.role}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      {r.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Team members table */}
+            <div>
+              <h3 style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16 }}>
+                <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>03</span>
+                // team members
+              </h3>
+              <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                {teamLoading ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+                    Loading team members...
+                  </div>
+                ) : teamMembers.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+                    No team members yet. Send your first invite above.
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        {['email', 'role', 'status', 'invited', ''].map(h => (
+                          <th key={h} style={{
+                            textAlign: 'left',
+                            padding: '12px 16px',
+                            fontSize: 10,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.16em',
+                            color: 'var(--color-text-tertiary)',
+                            fontWeight: 500,
+                            borderBottom: '1px solid var(--color-border)',
+                            background: 'var(--color-bg-secondary)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamMembers.map((member: any) => {
+                        const roleColors: Record<string, string> = {
+                          administrator: '#FF3D8A',
+                          admin: '#C9FF3D',
+                          editor: '#FFB84D',
+                          analyst: '#7DD3FC',
+                        };
+                        const statusColors: Record<string, { bg: string; text: string }> = {
+                          pending: { bg: 'rgba(255, 184, 77, 0.15)', text: '#FFB84D' },
+                          accepted: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ADE80' },
+                          expired: { bg: 'rgba(122, 130, 144, 0.15)', text: '#7A8290' },
+                          revoked: { bg: 'rgba(255, 61, 138, 0.15)', text: '#FF3D8A' },
+                        };
+                        const sc = statusColors[member.status] || statusColors.pending;
+                        const isEditing = editingRole === member._id;
+
+                        return (
+                          <tr key={member._id} style={{ transition: 'background 0.15s' }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                          >
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                              <div>
+                                {member.name && <span style={{ display: 'block', fontWeight: 500 }}>{member.name}</span>}
+                                <span style={{ color: member.name ? 'var(--color-text-secondary)' : 'var(--color-text)', fontSize: member.name ? 11 : 12 }}>{member.email}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                              {isEditing ? (
+                                <select
+                                  defaultValue={member.role}
+                                  onChange={e => handleUpdateRole(member._id, e.target.value)}
+                                  onBlur={() => setEditingRole(null)}
+                                  autoFocus
+                                  style={{
+                                    background: 'var(--color-bg)',
+                                    border: '1px solid var(--color-primary)',
+                                    color: 'var(--color-text)',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 11,
+                                    padding: '4px 8px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <option value="administrator">Administrator</option>
+                                  <option value="admin">Admin</option>
+                                  <option value="editor">Editor</option>
+                                  <option value="analyst">Data Analyst</option>
+                                </select>
+                              ) : (
+                                <span
+                                  onClick={() => setEditingRole(member._id)}
+                                  style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: roleColors[member.role] || 'var(--color-text)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.08em',
+                                    cursor: 'pointer',
+                                    padding: '3px 8px',
+                                    border: `1px solid ${roleColors[member.role] || 'var(--color-border)'}`,
+                                    display: 'inline-block',
+                                  }}
+                                  title="Click to change role"
+                                >
+                                  {member.role === 'analyst' ? 'data analyst' : member.role}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                              <span style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 10,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                padding: '3px 8px',
+                                background: sc.bg,
+                                color: sc.text,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}>
+                                <span style={{ width: 5, height: 5, background: sc.text, display: 'inline-block' }} />
+                                {member.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: 11 }}>
+                              {new Date(member.invitedAt || member.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </td>
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                              {removeConfirm === member._id ? (
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button
+                                    onClick={() => handleRemoveMember(member._id)}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '4px 10px', background: '#FF3D8A', color: '#fff', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                                  >
+                                    confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setRemoveConfirm(null)}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '4px 10px', background: 'var(--color-bg-secondary)', color: 'var(--color-text)', border: '1px solid var(--color-border)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                                  >
+                                    cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                  {(member.status === 'pending' || member.status === 'expired') && (
+                                    <button
+                                      onClick={() => handleResendInvite(member)}
+                                      disabled={resendingInvite === member._id}
+                                      style={{
+                                        fontFamily: 'var(--font-mono)',
+                                        fontSize: 10,
+                                        padding: '4px 10px',
+                                        background: 'transparent',
+                                        color: 'var(--color-primary)',
+                                        border: '1px solid var(--color-primary)',
+                                        cursor: resendingInvite === member._id ? 'not-allowed' : 'pointer',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                        opacity: resendingInvite === member._id ? 0.5 : 1,
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                      title="Resend invite email"
+                                    >
+                                      {resendingInvite === member._id ? '...' : '↻ resend'}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => setRemoveConfirm(member._id)}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 8px', color: 'var(--color-text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                    title="Remove member"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
@@ -476,7 +935,7 @@ const SettingsPage: React.FC = () => {
               <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-2">
                 How long to keep device fingerprints for deferred link matching (1-168 hours). Default: 72 hours.
               </p>
-              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 border">
                 <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>About fingerprints:</strong> Device fingerprints help match
                   deferred deep links by capturing device characteristics (IP, user agent,
@@ -509,7 +968,7 @@ const SettingsPage: React.FC = () => {
                 </span>
                 <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Recommended: 70</span>
               </div>
-              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 border">
                 <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>Match threshold:</strong> Minimum confidence score required to
                   confirm a deferred link match. Lower values = more matches but less
@@ -525,7 +984,7 @@ const SettingsPage: React.FC = () => {
           <div className="space-y-6">
             <div>
               <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">Flutter SDK</h3>
-              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 overflow-x-auto">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create <code style={{ backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text)' }} className="px-1 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> and initialize in main.dart:</p>
                 <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`import 'package:smartlink/smartlink.dart';
@@ -553,7 +1012,7 @@ void main() async {
 
             <div>
               <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">API Usage</h3>
-              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 overflow-x-auto">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create a deep link:</p>
                 <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app'}/api/v1/links \\
@@ -569,7 +1028,7 @@ void main() async {
               </div>
             </div>
 
-            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="p-4 border rounded-lg">
+            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="p-4 border">
               <p style={{ color: 'var(--color-text)' }} className="text-sm">
                 <strong>Full documentation:</strong>{' '}
                 <a href="/dashboard/docs" style={{ color: 'var(--color-primary)' }} className="hover:underline font-medium">
@@ -588,7 +1047,7 @@ void main() async {
               These actions are irreversible. Please proceed with caution.
             </p>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Reset Analytics Data</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Delete all clicks, conversions, and analytics data.
@@ -596,13 +1055,13 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('analytics')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Reset Analytics
               </button>
             </div>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete All Links</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete all deep links and associated data.
@@ -610,13 +1069,13 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('links')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Delete Links
               </button>
             </div>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete Tenant Account</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete this account and all associated data.
@@ -624,7 +1083,7 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('account')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Delete Account
               </button>
@@ -634,7 +1093,7 @@ void main() async {
       </div>
 
       {/* Save Button */}
-      {activeTab !== 'danger' && activeTab !== 'integration' && (
+      {activeTab !== 'danger' && activeTab !== 'integration' && activeTab !== 'team' && (
         <div className="mt-6 flex gap-3">
           <button
             onClick={handleSave}
@@ -643,14 +1102,14 @@ void main() async {
               backgroundColor: saving ? 'var(--color-text-tertiary)' : 'var(--color-primary)',
               color: saving ? 'var(--color-text-tertiary)' : '#000'
             }}
-            className="px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="px-6 py-3 font-medium transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             onClick={() => { setLoading(true); fetchSettings(); }}
             style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-            className="px-6 py-3 rounded-lg font-medium transition-colors hover:opacity-80"
+            className="px-6 py-3 font-medium transition-colors hover:opacity-80"
           >
             Reset
           </button>
@@ -669,7 +1128,7 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm(null)}
                 style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-80"
+                className="flex-1 px-4 py-2 font-medium hover:opacity-80"
               >
                 Cancel
               </button>
@@ -682,7 +1141,7 @@ void main() async {
                   });
                 }}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-90"
+                className="flex-1 px-4 py-2 font-medium hover:opacity-90"
               >
                 Delete
               </button>

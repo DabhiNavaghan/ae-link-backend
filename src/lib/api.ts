@@ -114,6 +114,22 @@ export class SmartLinkApi {
     return response.data as ITenant;
   }
 
+  /**
+   * Look up tenant by Clerk session — no API key needed.
+   * Used to auto-recover API key on new devices.
+   */
+  async getTenantBySession(): Promise<{ tenantId: string; name: string; domain: string; apiKey: string; role?: string; allowedApps?: string[] } | null> {
+    try {
+      const url = `${this.baseUrl}/api/v1/tenants/me`;
+      const response = await fetch(url, { method: 'GET', credentials: 'include' });
+      if (!response.ok) return null;
+      const json = await response.json();
+      return json.data || null;
+    } catch {
+      return null;
+    }
+  }
+
   async updateTenant(
     _tenantId: string,
     data: Partial<ITenant>
@@ -341,6 +357,37 @@ export class SmartLinkApi {
       { method: 'GET' }
     );
     return response.data as CampaignAnalytics;
+  }
+  // ============================================================================
+  // Team Methods
+  // ============================================================================
+
+  async listTeamMembers(): Promise<{ members: any[] }> {
+    const response = await this.request<ApiResponse<{ members: any[] }>>(
+      '/team',
+      { method: 'GET' }
+    );
+    return response.data as { members: any[] };
+  }
+
+  async inviteTeamMember(data: { email: string; role: string; inviterName?: string; allowedApps?: string[] }): Promise<any> {
+    const response = await this.request<ApiResponse<any>>(
+      '/team',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+    return response.data;
+  }
+
+  async updateTeamMember(id: string, data: { role?: string; allowedApps?: string[] }): Promise<any> {
+    const response = await this.request<ApiResponse<any>>(
+      `/team/${id}`,
+      { method: 'PUT', body: JSON.stringify(data) }
+    );
+    return response.data;
+  }
+
+  async removeTeamMember(id: string): Promise<void> {
+    await this.request(`/team/${id}`, { method: 'DELETE' });
   }
 }
 

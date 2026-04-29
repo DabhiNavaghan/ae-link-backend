@@ -57,6 +57,11 @@ const tenantSchema = new Schema<ITenant>(
       type: String,
       required: true,
     },
+    clerkUserId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
     app: {
       type: appConfigSchema,
       required: true,

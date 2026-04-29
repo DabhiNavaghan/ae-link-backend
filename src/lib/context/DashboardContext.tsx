@@ -4,6 +4,33 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { smartLinkApi } from '@/lib/api';
 import { IApp } from '@/types';
 
+export type UserRole = 'administrator' | 'admin' | 'editor' | 'analyst';
+
+/** Permission map — what each role can do */
+const ROLE_PERMISSIONS: Record<UserRole, Set<string>> = {
+  administrator: new Set([
+    'view:dashboard', 'view:analytics',
+    'manage:apps', 'manage:campaigns', 'manage:links',
+    'manage:settings', 'manage:team', 'manage:billing', 'view:api-keys',
+  ]),
+  admin: new Set([
+    'view:dashboard', 'view:analytics',
+    'manage:apps', 'manage:campaigns', 'manage:links',
+    'manage:settings', 'view:api-keys',
+  ]),
+  editor: new Set([
+    'view:dashboard', 'view:analytics',
+    'manage:campaigns', 'manage:links',
+  ]),
+  analyst: new Set([
+    'view:dashboard', 'view:analytics',
+  ]),
+};
+
+export function hasPermission(role: UserRole, permission: string): boolean {
+  return ROLE_PERMISSIONS[role]?.has(permission) ?? false;
+}
+
 interface Tenant {
   id: string;
   name: string;
@@ -27,6 +54,11 @@ interface DashboardContextType {
   apps: AppOption[];
   selectedAppId: string;
   setSelectedAppId: (id: string) => void;
+  // True once localStorage has been read and apps have been loaded
+  isContextReady: boolean;
+  // Role-based access
+  role: UserRole;
+  can: (permission: string) => boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -39,12 +71,20 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [apps, setApps] = useState<AppOption[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string>('');
+  const [isContextReady, setIsContextReady] = useState(false);
+  const [role, setRole] = useState<UserRole>('administrator');
 
-  // Initialize from localStorage
+  const can = useCallback((permission: string) => hasPermission(role, permission), [role]);
+
+  // Initialize from localStorage + fetch apps in one pass
   useEffect(() => {
     const storedApiKey = localStorage.getItem('smartlink-api-key');
     const storedTenant = localStorage.getItem('smartlink-tenant');
     const storedAppId = localStorage.getItem('smartlink-selected-app');
+    const storedRole = localStorage.getItem('smartlink-role') as UserRole | null;
+    if (storedRole && ROLE_PERMISSIONS[storedRole]) {
+      setRole(storedRole);
+    }
 
     if (storedApiKey) {
       setApiKey(storedApiKey);
@@ -61,31 +101,55 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
     if (storedAppId) {
       setSelectedAppId(storedAppId);
     }
-  }, []);
 
-  // Fetch apps list once API key is available
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('smartlink-api-key');
-    if (!storedApiKey) return;
+    // Parse allowed apps for scoping (empty = all apps)
+    let storedAllowedApps: string[] = [];
+    try {
+      const raw = localStorage.getItem('smartlink-allowed-apps');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) storedAllowedApps = parsed;
+      }
+    } catch {}
 
-    smartLinkApi
-      .listApps({ limit: 100 })
-      .then((res) => {
-        const appList = (res.apps || []).map((a: any) => ({
-          id: a._id?.toString() || a.id,
-          name: a.name,
-        }));
-        setApps(appList);
+    // Fetch apps immediately if we have an API key, then mark ready
+    if (storedApiKey) {
+      // Safety: ensure context is ready even if listApps hangs
+      const safetyTimer = setTimeout(() => setIsContextReady(true), 10000);
 
-        // Auto-select first app if none selected yet
-        const storedAppId = localStorage.getItem('smartlink-selected-app');
-        if (!storedAppId && appList.length > 0) {
-          setSelectedAppId(appList[0].id);
-          localStorage.setItem('smartlink-selected-app', appList[0].id);
-        }
-      })
-      .catch(() => {});
-  }, [apiKey]);
+      smartLinkApi
+        .listApps({ limit: 100 })
+        .then((res) => {
+          let appList = (res.apps || []).map((a: any) => ({
+            id: a._id?.toString() || a.id,
+            name: a.name,
+          }));
+
+          // Filter by allowed apps if scoped (non-empty = restricted)
+          if (storedAllowedApps.length > 0) {
+            const allowedSet = new Set(storedAllowedApps);
+            appList = appList.filter((a) => allowedSet.has(a.id));
+          }
+
+          setApps(appList);
+
+          // Auto-select first app if none selected, OR if stored selection
+          // is no longer in the (possibly filtered) list
+          const storedStillValid = storedAppId && appList.some((a) => a.id === storedAppId);
+          if (!storedStillValid && appList.length > 0) {
+            setSelectedAppId(appList[0].id);
+            localStorage.setItem('smartlink-selected-app', appList[0].id);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          clearTimeout(safetyTimer);
+          setIsContextReady(true);
+        });
+    } else {
+      setIsContextReady(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateTenant = useCallback((t: Tenant | null) => {
     setTenant(t);
@@ -126,6 +190,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         apps,
         selectedAppId,
         setSelectedAppId: updateSelectedAppId,
+        isContextReady,
+        role,
+        can,
       }}
     >
       {children}

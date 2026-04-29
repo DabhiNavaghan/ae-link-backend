@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { smartLinkApi } from '@/lib/api';
-import { IApp, CreateAppDto, UpdateAppDto } from '@/types';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { smartLinkApi } from '@/lib/api';
+import { CreateAppDto, IApp, UpdateAppDto } from '@/types';
+import { useEffect, useState } from 'react';
 
 /* ─── Icons ─── */
 const AndroidIcon = () => (
@@ -52,7 +52,7 @@ function AppCard({
   const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
-    <div className="card p-6 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+    <div className="card p-6 hover:shadow-md transition-shadow m-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
@@ -217,7 +217,7 @@ function AppFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-card)' }}>
         <div className="sticky top-0 p-6 z-10" style={{ backgroundColor: 'var(--color-bg-card)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
@@ -235,7 +235,7 @@ function AppFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="border px-4 py-3 rounded-lg text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
+            <div className="border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
               {error}
             </div>
           )}
@@ -402,8 +402,8 @@ export default function AppsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Apps</h1>
-          <p className="mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-3xl font-bold mt-4 ml-4" style={{ color: 'var(--color-text)' }}>Apps</h1>
+          <p className="mt-1 ml-4" style={{ color: 'var(--color-text-secondary)' }}>
             Manage your Android and iOS app configurations
           </p>
         </div>
@@ -425,7 +425,7 @@ export default function AppsPage() {
 
       {!error && !loading && apps.length === 0 && (
         <div className="card p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-primary-light)' }}>
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-primary-light)' }}>
             <div style={{ color: 'var(--color-primary)' }}>
               <PlusIcon />
             </div>
