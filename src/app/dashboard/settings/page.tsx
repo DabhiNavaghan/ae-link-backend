@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface TenantSettings {
   name: string;
@@ -48,9 +50,20 @@ const SettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'general' | 'team' | 'app' | 'deep-link' | 'integration' | 'danger'>('general');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const { user } = useUser();
+  const { can, apps: dashboardApps } = useDashboard();
+
+  // Read ?tab= query param on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const validTabs = ['general', 'team', 'app', 'deep-link', 'integration', 'danger'];
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
 
   // Team state
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -58,6 +71,7 @@ const SettingsPage: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<string>('editor');
   const [inviting, setInviting] = useState(false);
+  const [inviteAllowedApps, setInviteAllowedApps] = useState<string[]>([]); // empty = all apps
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
@@ -94,8 +108,10 @@ const SettingsPage: React.FC = () => {
         email: inviteEmail.trim(),
         role: inviteRole,
         inviterName: user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'Team admin',
+        allowedApps: inviteAllowedApps.length > 0 ? inviteAllowedApps : undefined,
       });
       setInviteEmail('');
+      setInviteAllowedApps([]);
       setMessage({ type: 'success', text: `Invite sent to ${inviteEmail.trim()}` });
       setTimeout(() => setMessage(null), 3000);
       fetchTeamMembers();
@@ -240,7 +256,7 @@ const SettingsPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-3"></div>
+          <div className="animate-spin rounded-full h-8 w-8 mx-auto mb-3" style={{ border: '3px solid var(--color-border)', borderTopColor: 'var(--color-primary)' }}></div>
           <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm">Loading settings...</p>
         </div>
       </div>
@@ -273,12 +289,12 @@ const SettingsPage: React.FC = () => {
       <div className="card border-b mb-6 flex overflow-x-auto" style={{ borderColor: 'var(--color-border)' }}>
         {[
           { key: 'general', label: 'General' },
-          { key: 'team', label: 'Team' },
+          { key: 'team', label: 'Team', permission: 'manage:team' },
           { key: 'app', label: 'App Config' },
           { key: 'deep-link', label: 'Deep Link' },
-          { key: 'integration', label: 'Integration' },
-          { key: 'danger', label: 'Danger zone' },
-        ].map(tab => (
+          { key: 'integration', label: 'Integration', permission: 'view:api-keys' },
+          { key: 'danger', label: 'Danger zone', permission: 'manage:team' },
+        ].filter(tab => !tab.permission || can(tab.permission)).map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
@@ -451,6 +467,65 @@ const SettingsPage: React.FC = () => {
                     {inviting ? 'Sending...' : '→ Send Invite'}
                   </button>
                 </div>
+
+                {/* App Access Selector */}
+                {dashboardApps.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 8 }}>
+                      app access
+                    </label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setInviteAllowedApps([])}
+                        style={{
+                          padding: '6px 14px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                          border: '1px solid',
+                          borderColor: inviteAllowedApps.length === 0 ? 'var(--color-primary)' : 'var(--color-border)',
+                          background: inviteAllowedApps.length === 0 ? 'var(--color-primary-light)' : 'transparent',
+                          color: inviteAllowedApps.length === 0 ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                          cursor: 'pointer',
+                          fontWeight: inviteAllowedApps.length === 0 ? 700 : 400,
+                        }}
+                      >
+                        All apps
+                      </button>
+                      {dashboardApps.map(app => {
+                        const isSelected = inviteAllowedApps.includes(app.id);
+                        return (
+                          <button
+                            key={app.id}
+                            onClick={() => {
+                              setInviteAllowedApps(prev =>
+                                isSelected ? prev.filter(id => id !== app.id) : [...prev, app.id]
+                              );
+                            }}
+                            style={{
+                              padding: '6px 14px',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 11,
+                              border: '1px solid',
+                              borderColor: isSelected ? 'var(--color-primary)' : 'var(--color-border)',
+                              background: isSelected ? 'var(--color-primary-light)' : 'transparent',
+                              color: isSelected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              cursor: 'pointer',
+                              fontWeight: isSelected ? 700 : 400,
+                            }}
+                          >
+                            {app.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, marginTop: 6 }}>
+                      {inviteAllowedApps.length === 0
+                        ? 'Member will have access to all current and future apps'
+                        : `Access limited to ${inviteAllowedApps.length} app${inviteAllowedApps.length > 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                )}
+
                 <p style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 11, marginTop: 12 }}>
                   Invite expires in 7 days. The invited user will receive an email with a link to accept.
                 </p>

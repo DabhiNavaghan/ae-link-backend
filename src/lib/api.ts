@@ -118,7 +118,7 @@ export class SmartLinkApi {
    * Look up tenant by Clerk session — no API key needed.
    * Used to auto-recover API key on new devices.
    */
-  async getTenantBySession(): Promise<{ tenantId: string; name: string; domain: string; apiKey: string } | null> {
+  async getTenantBySession(): Promise<{ tenantId: string; name: string; domain: string; apiKey: string; role?: string; allowedApps?: string[] } | null> {
     try {
       const url = `${this.baseUrl}/api/v1/tenants/me`;
       const response = await fetch(url, { method: 'GET', credentials: 'include' });
@@ -370,7 +370,7 @@ export class SmartLinkApi {
     return response.data as { members: any[] };
   }
 
-  async inviteTeamMember(data: { email: string; role: string; inviterName?: string }): Promise<any> {
+  async inviteTeamMember(data: { email: string; role: string; inviterName?: string; allowedApps?: string[] }): Promise<any> {
     const response = await this.request<ApiResponse<any>>(
       '/team',
       { method: 'POST', body: JSON.stringify(data) }
@@ -378,7 +378,7 @@ export class SmartLinkApi {
     return response.data;
   }
 
-  async updateTeamMember(id: string, data: { role: string }): Promise<any> {
+  async updateTeamMember(id: string, data: { role?: string; allowedApps?: string[] }): Promise<any> {
     const response = await this.request<ApiResponse<any>>(
       `/team/${id}`,
       { method: 'PUT', body: JSON.stringify(data) }

@@ -7,7 +7,7 @@ import { applyCors } from '@/lib/middleware/cors';
 import { requireAuth } from '@/lib/middleware/auth';
 import TeamMemberModel from '@/lib/models/TeamMember';
 import TenantModel from '@/lib/models/Tenant';
-import resend from '@/lib/email/resend';
+import transporter from '@/lib/email/mailer';
 import { buildInviteEmailHtml, buildInviteEmailText } from '@/lib/email/invite-template';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, role, inviterName } = body as {
+    const { email, role, inviterName, allowedApps } = body as {
       email: string;
       role: TeamRole;
       inviterName?: string;
+      allowedApps?: string[]; // app IDs — empty/undefined = all apps
     };
 
     if (!email || !role) {
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
         existing.inviteToken = require('crypto').randomBytes(32).toString('hex');
         existing.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         existing.role = role;
+        existing.allowedApps = (allowedApps?.length ? allowedApps : []) as any;
         await existing.save();
 
         // Send email again
@@ -130,6 +132,7 @@ export async function POST(request: NextRequest) {
       tenantId: auth.tenantId,
       email: email.toLowerCase(),
       role,
+      allowedApps: (allowedApps?.length ? allowedApps : []) as any,
       invitedBy: inviterName || 'Team admin',
     });
 
@@ -174,11 +177,12 @@ async function sendInviteEmail({
   const acceptUrl = `${origin}/invite/accept?token=${inviteToken}`;
 
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'SmartLink <noreply@smartlink.dev>';
+    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@smartlink.dev';
+    const fromName = process.env.SMTP_FROM_NAME || 'SmartLink';
     logger.info({ to: email, from: fromEmail, acceptUrl }, 'Sending invite email');
 
-    const result = await resend.emails.send({
-      from: fromEmail,
+    const info = await transporter.sendMail({
+      from: `${fromName} <${fromEmail}>`,
       to: email,
       subject: `You're invited to join ${tenantName} on SmartLink`,
       html: buildInviteEmailHtml({
@@ -197,11 +201,7 @@ async function sendInviteEmail({
       }),
     });
 
-    if (result.error) {
-      logger.error({ email, resendError: result.error }, 'Resend returned error — email not delivered');
-    } else {
-      logger.info({ email, resendId: result.data?.id }, 'Invite email sent successfully');
-    }
+    logger.info({ email, messageId: info.messageId }, 'Invite email sent successfully');
   } catch (emailErr) {
     logger.error({ email, error: String(emailErr) }, 'Failed to send invite email — invite created but email not sent');
   }

@@ -121,6 +121,20 @@ export default function InviteAcceptPage() {
               domain: tenant.domain,
             })
           );
+          // Store role for RBAC — team member gets their assigned role
+          const memberRole = json.data?.member?.role;
+          if (memberRole) {
+            localStorage.setItem('smartlink-role', memberRole);
+          }
+          // Store allowed apps for scoping
+          const memberAllowedApps = json.data?.member?.allowedApps;
+          if (memberAllowedApps?.length) {
+            localStorage.setItem('smartlink-allowed-apps', JSON.stringify(
+              memberAllowedApps.map((id: any) => id.toString())
+            ));
+          } else {
+            localStorage.removeItem('smartlink-allowed-apps');
+          }
         }
       }
 
@@ -286,7 +300,11 @@ export default function InviteAcceptPage() {
                 <p style={{ ...styles.subtext, marginBottom: '12px' }}>
                   Sign in to accept this invite
                 </p>
-                <SignInButton mode="modal" forceRedirectUrl={`/invite/accept?token=${token}`}>
+                <SignInButton
+                  mode="modal"
+                  forceRedirectUrl={`/invite/accept?token=${token}`}
+                  signUpForceRedirectUrl={`/invite/accept?token=${token}`}
+                >
                   <button style={styles.primaryBtn}>
                     Sign In to Accept
                   </button>

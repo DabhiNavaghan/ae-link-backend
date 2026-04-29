@@ -31,7 +31,7 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { role } = body as { role: TeamRole };
+    const { role, allowedApps } = body as { role?: TeamRole; allowedApps?: string[] };
 
     const validRoles: TeamRole[] = ['administrator', 'admin', 'editor', 'analyst'];
     if (role && !validRoles.includes(role)) {
@@ -41,9 +41,13 @@ export async function PUT(
       ));
     }
 
+    const updateFields: Record<string, any> = {};
+    if (role) updateFields.role = role;
+    if (allowedApps !== undefined) updateFields.allowedApps = allowedApps;
+
     const member = await TeamMemberModel.findOneAndUpdate(
       { _id: params.id, tenantId: auth.tenantId },
-      { $set: { role } },
+      { $set: updateFields },
       { new: true }
     );
 

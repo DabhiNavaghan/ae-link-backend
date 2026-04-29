@@ -34,6 +34,10 @@ const teamMemberSchema = new Schema<ITeamMember>(
       index: true,
       sparse: true,
     },
+    allowedApps: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'App' }],
+      default: [], // empty = access to all apps
+    },
     invitedBy: {
       type: String,
       required: true,

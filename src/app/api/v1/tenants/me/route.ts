@@ -5,6 +5,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { connectDB } from '@/lib/mongodb';
 import { applyCors } from '@/lib/middleware/cors';
 import TenantModel from '@/lib/models/Tenant';
+import TeamMemberModel from '@/lib/models/TeamMember';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 
@@ -34,13 +35,33 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // 1. Fast path: direct clerkUserId match
-    let tenant: any = await TenantModel.findOne({
+    let tenant: any = null;
+    let userRole: string = 'administrator'; // tenant owner gets full access
+    let allowedApps: string[] = []; // empty = all apps (owner default)
+
+    // 1. Fast path: direct clerkUserId match on Tenant (owner)
+    tenant = await TenantModel.findOne({
       clerkUserId: userId,
       isActive: true,
     }).select('-apiSecret');
 
-    // 2. Fallback: match by email domain → tenant domain
+    // 2. Check TeamMember by clerkUserId (invited team member)
+    if (!tenant) {
+      const teamMember = await TeamMemberModel.findOne({
+        clerkUserId: userId,
+        status: 'accepted',
+      });
+      if (teamMember) {
+        tenant = await TenantModel.findById(teamMember.tenantId).select('-apiSecret');
+        if (tenant) {
+          userRole = teamMember.role;
+          allowedApps = (teamMember.allowedApps || []).map((id: any) => id.toString());
+          logger.info({ userId, tenantId: tenant._id, role: userRole }, 'Tenant recovered via team membership');
+        }
+      }
+    }
+
+    // 3. Fallback: match by email domain → tenant domain
     //    Handles existing tenants created before clerkUserId was added
     if (!tenant) {
       try {
@@ -52,13 +73,33 @@ export async function GET(request: NextRequest) {
 
         if (primaryEmail) {
           const emailDomain = primaryEmail.split('@')[1]?.toLowerCase();
-          if (emailDomain) {
+
+          // Check if user is a team member by email
+          if (!tenant) {
+            const teamMember = await TeamMemberModel.findOne({
+              email: primaryEmail.toLowerCase(),
+              status: 'accepted',
+            });
+            if (teamMember) {
+              tenant = await TenantModel.findById(teamMember.tenantId).select('-apiSecret');
+              if (tenant) {
+                userRole = teamMember.role;
+                allowedApps = (teamMember.allowedApps || []).map((id: any) => id.toString());
+                // Auto-link clerkUserId on TeamMember for future lookups
+                teamMember.clerkUserId = userId;
+                await teamMember.save();
+                logger.info({ userId, tenantId: tenant._id, email: primaryEmail }, 'Team member auto-linked via email');
+              }
+            }
+          }
+
+          // Last resort: match tenant by domain
+          if (!tenant && emailDomain) {
             tenant = await TenantModel.findOne({
               domain: emailDomain,
               isActive: true,
             }).select('-apiSecret');
 
-            // Auto-link clerkUserId so future lookups are instant
             if (tenant) {
               tenant.clerkUserId = userId;
               await tenant.save();
@@ -82,7 +123,7 @@ export async function GET(request: NextRequest) {
       return applyCors(request, errorRes);
     }
 
-    logger.info({ userId, tenantId: tenant._id }, 'Tenant recovered via Clerk session');
+    logger.info({ userId, tenantId: tenant._id, role: userRole }, 'Tenant recovered via Clerk session');
 
     const response = NextResponse.json(
       successResponse({
@@ -90,6 +131,8 @@ export async function GET(request: NextRequest) {
         name: tenant.name,
         domain: tenant.domain,
         apiKey: tenant.apiKey,
+        role: userRole,
+        allowedApps,
       }),
       { status: 200 }
     );

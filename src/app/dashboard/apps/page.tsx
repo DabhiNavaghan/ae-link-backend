@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { smartLinkApi } from '@/lib/api';
-import { IApp, CreateAppDto, UpdateAppDto } from '@/types';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { smartLinkApi } from '@/lib/api';
+import { CreateAppDto, IApp, UpdateAppDto } from '@/types';
+import { useEffect, useState } from 'react';
 
 /* ─── Icons ─── */
 const AndroidIcon = () => (
@@ -52,7 +52,7 @@ function AppCard({
   const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
-    <div className="card p-6 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+    <div className="card p-6 hover:shadow-md transition-shadow m-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
@@ -402,8 +402,8 @@ export default function AppsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Apps</h1>
-          <p className="mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-3xl font-bold mt-4 ml-4" style={{ color: 'var(--color-text)' }}>Apps</h1>
+          <p className="mt-1 ml-4" style={{ color: 'var(--color-text-secondary)' }}>
             Manage your Android and iOS app configurations
           </p>
         </div>

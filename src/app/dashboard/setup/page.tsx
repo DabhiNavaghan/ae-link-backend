@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { smartLinkApi } from '@/lib/api';
 import { RegisterTenantDto } from '@/types';
 import Button from '@/components/ui/Button';
@@ -578,6 +578,14 @@ export default function SetupPage() {
   const { user } = useUser();
   const { getSuggestions, saveMany } = useFieldHistory();
 
+  // If the user already has an API key (e.g. accepted a team invite), skip setup
+  useEffect(() => {
+    const apiKey = typeof window !== 'undefined' ? localStorage.getItem('smartlink-api-key') : null;
+    if (apiKey) {
+      router.replace('/dashboard');
+    }
+  }, [router]);
+
   const allFields = [
     'name', 'domain', 'settings.defaultFallbackUrl',
     'app.android.package', 'app.android.sha256', 'app.android.storeUrl',
@@ -598,6 +606,8 @@ export default function SetupPage() {
             await smartLinkApi.updateTenant((tenant as any)._id || (tenant as any).tenantId, { clerkUserId: user.id } as any);
           } catch {}
         }
+        // Existing API key users are treated as administrators
+        localStorage.setItem('smartlink-role', 'administrator');
         router.push('/dashboard');
       } else {
         setStep('app-details');
@@ -630,6 +640,8 @@ export default function SetupPage() {
           'smartlink-tenant',
           JSON.stringify({ id: (result as any)?.tenantId || (result as any)?._id, name: appName, apiKey })
         );
+        // Tenant creator is always the administrator
+        localStorage.setItem('smartlink-role', 'administrator');
       }
 
       // Also create an App record with the platform config

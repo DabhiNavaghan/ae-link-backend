@@ -499,6 +499,7 @@ export interface ITeamMember extends Document {
   role: TeamRole;
   status: InviteStatus;
   clerkUserId?: string;
+  allowedApps: Types.ObjectId[]; // empty = all apps; otherwise only these app IDs
   invitedBy: string;
   inviteToken: string;
   invitedAt: Date;

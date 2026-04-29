@@ -256,7 +256,7 @@ function Section({
 }) {
   const c = SECTION_COLORS[color] ?? SECTION_COLORS.blue;
   return (
-    <div className="card overflow-hidden">
+    <div className="overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
       <div className={`px-4 py-2.5 bg-gradient-to-r ${c.header} border-b flex items-center gap-2`}>
         <span className="text-base leading-none">{icon}</span>
         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{title}</h3>
@@ -556,7 +556,7 @@ export default function GetDevicePage() {
       <div className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-8 h-8 flex items-center justify-center text-white text-sm font-bold bg-primary-600" style={{ borderRadius: '50%' }}>
               🔍
             </div>
             <div>
@@ -569,13 +569,13 @@ export default function GetDevicePage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors"
             >
               <span>↺</span> Refresh
             </button>
             <button
               onClick={handleCopyAll}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
                 copied
                   ? 'bg-success-100 text-success-700 border border-success-200'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
@@ -589,7 +589,7 @@ export default function GetDevicePage() {
 
       {/* IP + UA quick summary bar */}
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
-        <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 flex flex-wrap gap-x-6 gap-y-2 shadow-sm">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500">Public IP</span>
             {clientGeoLoading ? <SkeletonRow /> : (
@@ -830,7 +830,7 @@ export default function GetDevicePage() {
 
       {/* Raw User Agent */}
       <div className="max-w-7xl mx-auto px-4 pb-8">
-        <div className="card overflow-hidden">
+        <div className="overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
           <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100 border-b flex items-center gap-2">
             <span>🔤</span>
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Raw User Agent</h3>
