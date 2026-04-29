@@ -486,6 +486,27 @@ export interface DashboardOverview {
 }
 
 // ============================================================================
+// Team Member Types
+// ============================================================================
+
+export type TeamRole = 'administrator' | 'admin' | 'editor' | 'analyst';
+export type InviteStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+
+export interface ITeamMember extends Document {
+  tenantId: Types.ObjectId;
+  email: string;
+  name?: string;
+  role: TeamRole;
+  status: InviteStatus;
+  clerkUserId?: string;
+  invitedBy: string;
+  inviteToken: string;
+  invitedAt: Date;
+  acceptedAt?: Date;
+  expiresAt: Date;
+}
+
+// ============================================================================
 // Request Context (for middleware)
 // ============================================================================
 

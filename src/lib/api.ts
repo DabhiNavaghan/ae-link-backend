@@ -358,6 +358,37 @@ export class SmartLinkApi {
     );
     return response.data as CampaignAnalytics;
   }
+  // ============================================================================
+  // Team Methods
+  // ============================================================================
+
+  async listTeamMembers(): Promise<{ members: any[] }> {
+    const response = await this.request<ApiResponse<{ members: any[] }>>(
+      '/team',
+      { method: 'GET' }
+    );
+    return response.data as { members: any[] };
+  }
+
+  async inviteTeamMember(data: { email: string; role: string; inviterName?: string }): Promise<any> {
+    const response = await this.request<ApiResponse<any>>(
+      '/team',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+    return response.data;
+  }
+
+  async updateTeamMember(id: string, data: { role: string }): Promise<any> {
+    const response = await this.request<ApiResponse<any>>(
+      `/team/${id}`,
+      { method: 'PUT', body: JSON.stringify(data) }
+    );
+    return response.data;
+  }
+
+  async removeTeamMember(id: string): Promise<void> {
+    await this.request(`/team/${id}`, { method: 'DELETE' });
+  }
 }
 
 // Export singleton instance
