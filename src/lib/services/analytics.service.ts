@@ -345,6 +345,9 @@ export class AnalyticsService {
 
     // Active campaigns
     const campaignMatch: Record<string, any> = { tenantId: tenantObjId, status: 'active' };
+    if (filters?.appId) {
+      campaignMatch.appId = new Types.ObjectId(filters.appId);
+    }
     const campaignCount = await CampaignModel.countDocuments(campaignMatch);
 
     // Deferred links matched
@@ -388,8 +391,12 @@ export class AnalyticsService {
     const topLinks = await LinkModel.aggregate(topLinksPipeline);
 
     // Top campaigns with full details
+    const topCampaignMatchStage: Record<string, any> = { tenantId: tenantObjId };
+    if (filters?.appId) {
+      topCampaignMatchStage.appId = new Types.ObjectId(filters.appId);
+    }
     const topCampaignsPipeline: any[] = [
-      { $match: { tenantId: tenantObjId } },
+      { $match: topCampaignMatchStage },
       {
         $lookup: {
           from: 'links',
