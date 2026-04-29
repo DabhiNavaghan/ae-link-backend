@@ -43,6 +43,7 @@ export interface ITenant extends Document {
   domain: string;
   apiKey: string;
   apiSecret: string;
+  clerkUserId?: string;
   app: IAppConfig;
   settings: ITenantSettings;
   isActive: boolean;

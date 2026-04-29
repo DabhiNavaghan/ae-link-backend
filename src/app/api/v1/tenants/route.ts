@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     const tenant = new TenantModel({
       name: body.name,
       domain: body.domain,
+      clerkUserId: (body as any).clerkUserId || undefined,
       app: body.app,
       settings: body.settings || {},
       isActive: true,
@@ -190,6 +191,7 @@ export async function PUT(request: NextRequest) {
     if (body.name) updateData.name = body.name;
     if (body.settings) updateData.settings = body.settings;
     if (body.app) updateData.app = body.app;
+    if (body.clerkUserId) updateData.clerkUserId = body.clerkUserId;
 
     const tenant = await TenantModel.findByIdAndUpdate(
       auth.tenantId,

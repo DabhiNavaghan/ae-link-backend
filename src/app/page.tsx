@@ -7,17 +7,40 @@ import { useEffect, useState, useCallback } from 'react';
 import './landing.css';
 
 export default function LandingPage() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const [activeLang, setActiveLang] = useState('flutter');
   const [billingMode, setBillingMode] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    if (isSignedIn) {
+    if (isLoaded && isSignedIn) {
       router.push('/dashboard');
     }
-  }, [isSignedIn, router]);
+  }, [isSignedIn, isLoaded, router]);
+
+  // Don't render landing page until auth state is known
+  // Prevents the flash where landing page shows briefly before redirect
+  if (!isLoaded || isSignedIn) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0D11' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              border: '2px solid transparent',
+              borderTopColor: '#C9FF3D',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto 16px',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   const toggleFaq = useCallback((idx: number) => {
     setOpenFaq((prev) => (prev === idx ? null : idx));

@@ -31,7 +31,7 @@ interface Campaign {
 
 export default function LinksPage() {
   const router = useRouter();
-  const { selectedAppId } = useDashboard();
+  const { selectedAppId, isContextReady } = useDashboard();
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,12 +50,14 @@ export default function LinksPage() {
   const linkTypes = ['event', 'ticket', 'profile', 'category', 'custom'];
 
   useEffect(() => {
+    if (!isContextReady) return;
     fetchCampaigns();
-  }, [selectedAppId]);
+  }, [selectedAppId, isContextReady]);
 
   useEffect(() => {
+    if (!isContextReady) return;
     fetchLinks();
-  }, [campaignFilter, linkTypeFilter, searchQuery, page, selectedAppId]);
+  }, [campaignFilter, linkTypeFilter, searchQuery, page, selectedAppId, isContextReady]);
 
   async function fetchCampaigns() {
     try {

@@ -7,6 +7,7 @@ import Sidebar from '@/components/ui/Sidebar';
 import Header from '@/components/ui/Header';
 import { ToastProvider } from '@/components/ui/Toast';
 import { DashboardProvider } from '@/lib/context/DashboardContext';
+import { smartLinkApi } from '@/lib/api';
 
 export default function DashboardLayout({
   children,
@@ -25,14 +26,30 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Clerk handles auth — if user is here, they're signed in
-    // Check if they have an API key configured
     const apiKey = localStorage.getItem('smartlink-api-key');
-    if (!apiKey && !isFullScreenPage) {
-      router.replace('/dashboard/setup');
-    } else {
+    if (apiKey || isFullScreenPage) {
       setReady(true);
+      return;
     }
+
+    // No API key in localStorage — try to recover from Clerk session
+    // This handles the case where user signs in on a new device
+    smartLinkApi.getTenantBySession().then((tenant) => {
+      if (tenant?.apiKey) {
+        // Recovered! Store API key and tenant info locally
+        smartLinkApi.setApiKey(tenant.apiKey);
+        localStorage.setItem(
+          'smartlink-tenant',
+          JSON.stringify({ id: tenant.tenantId, name: tenant.name, apiKey: tenant.apiKey })
+        );
+        setReady(true);
+        // Force a page reload so DashboardContext picks up the new API key
+        window.location.reload();
+      } else {
+        // No tenant found — new user, send to setup
+        router.replace('/dashboard/setup');
+      }
+    });
   }, [isLoaded, pathname, router, isFullScreenPage]);
 
   if (!isLoaded || !ready) {

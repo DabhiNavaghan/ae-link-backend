@@ -116,7 +116,7 @@ export default function DashboardPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
-  const { selectedAppId } = useDashboard();
+  const { selectedAppId, isContextReady } = useDashboard();
   const router = useRouter();
 
   // Close menu on click outside
@@ -152,8 +152,9 @@ export default function DashboardPage() {
   }, [selectedAppId, selectedChannel]);
 
   useEffect(() => {
+    if (!isContextReady) return;
     fetchOverview();
-  }, [fetchOverview]);
+  }, [fetchOverview, isContextReady]);
 
   // ─── Skeleton ────────────────────────────────────────────────
   const Skeleton = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => (

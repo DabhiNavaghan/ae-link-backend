@@ -6,6 +6,7 @@ import { RegisterTenantDto } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { useFieldHistory } from '@/lib/hooks/useFieldHistory';
 
 type SetupStep = 'welcome' | 'app-details' | 'platforms' | 'success';
@@ -574,6 +575,7 @@ export default function SetupPage() {
   const [appData, setAppData] = useState<RegisterTenantDto | null>(null);
   const [successData, setSuccessData] = useState<{ apiKey: string; appName: string } | null>(null);
   const router = useRouter();
+  const { user } = useUser();
   const { getSuggestions, saveMany } = useFieldHistory();
 
   const allFields = [
@@ -589,7 +591,13 @@ export default function SetupPage() {
       setError(null);
       if (apiKey) {
         smartLinkApi.setApiKey(apiKey);
-        await smartLinkApi.getTenant();
+        const tenant = await smartLinkApi.getTenant();
+        // Link Clerk user to tenant if not already linked
+        if (user?.id && !(tenant as any).clerkUserId) {
+          try {
+            await smartLinkApi.updateTenant((tenant as any)._id || (tenant as any).tenantId, { clerkUserId: user.id } as any);
+          } catch {}
+        }
         router.push('/dashboard');
       } else {
         setStep('app-details');
@@ -611,7 +619,10 @@ export default function SetupPage() {
     try {
       setLoading(true);
       setError(null);
-      const result = await smartLinkApi.registerTenant(data);
+      const result = await smartLinkApi.registerTenant({
+        ...data,
+        clerkUserId: user?.id,
+      } as any);
       const apiKey = result?.apiKey || '';
       const appName = result?.name || data.name;
       if (typeof window !== 'undefined') {

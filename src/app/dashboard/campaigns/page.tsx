@@ -28,7 +28,7 @@ const api = new SmartLinkApi();
 
 export default function CampaignsPage() {
   const router = useRouter();
-  const { selectedAppId } = useDashboard();
+  const { selectedAppId, isContextReady } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +45,9 @@ export default function CampaignsPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
+    if (!isContextReady) return;
     fetchCampaigns();
-  }, [statusFilter, searchQuery, page, selectedAppId]);
+  }, [statusFilter, searchQuery, page, selectedAppId, isContextReady]);
 
   async function fetchCampaigns() {
     try {

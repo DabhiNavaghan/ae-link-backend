@@ -114,6 +114,22 @@ export class SmartLinkApi {
     return response.data as ITenant;
   }
 
+  /**
+   * Look up tenant by Clerk session — no API key needed.
+   * Used to auto-recover API key on new devices.
+   */
+  async getTenantBySession(): Promise<{ tenantId: string; name: string; domain: string; apiKey: string } | null> {
+    try {
+      const url = `${this.baseUrl}/api/v1/tenants/me`;
+      const response = await fetch(url, { method: 'GET', credentials: 'include' });
+      if (!response.ok) return null;
+      const json = await response.json();
+      return json.data || null;
+    } catch {
+      return null;
+    }
+  }
+
   async updateTenant(
     _tenantId: string,
     data: Partial<ITenant>

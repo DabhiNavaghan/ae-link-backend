@@ -27,6 +27,8 @@ interface DashboardContextType {
   apps: AppOption[];
   selectedAppId: string;
   setSelectedAppId: (id: string) => void;
+  // True once localStorage has been read and apps have been loaded
+  isContextReady: boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -39,8 +41,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [apps, setApps] = useState<AppOption[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string>('');
+  const [isContextReady, setIsContextReady] = useState(false);
 
-  // Initialize from localStorage
+  // Initialize from localStorage + fetch apps in one pass
   useEffect(() => {
     const storedApiKey = localStorage.getItem('smartlink-api-key');
     const storedTenant = localStorage.getItem('smartlink-tenant');
@@ -61,31 +64,30 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
     if (storedAppId) {
       setSelectedAppId(storedAppId);
     }
-  }, []);
 
-  // Fetch apps list once API key is available
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('smartlink-api-key');
-    if (!storedApiKey) return;
+    // Fetch apps immediately if we have an API key, then mark ready
+    if (storedApiKey) {
+      smartLinkApi
+        .listApps({ limit: 100 })
+        .then((res) => {
+          const appList = (res.apps || []).map((a: any) => ({
+            id: a._id?.toString() || a.id,
+            name: a.name,
+          }));
+          setApps(appList);
 
-    smartLinkApi
-      .listApps({ limit: 100 })
-      .then((res) => {
-        const appList = (res.apps || []).map((a: any) => ({
-          id: a._id?.toString() || a.id,
-          name: a.name,
-        }));
-        setApps(appList);
-
-        // Auto-select first app if none selected yet
-        const storedAppId = localStorage.getItem('smartlink-selected-app');
-        if (!storedAppId && appList.length > 0) {
-          setSelectedAppId(appList[0].id);
-          localStorage.setItem('smartlink-selected-app', appList[0].id);
-        }
-      })
-      .catch(() => {});
-  }, [apiKey]);
+          // Auto-select first app if none selected yet
+          if (!storedAppId && appList.length > 0) {
+            setSelectedAppId(appList[0].id);
+            localStorage.setItem('smartlink-selected-app', appList[0].id);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setIsContextReady(true));
+    } else {
+      setIsContextReady(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateTenant = useCallback((t: Tenant | null) => {
     setTenant(t);
@@ -126,6 +128,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         apps,
         selectedAppId,
         setSelectedAppId: updateSelectedAppId,
+        isContextReady,
       }}
     >
       {children}
