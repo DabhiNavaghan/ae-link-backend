@@ -282,6 +282,7 @@ export default function CampaignDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => router.push(`/dashboard/campaigns/${campaignId}/edit`)} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">edit</button>
             <button onClick={() => router.push(`/dashboard/campaigns/create?duplicate=${campaignId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
             {campaign.status === 'active' ? (
               <button onClick={() => handleStatusChange('paused')} className="btn-dashboard btn-dashboard-sm">pause</button>

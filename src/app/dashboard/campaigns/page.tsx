@@ -26,7 +26,7 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const router = useRouter();
-  const { isContextReady, can } = useDashboard();
+  const { isContextReady, can, selectedAppId } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,10 +49,12 @@ export default function CampaignsPage() {
     if (!isContextReady || !can('manage:campaigns')) return;
     try {
       setLoading(true);
-      const data = await smartLinkApi.listCampaigns({
+      const params: Record<string, any> = {
         limit: itemsPerPage,
         offset: (page - 1) * itemsPerPage,
-      });
+      };
+      if (selectedAppId) params.appId = selectedAppId;
+      const data = await smartLinkApi.listCampaigns(params);
 
       const campaignList = data.campaigns as unknown as Campaign[];
       setCampaigns(campaignList);
@@ -85,7 +87,11 @@ export default function CampaignsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, isContextReady, can]);
+  }, [page, isContextReady, can, selectedAppId]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedAppId]);
 
   useEffect(() => {
     fetchCampaigns();
