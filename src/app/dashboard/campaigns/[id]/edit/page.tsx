@@ -10,6 +10,7 @@ interface FormData {
   name: string;
   slug: string;
   appId: string;
+  status: string;
   description: string;
   fallbackUrl: string;
   utmCampaign: string;
@@ -52,6 +53,7 @@ export default function EditCampaignPage() {
     name: '',
     slug: '',
     appId: '',
+    status: 'active',
     description: '',
     fallbackUrl: '',
     utmCampaign: '',
@@ -63,8 +65,10 @@ export default function EditCampaignPage() {
   const [metadataValue, setMetadataValue] = useState('');
 
   useEffect(() => {
-    fetchCampaign();
-  }, [campaignId]);
+    if (isContextReady) {
+      fetchCampaign();
+    }
+  }, [campaignId, isContextReady]);
 
   useEffect(() => {
     if (isContextReady && !can('manage:campaigns')) {
@@ -84,7 +88,8 @@ export default function EditCampaignPage() {
       setFormData({
         name: c.name || '',
         slug: c.slug || '',
-        appId: c.appId || '',
+        appId: c.appId ? c.appId.toString() : '',
+        status: c.status || 'active',
         description: c.description || '',
         fallbackUrl: c.fallbackUrl || '',
         utmCampaign,
@@ -101,8 +106,7 @@ export default function EditCampaignPage() {
   }
 
   const handleNameChange = (value: string) => {
-    const slug = generateSlug(value);
-    setFormData((prev) => ({ ...prev, name: value, slug, utmCampaign: slug }));
+    setFormData((prev) => ({ ...prev, name: value }));
   };
 
   const handleSlugChange = (value: string) => {
@@ -130,7 +134,7 @@ export default function EditCampaignPage() {
     try {
       setLoading(true);
       setError(null);
-      const payload: any = { name: formData.name, slug: formData.slug };
+      const payload: any = { name: formData.name, slug: formData.slug, status: formData.status };
       if (formData.appId) payload.appId = formData.appId;
       if (formData.description) payload.description = formData.description;
       if (formData.fallbackUrl) payload.fallbackUrl = formData.fallbackUrl;
@@ -199,6 +203,20 @@ export default function EditCampaignPage() {
                   >
                     <option value="">Select an app</option>
                     {apps.map((app) => (<option key={app.id} value={app.id}>{app.name}</option>))}
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label style={labelStyle}>status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
+                    style={inputStyle}
+                  >
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="archived">Archived</option>
                   </select>
                 </div>
 
@@ -356,7 +374,7 @@ export default function EditCampaignPage() {
                 )}
               </div>
               <div style={{ padding: '12px 20px', borderTop: '1px dashed var(--color-border)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)' }}>
-                editing: <span style={{ color: 'var(--color-secondary)' }}>{campaignId}</span>
+                status: <span style={{ color: formData.status === 'active' ? 'var(--color-primary)' : formData.status === 'paused' ? 'var(--color-warning)' : 'var(--color-text-tertiary)' }}>{formData.status}</span>
               </div>
             </div>
           </div>
