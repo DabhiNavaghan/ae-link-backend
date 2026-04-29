@@ -47,10 +47,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const appId = searchParams.get('appId') || undefined;
     const channel = searchParams.get('channel') || undefined;
+    const startDateRaw = searchParams.get('startDate');
+    const endDateRaw = searchParams.get('endDate');
+    const startDate = startDateRaw ? new Date(startDateRaw) : undefined;
+    const endDate = endDateRaw ? new Date(endDateRaw) : undefined;
 
     const overview = await AnalyticsService.getDashboardOverview(auth.tenantId, {
       appId,
       channel,
+      startDate,
+      endDate,
     });
 
     const response = NextResponse.json(

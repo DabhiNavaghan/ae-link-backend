@@ -299,7 +299,7 @@ export class AnalyticsService {
    */
   static async getDashboardOverview(
     tenantId: string,
-    filters?: { appId?: string; channel?: string }
+    filters?: { appId?: string; channel?: string; startDate?: Date; endDate?: Date }
   ): Promise<DashboardOverview> {
     const tenantObjId = new Types.ObjectId(tenantId);
 
@@ -307,6 +307,12 @@ export class AnalyticsService {
     const clickMatch: Record<string, any> = { tenantId: tenantObjId };
     if (filters?.channel) {
       clickMatch.channel = filters.channel;
+    }
+    if (filters?.startDate || filters?.endDate) {
+      const dateCond: Record<string, any> = {};
+      if (filters?.startDate) dateCond.$gte = filters.startDate;
+      if (filters?.endDate) dateCond.$lte = filters.endDate;
+      clickMatch.createdAt = dateCond;
     }
 
     // Build link match filter (for appId filtering)
@@ -434,11 +440,12 @@ export class AnalyticsService {
     ];
     const topCampaigns = await CampaignModel.aggregate(topCampaignsPipeline);
 
-    // Clicks trend (last 30 days) with conversions
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const trendClickMatch = { ...clickMatch, createdAt: { $gte: thirtyDaysAgo } };
+    // Clicks trend — use the provided date range, or fall back to last 30 days
+    const trendStart = filters?.startDate || (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; })();
+    const trendEnd = filters?.endDate || new Date();
+    const trendClickMatch = filters?.startDate || filters?.endDate
+      ? { ...clickMatch }
+      : { ...clickMatch, createdAt: { $gte: trendStart, $lte: trendEnd } };
     const clicksTrend = await ClickModel.aggregate([
       { $match: trendClickMatch },
       {
@@ -453,7 +460,9 @@ export class AnalyticsService {
     // Conversions trend for the same period
     const convTrendMatch: Record<string, any> = {
       tenantId: tenantObjId,
-      createdAt: { $gte: thirtyDaysAgo },
+      ...(filters?.startDate || filters?.endDate
+        ? { createdAt: clickMatch.createdAt }
+        : { createdAt: { $gte: trendStart, $lte: trendEnd } }),
     };
     if (filteredLinkIds) {
       convTrendMatch.linkId = { $in: filteredLinkIds };

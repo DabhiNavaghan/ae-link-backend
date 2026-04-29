@@ -337,10 +337,12 @@ export class SmartLinkApi {
   // Analytics Methods
   // ============================================================================
 
-  async getOverview(filters?: { appId?: string; channel?: string }): Promise<DashboardOverview> {
+  async getOverview(filters?: { appId?: string; channel?: string; startDate?: string; endDate?: string }): Promise<DashboardOverview> {
     const queryString = new URLSearchParams();
     if (filters?.appId) queryString.append('appId', filters.appId);
     if (filters?.channel) queryString.append('channel', filters.channel);
+    if (filters?.startDate) queryString.append('startDate', filters.startDate);
+    if (filters?.endDate) queryString.append('endDate', filters.endDate);
     const qs = queryString.toString();
     const endpoint = `/analytics/overview${qs ? '?' + qs : ''}`;
     const response = await this.request<ApiResponse<DashboardOverview>>(
