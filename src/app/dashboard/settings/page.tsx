@@ -389,18 +389,20 @@ const SettingsPage: React.FC = () => {
                   Copy
                 </button>
               </div>
-              <div className="mt-3 flex items-center gap-3">
-                <button
-                  onClick={handleRegenerateKey}
-                  style={{ color: 'var(--color-danger)' }}
-                  className="text-sm hover:opacity-80 font-medium"
-                >
-                  Regenerate API Key
-                </button>
-                <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
-                  Warning: this will invalidate the current key immediately.
-                </span>
-              </div>
+              {can('manage:billing') && (
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={handleRegenerateKey}
+                    style={{ color: 'var(--color-danger)' }}
+                    className="text-sm hover:opacity-80 font-medium"
+                  >
+                    Regenerate API Key
+                  </button>
+                  <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
+                    Warning: this will invalidate the current key immediately.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

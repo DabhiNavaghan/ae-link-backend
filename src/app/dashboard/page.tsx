@@ -114,6 +114,7 @@ export default function DashboardPage() {
   const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
   const { selectedAppId, isContextReady, can } = useDashboard();
@@ -218,7 +219,6 @@ export default function DashboardPage() {
   // Chart paths
   const chartData = overview?.clicksTrend || [];
   const { clicksPath, clicksArea, conversionsPath, clickPts, convPts } = generateChartPaths(chartData);
-  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   // Date labels for chart
   const chartDates = chartData.length > 0
