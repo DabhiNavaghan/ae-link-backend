@@ -4,7 +4,9 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 import { CreateAppDto, IApp, UpdateAppDto } from '@/types';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 /* ─── Icons ─── */
@@ -349,6 +351,15 @@ export default function AppsPage() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editApp, setEditApp] = useState<IApp | null>(null);
+  const { isContextReady, can } = useDashboard();
+  const router = useRouter();
+
+  // Permission gate — redirect unauthorized users
+  useEffect(() => {
+    if (isContextReady && !can('manage:apps')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
 
   const fetchApps = async () => {
     try {

@@ -7,7 +7,7 @@ import AppModel from '@/lib/models/App';
  *
  * Serves Apple App Site Association for Universal Links.
  * Dynamically generates from all registered apps with iOS config.
- * This tells iOS that our domain can open these apps.
+ * Uses the modern "components" format (Apple 2022+).
  */
 export async function GET() {
   try {
@@ -20,17 +20,19 @@ export async function GET() {
       'ios.teamId': { $exists: true, $ne: '' },
     }).lean();
 
-    const appIDs = apps.map(
-      (app) => `${app.ios!.teamId}.${app.ios!.bundleId}`
-    );
+    const details = apps.map((app) => ({
+      appIDs: [`${app.ios!.teamId}.${app.ios!.bundleId}`],
+      components: [
+        {
+          '/': '/*',
+          comment: 'Match all SmartLink paths',
+        },
+      ],
+    }));
 
     const aasa = {
       applinks: {
-        apps: [],
-        details: appIDs.map((appID) => ({
-          appID,
-          paths: ['/*'],
-        })),
+        details,
       },
     };
 
@@ -44,7 +46,7 @@ export async function GET() {
   } catch (error) {
     // Return valid but empty AASA on error
     return new NextResponse(
-      JSON.stringify({ applinks: { apps: [], details: [] } }),
+      JSON.stringify({ applinks: { details: [] } }),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

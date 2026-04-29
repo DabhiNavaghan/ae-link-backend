@@ -64,8 +64,15 @@ export class SmartLinkApi {
       Object.assign(headers, options.headers as Record<string, string>);
     }
 
-    if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
+    // Always re-read from localStorage if apiKey is not set on the instance
+    // (handles SSR → client hydration where constructor ran server-side)
+    let key = this.apiKey;
+    if (!key && typeof window !== 'undefined') {
+      key = localStorage.getItem('smartlink-api-key');
+      if (key) this.apiKey = key; // cache for subsequent calls
+    }
+    if (key) {
+      headers['X-API-Key'] = key;
     }
 
     const response = await fetch(url, {
@@ -330,10 +337,12 @@ export class SmartLinkApi {
   // Analytics Methods
   // ============================================================================
 
-  async getOverview(filters?: { appId?: string; channel?: string }): Promise<DashboardOverview> {
+  async getOverview(filters?: { appId?: string; channel?: string; startDate?: string; endDate?: string }): Promise<DashboardOverview> {
     const queryString = new URLSearchParams();
     if (filters?.appId) queryString.append('appId', filters.appId);
     if (filters?.channel) queryString.append('channel', filters.channel);
+    if (filters?.startDate) queryString.append('startDate', filters.startDate);
+    if (filters?.endDate) queryString.append('endDate', filters.endDate);
     const qs = queryString.toString();
     const endpoint = `/analytics/overview${qs ? '?' + qs : ''}`;
     const response = await this.request<ApiResponse<DashboardOverview>>(

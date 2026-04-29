@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
-import { SmartLinkApi } from '@/lib/api';
-
-const api = new SmartLinkApi();
+import { smartLinkApi } from '@/lib/api';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 // Module-level cache — survives client-side navigation, cleared on hard refresh
 const pageCache = new Map<string, {
@@ -51,6 +50,7 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
+  const { can, isContextReady } = useDashboard();
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
@@ -71,6 +71,12 @@ export default function CampaignDetailPage() {
     fetchData();
   }, [campaignId]);
 
+  useEffect(() => {
+    if (isContextReady && !can('manage:campaigns')) {
+      router.replace('/dashboard');
+    }
+  }, [isContextReady, can, router]);
+
   async function fetchData() {
     const cached = pageCache.get(campaignId);
 
@@ -84,7 +90,7 @@ export default function CampaignDetailPage() {
       setLoading(false);
       // Silently refresh analytics in background
       setAnalyticsLoading(true);
-      api.getCampaignAnalytics(campaignId)
+      smartLinkApi.getCampaignAnalytics(campaignId)
         .then((analyticsData) => {
           const fresh: Analytics = {
             totalClicks: analyticsData.totalClicks || 0,
@@ -107,8 +113,8 @@ export default function CampaignDetailPage() {
       setAnalyticsLoading(true);
 
       const [campaignData, linksData] = await Promise.all([
-        api.getCampaign(campaignId),
-        api.listLinks({ campaignId }),
+        smartLinkApi.getCampaign(campaignId),
+        smartLinkApi.listLinks({ campaignId }),
       ]);
 
       const typedCampaign = campaignData as unknown as Campaign;
@@ -122,7 +128,7 @@ export default function CampaignDetailPage() {
 
       // Fetch link analytics in background for conversion counts
       setLinkAnalyticsLoading(true);
-      Promise.allSettled(typedLinks.map((l) => api.getLinkAnalytics(l._id)))
+      Promise.allSettled(typedLinks.map((l) => smartLinkApi.getLinkAnalytics(l._id)))
         .then((results) => {
           setLinks((prev) =>
             prev.map((l, i) => {
@@ -135,7 +141,7 @@ export default function CampaignDetailPage() {
         })
         .finally(() => setLinkAnalyticsLoading(false));
 
-      api.getCampaignAnalytics(campaignId)
+      smartLinkApi.getCampaignAnalytics(campaignId)
         .then((analyticsData) => {
           const fresh: Analytics = {
             totalClicks: analyticsData.totalClicks || 0,
@@ -165,7 +171,7 @@ export default function CampaignDetailPage() {
     }
 
     try {
-      const updated = await api.updateCampaign(campaignId, {
+      const updated = await smartLinkApi.updateCampaign(campaignId, {
         name: editName,
       });
       const updatedCampaign = updated as unknown as Campaign;
@@ -179,7 +185,7 @@ export default function CampaignDetailPage() {
 
   async function handleUpdateDescription() {
     try {
-      const updated = await api.updateCampaign(campaignId, {
+      const updated = await smartLinkApi.updateCampaign(campaignId, {
         description: editDescription,
       });
       setCampaign(updated as unknown as Campaign);
@@ -192,7 +198,7 @@ export default function CampaignDetailPage() {
 
   async function handleStatusChange(newStatus: string) {
     try {
-      const updated = await api.updateCampaign(campaignId, {
+      const updated = await smartLinkApi.updateCampaign(campaignId, {
         status: newStatus as 'active' | 'paused' | 'archived',
       });
       setCampaign(updated as unknown as Campaign);
@@ -204,7 +210,7 @@ export default function CampaignDetailPage() {
   async function handleDeleteLink(linkId: string) {
     setLinkDeleting(true);
     try {
-      await api.deleteLink(linkId);
+      await smartLinkApi.deleteLink(linkId);
       setLinks((prev) => prev.filter((l) => l._id !== linkId));
       pageCache.delete(campaignId);
       setLinkDeleteConfirm(null);
