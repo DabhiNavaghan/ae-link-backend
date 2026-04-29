@@ -41,6 +41,8 @@ interface Tenant {
 interface AppOption {
   id: string;
   name: string;
+  androidStoreUrl?: string;
+  iosStoreUrl?: string;
 }
 
 interface DashboardContextType {
@@ -123,6 +125,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({
         let appList = (res.apps || []).map((a: any) => ({
           id: a._id?.toString() || a.id,
           name: a.name,
+          androidStoreUrl: a.android?.storeUrl || '',
+          iosStoreUrl: a.ios?.storeUrl || '',
         }));
 
         if (storedAllowedApps.length > 0) {

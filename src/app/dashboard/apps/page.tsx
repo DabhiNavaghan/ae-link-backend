@@ -113,6 +113,64 @@ function AppCard({
         )}
       </div>
 
+      {/* Store links */}
+      {(app.android?.storeUrl || app.ios?.storeUrl) && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {app.android?.storeUrl && (
+            <a
+              href={app.android.storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+              style={{
+                border: '1px solid var(--color-success)',
+                color: 'var(--color-success)',
+                textDecoration: 'none',
+                borderRadius: 2,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.04em',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'var(--color-success)';
+                (e.currentTarget as HTMLElement).style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-success)';
+              }}
+            >
+              <AndroidIcon /> Play Store ↗
+            </a>
+          )}
+          {app.ios?.storeUrl && (
+            <a
+              href={app.ios.storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+              style={{
+                border: '1px solid var(--color-text-secondary)',
+                color: 'var(--color-text-secondary)',
+                textDecoration: 'none',
+                borderRadius: 2,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.04em',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'var(--color-text-secondary)';
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-bg)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)';
+              }}
+            >
+              <AppleIcon /> App Store ↗
+            </a>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => onEdit(app)} className="flex-1">
           <span className="flex items-center justify-center gap-1.5"><PencilIcon /> Edit</span>
