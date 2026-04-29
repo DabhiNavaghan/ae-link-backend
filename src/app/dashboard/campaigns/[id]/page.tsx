@@ -253,7 +253,7 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>loading campaign...</div>
         </div>
@@ -263,7 +263,7 @@ export default function CampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16 }}>← back</button>
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-warning)', padding: 20, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
@@ -275,13 +275,13 @@ export default function CampaignDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
         {/* Nav */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => router.push(`/dashboard/campaigns/create?duplicate=${campaignId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
             {campaign.status === 'active' ? (
               <button onClick={() => handleStatusChange('paused')} className="btn-dashboard btn-dashboard-sm">pause</button>
@@ -357,7 +357,7 @@ export default function CampaignDetailPage() {
         </div>
 
         {/* 02 Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div className="dashboard-grid-kpi" style={{ marginBottom: 24 }}>
           {statBox('links', links.length)}
           {statBox('clicks', analytics?.totalClicks || 0, true)}
           {statBox('conversions', analytics?.totalConversions || 0)}
@@ -368,7 +368,7 @@ export default function CampaignDetailPage() {
         {(campaign.startDate || campaign.endDate) && (
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24, padding: 20 }}>
             <div style={{ marginBottom: 12 }}>{sectionHeader('03', 'duration')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="md:grid-cols-2">
               {campaign.startDate && (
                 <div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>start</div>
@@ -389,7 +389,7 @@ export default function CampaignDetailPage() {
         {campaign.metadata && Object.keys(campaign.metadata).length > 0 && (
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24, padding: 20 }}>
             <div style={{ marginBottom: 12 }}>{sectionHeader('04', 'metadata')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="md:grid-cols-2">
               {Object.entries(campaign.metadata).map(([key, value]) => (
                 <div key={key} style={{ background: 'var(--color-bg)', padding: 12, border: '1px solid var(--color-border)' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{key}</div>
@@ -447,7 +447,7 @@ export default function CampaignDetailPage() {
               </Link>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div className="dashboard-table-wrapper">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>

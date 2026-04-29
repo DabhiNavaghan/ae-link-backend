@@ -54,10 +54,10 @@ function AppCard({
   const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
-    <div className="card p-6 hover:shadow-md transition-shadow m-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-      <div className="flex items-start justify-between mb-4">
+    <div className="card p-4 md:p-6 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="flex items-start justify-between mb-4 gap-2 flex-wrap">
         <div>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
+          <h3 className="text-base md:text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
           <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
             ID: {String((app as any)._id).slice(-8)}
           </p>
@@ -68,14 +68,14 @@ function AppCard({
       </div>
 
       {/* Platform badges */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         {hasAndroid && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
+          <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
             <AndroidIcon /> Android
           </span>
         )}
         {hasIos && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
+          <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
             <AppleIcon /> iOS
           </span>
         )}
@@ -409,12 +409,12 @@ export default function AppsPage() {
   };
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="space-y-6 p-4 md:p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap md:flex-nowrap">
         <div>
-          <h1 className="text-3xl font-bold mt-4 ml-4" style={{ color: 'var(--color-text)' }}>Apps</h1>
-          <p className="mt-1 ml-4" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Apps</h1>
+          <p className="mt-1 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
             Manage your Android and iOS app configurations
           </p>
         </div>

@@ -107,12 +107,12 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="dashboard-header-flex mb-8">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Campaigns</h1>
-          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Campaigns</h1>
+          <p className="mt-2 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
             {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} total
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function CampaignsPage() {
         </div>
       ) : (
         <div className="shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="overflow-x-auto">
+          <div className="dashboard-table-wrapper">
             <table className="w-full">
               <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
                 <tr>

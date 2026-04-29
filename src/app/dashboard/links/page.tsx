@@ -140,11 +140,11 @@ export default function LinksPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="dashboard-header-flex mb-8">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
             Links
           </h1>
           <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>

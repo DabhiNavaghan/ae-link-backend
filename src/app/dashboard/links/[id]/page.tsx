@@ -123,7 +123,7 @@ export default function LinkDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>loading link...</div>
         </div>
@@ -133,7 +133,7 @@ export default function LinkDetailPage() {
 
   if (!link) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16 }}>← back</button>
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-warning)', padding: 20, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-warning)' }}>
@@ -145,13 +145,13 @@ export default function LinkDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 32 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
         {/* Nav */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={handleCopy} className="btn-dashboard btn-dashboard-sm">{copied ? 'copied!' : 'copy link'}</button>
             <button onClick={() => router.push(`/dashboard/links/create?duplicate=${linkId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
             <button onClick={() => router.push(`/dashboard/links/${linkId}/edit`)} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">edit</button>
@@ -193,7 +193,7 @@ export default function LinkDetailPage() {
         </div>
 
         {/* 02 Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div className="dashboard-grid-kpi" style={{ marginBottom: 24 }}>
           {[
             { label: 'clicks', value: analytics?.totalClicks || 0, accent: true },
             { label: 'unique', value: analytics?.uniqueClicks || 0 },
@@ -208,7 +208,7 @@ export default function LinkDetailPage() {
         </div>
 
         {/* QR + Info + Devices row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-2 lg:grid-cols-[1fr_2fr]">
           {/* QR Code */}
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
@@ -243,7 +243,7 @@ export default function LinkDetailPage() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
               {sectionHeader('05', 'parameters')}
             </div>
-            <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="md:grid-cols-2">
               {Object.entries(link.params).map(([key, value]) => (
                 <div key={key} style={{ background: 'var(--color-bg)', padding: 12, border: '1px solid var(--color-border)' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{key}</div>
@@ -293,7 +293,7 @@ export default function LinkDetailPage() {
 
         {/* Clicks Trend + Countries */}
         {analytics && analytics.clicksTrend && analytics.clicksTrend.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-[2fr_1fr]">
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
                 {sectionHeader('07', 'clicks trend')}
@@ -333,7 +333,7 @@ export default function LinkDetailPage() {
         )}
 
         {/* Browsers + Referrers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
           {analytics && analytics.browsers && analytics.browsers.length > 0 && (
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>

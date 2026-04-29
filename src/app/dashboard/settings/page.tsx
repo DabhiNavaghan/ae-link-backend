@@ -264,11 +264,11 @@ const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="p-4 md:p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 style={{ color: 'var(--color-text)' }} className="text-3xl font-bold mb-2">Settings</h1>
-        <p style={{ color: 'var(--color-text-secondary)' }}>Configure your SmartLink app and deep linking preferences.</p>
+        <h1 style={{ color: 'var(--color-text)' }} className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
+        <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm md:text-base">Configure your SmartLink app and deep linking preferences.</p>
       </div>
 
       {/* Messages */}
@@ -298,7 +298,7 @@ const SettingsPage: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`px-3 md:px-6 py-2 md:py-4 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
                 ? 'border-primary-500'
                 : 'border-transparent'
@@ -313,7 +313,7 @@ const SettingsPage: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="card p-6">
+      <div className="card p-4 md:p-6">
         {/* General Settings */}
         {activeTab === 'general' && (
           <div className="space-y-6">
@@ -417,8 +417,8 @@ const SettingsPage: React.FC = () => {
                 // invite member
               </h3>
               <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', padding: 20 }}>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                  <div style={{ flex: '1 1 240px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 12, alignItems: 'flex-end' }} className="md:grid-cols-[1fr_180px_auto]">
+                  <div>
                     <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>
                       email
                     </label>
@@ -432,7 +432,7 @@ const SettingsPage: React.FC = () => {
                       onKeyDown={e => e.key === 'Enter' && handleInvite()}
                     />
                   </div>
-                  <div style={{ flex: '0 0 180px' }}>
+                  <div>
                     <label style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: 6 }}>
                       role
                     </label>

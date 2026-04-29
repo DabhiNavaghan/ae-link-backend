@@ -313,9 +313,8 @@ export default function DashboardPage() {
 
       {/* ─── KPI Strip ─────────────────────────────────────── */}
       <div
+        className="dashboard-grid-kpi"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
           border: '1px solid var(--color-border)',
           background: 'var(--color-bg-card)',
           marginBottom: 24,
@@ -360,10 +359,8 @@ export default function DashboardPage() {
 
       {/* ─── Live Stream + Chart Row ──────────────────────── */}
       <div
+        className="dashboard-grid-chart-row"
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 2fr',
-          gap: 24,
           marginBottom: 24,
         }}
       >
@@ -509,7 +506,7 @@ export default function DashboardPage() {
                 No trend data yet
               </div>
             ) : (
-              <svg viewBox="0 0 700 260" preserveAspectRatio="none" style={{ width: '100%', height: 300 }} onMouseLeave={() => setHoveredPoint(null)}>
+              <svg className="dashboard-chart-svg" viewBox="0 0 700 260" preserveAspectRatio="none" style={{ width: '100%', height: 300 }} onMouseLeave={() => setHoveredPoint(null)}>
                 {/* Gridlines */}
                 <g stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="4 4">
                   <line x1="40" y1="40" x2="690" y2="40" />
@@ -587,7 +584,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="dashboard-table-wrapper">
           {loading ? (
             <div style={{ padding: 20 }}>
               {Array.from({ length: 4 }).map((_, i) => (
@@ -701,10 +698,8 @@ export default function DashboardPage() {
 
       {/* ─── Links + Channels Split ──────────────────────── */}
       <div
+        className="dashboard-grid-split"
         style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: 24,
           marginBottom: 24,
         }}
       >
@@ -729,7 +724,7 @@ export default function DashboardPage() {
               </Link>
             )}
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="dashboard-table-wrapper">
             {loading ? (
               <div style={{ padding: 20 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -926,7 +921,7 @@ export default function DashboardPage() {
           </span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>30d</span>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="dashboard-table-wrapper">
           {loading ? (
             <div style={{ padding: 20 }}>
               {Array.from({ length: 4 }).map((_, i) => (
@@ -1070,6 +1065,7 @@ function StatCell({
 }) {
   return (
     <div
+      className="dashboard-stat-cell"
       style={{
         padding: '22px 24px',
         borderRight: isLast ? 'none' : '1px solid var(--color-border)',
