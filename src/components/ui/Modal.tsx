@@ -61,7 +61,7 @@ const Modal: React.FC<ModalProps> = ({
 
       {/* Modal */}
       <div
-        className={`relative rounded-xl shadow-xl z-10 w-full mx-4 overflow-hidden animate-fadeIn ${sizeClasses[size]}`}
+        className={`relative shadow-xl z-10 w-full mx-4 overflow-hidden animate-fadeIn ${sizeClasses[size]}`}
         style={{
           backgroundColor: 'var(--color-bg-card)',
         }}

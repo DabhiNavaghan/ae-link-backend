@@ -64,7 +64,7 @@ const Badge: React.FC<BadgeProps> = ({ status, children, size = 'md' }) => {
         ...sizeStyles[size],
         fontWeight: 600,
         display: 'inline-block',
-        borderRadius: '0.375rem',
+        borderRadius: 0,
       }}
     >
       <span style={{

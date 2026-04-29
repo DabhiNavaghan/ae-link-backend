@@ -9,7 +9,7 @@ export default function SignInPage() {
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-8">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
+            className="w-10 h-10 flex items-center justify-center font-bold text-lg"
             style={{
               backgroundColor: 'var(--color-primary)',
               color: 'var(--color-bg)',
@@ -23,7 +23,7 @@ export default function SignInPage() {
                 height: '6px',
                 backgroundColor: 'var(--color-primary)',
                 border: '2px solid var(--color-bg)',
-                borderRadius: '2px',
+                borderRadius: 0,
               }}
             />
           </div>
@@ -46,7 +46,7 @@ export default function SignInPage() {
             },
             elements: {
               rootBox: 'mx-auto',
-              card: 'shadow-lg rounded-2xl',
+              card: 'shadow-lg',
               headerTitle: { color: '#E8EAED' },
               headerSubtitle: { color: '#B8BDC7' },
               formButtonPrimary: { backgroundColor: '#C9FF3D', color: '#0A0B0E' },

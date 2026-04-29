@@ -165,7 +165,7 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
           When creating a deep link, select this app so the link knows which app store URLs to use for redirects.
           The App ID below can also be used directly in the API.
         </p>
-        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
+        <div className="flex items-center gap-3 p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderWidth: '1px' }}>
           <code className="font-mono text-sm flex-1 select-all" style={{ color: 'var(--color-text)' }}>
             {String((app as any)._id)}
           </code>

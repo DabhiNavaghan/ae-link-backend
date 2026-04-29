@@ -205,7 +205,7 @@ const DataTable = <T extends Record<string, any>>({
                 pagination.onPageChange(pagination.currentPage - 1)
               }
               disabled={pagination.currentPage === 1}
-              className="px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+              className="px-3 py-2 text-sm font-medium transition-colors duration-200"
               style={{
                 border: '1px solid var(--color-border)',
                 color: 'var(--color-text-secondary)',
@@ -220,7 +220,7 @@ const DataTable = <T extends Record<string, any>>({
                 pagination.onPageChange(pagination.currentPage + 1)
               }
               disabled={pagination.currentPage === pagination.totalPages}
-              className="px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+              className="px-3 py-2 text-sm font-medium transition-colors duration-200"
               style={{
                 border: '1px solid var(--color-border)',
                 color: 'var(--color-text-secondary)',

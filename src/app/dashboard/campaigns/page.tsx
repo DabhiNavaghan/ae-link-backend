@@ -128,7 +128,7 @@ export default function CampaignsPage() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
@@ -140,7 +140,7 @@ export default function CampaignsPage() {
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
               style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
             >
               <option value="all">All Campaigns</option>
@@ -162,7 +162,7 @@ export default function CampaignsPage() {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
               style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)', borderWidth: '1px', '--tw-ring-color': 'var(--color-primary)' } as any}
             />
           </div>
@@ -171,19 +171,19 @@ export default function CampaignsPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+        <div className="border p-4 mb-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
           {error}
         </div>
       )}
 
       {/* Campaigns Table */}
       {loading && campaigns.length === 0 ? (
-        <div className="rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: 'var(--color-primary-light)', borderTopColor: 'var(--color-primary)' }}></div>
           <p className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>Loading campaigns...</p>
         </div>
       ) : !loading && campaigns.length === 0 ? (
-        <div className="rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <svg
             className="mx-auto w-12 h-12 mb-4"
             fill="none"
@@ -212,7 +212,7 @@ export default function CampaignsPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
@@ -271,21 +271,21 @@ export default function CampaignsPage() {
                     </td>
                     <td className="px-6 py-4" style={{ color: 'var(--color-text)' }}>
                       {analyticsLoading ? (
-                        <div className="h-4 w-8 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+                        <div className="h-4 w-8 animate-pulse" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
                       ) : (
                         campaign.linkCount ?? 0
                       )}
                     </td>
                     <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
                       {analyticsLoading ? (
-                        <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+                        <div className="h-4 w-10 animate-pulse" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
                       ) : (
                         (campaign.totalClicks ?? 0).toLocaleString()
                       )}
                     </td>
                     <td className="px-6 py-4 font-medium" style={{ color: 'var(--color-text)' }}>
                       {analyticsLoading ? (
-                        <div className="h-4 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
+                        <div className="h-4 w-10 animate-pulse" style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
                       ) : (
                         (campaign.totalConversions ?? 0).toLocaleString()
                       )}
@@ -294,14 +294,14 @@ export default function CampaignsPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/dashboard/campaigns/${campaign._id}/edit`}
-                          className="px-3 py-1 text-sm rounded transition"
+                          className="px-3 py-1 text-sm transition"
                           style={{ color: 'var(--color-text-secondary)' }}
                         >
                           Edit
                         </Link>
                         <button
                           onClick={() => setDeleteConfirm(campaign._id)}
-                          className="px-2 py-1 text-sm rounded transition"
+                          className="px-2 py-1 text-sm transition"
                           style={{ color: 'var(--color-danger)' }}
                           title="Delete campaign"
                         >
@@ -327,7 +327,7 @@ export default function CampaignsPage() {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm border disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ borderColor: 'var(--color-border)', borderWidth: '1px', color: 'var(--color-text-secondary)' }}
                 >
                   ← Previous
@@ -335,7 +335,7 @@ export default function CampaignsPage() {
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm border disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ borderColor: 'var(--color-border)', borderWidth: '1px', color: 'var(--color-text-secondary)' }}
                 >
                   Next →
@@ -349,7 +349,7 @@ export default function CampaignsPage() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !deleting && setDeleteConfirm(null)}>
-          <div className="rounded-xl shadow-xl p-6 max-w-sm mx-4" style={{ backgroundColor: 'var(--color-bg-card)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="shadow-xl p-6 max-w-sm mx-4" style={{ backgroundColor: 'var(--color-bg-card)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-danger)' }}>

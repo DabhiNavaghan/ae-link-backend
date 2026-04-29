@@ -97,7 +97,7 @@ body {
 @layer components {
   .card {
     background-color: var(--color-bg-card);
-    border-radius: 0.75rem;
+    border-radius: 0;
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
@@ -110,14 +110,15 @@ body {
 
   .card-lg {
     background-color: var(--color-bg-card);
-    border-radius: 0.75rem;
+    border-radius: 0;
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-md);
   }
 
   .btn-base {
-    @apply inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200;
+    @apply inline-flex items-center justify-center font-medium transition-all duration-200;
     font-family: var(--font-heading);
+    border-radius: 0;
   }
 
   .badge-base {
@@ -127,7 +128,7 @@ body {
   .input-base {
     width: 100%;
     padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: 0;
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-secondary);
     color: var(--color-text);

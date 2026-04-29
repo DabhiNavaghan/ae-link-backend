@@ -217,7 +217,7 @@ function AppFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-card)' }}>
         <div className="sticky top-0 p-6 z-10" style={{ backgroundColor: 'var(--color-bg-card)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
@@ -235,7 +235,7 @@ function AppFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="border px-4 py-3 rounded-lg text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
+            <div className="border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
               {error}
             </div>
           )}
@@ -425,7 +425,7 @@ export default function AppsPage() {
 
       {!error && !loading && apps.length === 0 && (
         <div className="card p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-primary-light)' }}>
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-primary-light)' }}>
             <div style={{ color: 'var(--color-primary)' }}>
               <PlusIcon />
             </div>

@@ -30,13 +30,13 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
 
   return (
     <div className="relative group">
-      <pre style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="rounded-lg p-4 text-sm overflow-x-auto leading-relaxed">
+      <pre style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="p-4 text-sm overflow-x-auto leading-relaxed">
         <code>{code}</code>
       </pre>
       <button
         onClick={handleCopy}
         style={{ backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text-secondary)' }}
-        className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-90"
+        className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-90"
         title="Copy to clipboard"
       >
         {copied ? (
@@ -80,7 +80,7 @@ function ReferenceTable({
   rows: { field: string; where: string; example: string }[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
+    <div className="overflow-x-auto border border-slate-200">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-50">
@@ -165,7 +165,7 @@ export default function DocsPage() {
                     color: activeSection === item.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
                     fontWeight: activeSection === item.id ? '500' : 'normal'
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:opacity-70"
+                  className="w-full text-left px-3 py-2 text-sm transition-colors hover:opacity-70"
                 >
                   {item.label}
                 </button>
@@ -185,7 +185,7 @@ export default function DocsPage() {
               (routing users to specific content even after a fresh install), device fingerprinting
               for attribution, and real-time analytics.
             </p>
-            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+            <div className="bg-primary-50 border border-primary-200 p-4">
               <p className="font-semibold text-primary-800 mb-2">How it works</p>
               <p className="text-primary-700">
                 When a user clicks a SmartLink deep link on the web, the system captures a device
@@ -202,7 +202,7 @@ export default function DocsPage() {
             <p>Follow these steps to get SmartLink running with your app:</p>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-slate-50">
                 <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">1</span>
                 <div>
                   <p className="font-medium text-slate-800">Register your app</p>
@@ -212,7 +212,7 @@ export default function DocsPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-slate-50">
                 <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">2</span>
                 <div>
                   <p className="font-medium text-slate-800">Configure platforms</p>
@@ -222,7 +222,7 @@ export default function DocsPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-slate-50">
                 <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">3</span>
                 <div>
                   <p className="font-medium text-slate-800">Integrate the Flutter SDK</p>
@@ -232,7 +232,7 @@ export default function DocsPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-slate-50">
                 <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">4</span>
                 <div>
                   <p className="font-medium text-slate-800">Create and share links</p>
@@ -244,7 +244,7 @@ export default function DocsPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800">
+            <div className="bg-amber-50 border border-amber-200 p-4 text-amber-800">
               <p className="font-semibold mb-1">Important</p>
               <p>Your API key is shown once during setup. Copy it and store it securely. You can regenerate it later under Settings, but the old key will stop working immediately.</p>
             </div>
@@ -305,7 +305,7 @@ export default function DocsPage() {
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
+            <div className="bg-blue-50 border border-blue-200 p-4 text-blue-800">
               <p className="font-semibold mb-1">Verify it works</p>
               <p>
                 After deploying, check: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/assetlinks.json</code>.
@@ -361,7 +361,7 @@ export default function DocsPage() {
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
+            <div className="bg-blue-50 border border-blue-200 p-4 text-blue-800">
               <p className="font-semibold mb-1">Verify it works</p>
               <p>
                 Visit <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> — you should see your app&apos;s Team ID and Bundle ID in the JSON.
@@ -482,7 +482,7 @@ class MyApp extends StatelessWidget {
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-800">4. What happens automatically</p>
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-2">
+              <div className="bg-slate-50 p-4 border border-slate-200 space-y-2">
                 <p className="text-sm text-slate-700"><strong>First launch after install:</strong> SDK collects device fingerprint, calls the backend to match against stored browser fingerprints, and delivers the original link data via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code>.</p>
                 <p className="text-sm text-slate-700"><strong>Direct app links:</strong> When the app is already installed and the user clicks an SmartLink URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
                 <p className="text-sm text-slate-700"><strong>Auto-confirmation:</strong> Deferred links are automatically confirmed as delivered, tracking the conversion in your analytics.</p>
@@ -520,7 +520,7 @@ class MyApp extends StatelessWidget {
               query analytics, and integrate deep linking into your backend workflows.
             </p>
 
-            <div className="relative rounded-lg border border-slate-200 overflow-hidden">
+            <div className="relative border border-slate-200 overflow-hidden">
               {/* Blurred preview of endpoints */}
               <div className="pointer-events-none select-none" style={{ filter: 'blur(5px)', opacity: 0.45 }}>
                 <div className="overflow-x-auto">
@@ -577,14 +577,14 @@ class MyApp extends StatelessWidget {
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <a
                       href="/#pricing"
-                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition"
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white transition"
                       style={{ backgroundColor: 'var(--color-primary, #2563eb)' }}
                     >
                       View Plans &amp; Pricing
                     </a>
                     <a
                       href="/#pricing"
-                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
                     >
                       Compare Plans
                     </a>
@@ -629,7 +629,7 @@ class MyApp extends StatelessWidget {
               Here's the step-by-step flow:
             </p>
 
-            <div className="bg-slate-50 rounded-xl p-5 space-y-4">
+            <div className="bg-slate-50 p-5 space-y-4">
               {[
                 {
                   step: '1',
@@ -724,7 +724,7 @@ class MyApp extends StatelessWidget {
                 { title: 'Platform Split', desc: 'Android vs iOS vs Web breakdown' },
                 { title: 'Top Links', desc: 'Your most-clicked and highest-converting links' },
               ].map((metric) => (
-                <div key={metric.title} className="bg-slate-50 rounded-lg p-3">
+                <div key={metric.title} className="bg-slate-50 p-3">
                   <p className="font-medium text-slate-800 text-sm">{metric.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{metric.desc}</p>
                 </div>

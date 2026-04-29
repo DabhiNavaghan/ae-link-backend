@@ -156,7 +156,7 @@ export default function LinksPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-card rounded-lg shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="bg-card shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Campaign Filter */}
           <div>
@@ -169,7 +169,7 @@ export default function LinksPage() {
                 setCampaignFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
               style={{
                 borderColor: 'var(--color-border)',
                 backgroundColor: 'var(--color-bg-secondary)',
@@ -196,7 +196,7 @@ export default function LinksPage() {
                 setLinkTypeFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
               style={{
                 borderColor: 'var(--color-border)',
                 backgroundColor: 'var(--color-bg-secondary)',
@@ -225,7 +225,7 @@ export default function LinksPage() {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
               style={{
                 borderColor: 'var(--color-border)',
                 backgroundColor: 'var(--color-bg-secondary)',
@@ -239,7 +239,7 @@ export default function LinksPage() {
       {/* Error Message */}
       {error && (
         <div
-          className="border rounded-lg p-4 mb-6"
+          className="border p-4 mb-6"
           style={{
             backgroundColor: 'rgba(255, 61, 138, 0.1)',
             borderColor: 'var(--color-accent)',
@@ -252,7 +252,7 @@ export default function LinksPage() {
 
       {/* Links Table */}
       {loading && links.length === 0 ? (
-        <div className="bg-card rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="bg-card shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div
             className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
             style={{
@@ -265,7 +265,7 @@ export default function LinksPage() {
           </p>
         </div>
       ) : !loading && links.length === 0 ? (
-        <div className="bg-card rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="bg-card shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <svg
             className="mx-auto w-12 h-12 mb-4"
             fill="none"
@@ -294,7 +294,7 @@ export default function LinksPage() {
           </Button>
         </div>
       ) : (
-        <div className="bg-card rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="bg-card shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderBottomColor: 'var(--color-border)' }} className="border-b">
@@ -428,7 +428,7 @@ export default function LinksPage() {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm border disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     borderColor: 'var(--color-border)',
                     backgroundColor: 'var(--color-bg-hover)',
@@ -440,7 +440,7 @@ export default function LinksPage() {
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-sm border disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     borderColor: 'var(--color-border)',
                     backgroundColor: 'var(--color-bg-hover)',
@@ -458,7 +458,7 @@ export default function LinksPage() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !deleting && setDeleteConfirm(null)}>
-          <div className="bg-card rounded-xl shadow-xl p-6 max-w-sm mx-4" style={{ backgroundColor: 'var(--color-bg-card)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card shadow-xl p-6 max-w-sm mx-4" style={{ backgroundColor: 'var(--color-bg-card)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255, 61, 138, 0.2)' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>

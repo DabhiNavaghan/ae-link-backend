@@ -177,7 +177,7 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => handleDateRangeChange('week')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
                 dateRange.type === 'week'
                   ? 'text-white'
                   : 'hover:opacity-80'
@@ -188,7 +188,7 @@ const AnalyticsDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => handleDateRangeChange('month')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
                 dateRange.type === 'month'
                   ? 'text-white'
                   : 'hover:opacity-80'
@@ -199,7 +199,7 @@ const AnalyticsDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => handleDateRangeChange('quarter')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
                 dateRange.type === 'quarter'
                   ? 'text-white'
                   : 'hover:opacity-80'
@@ -242,7 +242,7 @@ const AnalyticsDashboard: React.FC = () => {
           <button
             onClick={handleExport}
             disabled={!analytics}
-            className="ml-auto px-4 py-2 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="ml-auto px-4 py-2 text-white font-medium transition-colors disabled:opacity-50"
             style={{ backgroundColor: 'var(--color-accent)' }}
           >
             Export CSV

@@ -12,6 +12,7 @@ export default function LandingPage() {
   const [activeLang, setActiveLang] = useState('flutter');
   const [billingMode, setBillingMode] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showLanding, setShowLanding] = useState(false);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -19,9 +20,17 @@ export default function LandingPage() {
     }
   }, [isSignedIn, isLoaded, router]);
 
+  // Safety fallback: if auth doesn't load within 3s, show the landing page anyway
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isLoaded) setShowLanding(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
+
   // Don't render landing page until auth state is known
   // Prevents the flash where landing page shows briefly before redirect
-  if (!isLoaded || isSignedIn) {
+  if ((!isLoaded || isSignedIn) && !showLanding) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0D11' }}>
         <div style={{ textAlign: 'center' }}>

@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="lg:hidden p-2 rounded-lg transition-colors"
+              className="lg:hidden p-2 transition-colors"
               style={{ color: 'var(--color-text-secondary)' }}
               aria-label="Toggle sidebar"
             >
@@ -74,7 +74,7 @@ const Header: React.FC<HeaderProps> = ({
 
           {showNotifications && (
             <button
-              className="relative p-2 rounded-lg transition-colors"
+              className="relative p-2 transition-colors"
               style={{ color: 'var(--color-text-secondary)' }}
               aria-label="Notifications"
             >
@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onProfileClick}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-2 py-1.5 transition-colors"
             aria-label="Profile menu"
           >
             <div className="flex flex-col items-end">
@@ -102,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({
               </p>
             </div>
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm"
+              className="w-8 h-8 flex items-center justify-center font-semibold text-sm"
               style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
             >
               {tenantName?.charAt(0).toUpperCase() || 'A'}

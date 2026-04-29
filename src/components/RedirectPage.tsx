@@ -215,7 +215,7 @@ export default function RedirectPage({
         style={{
           width: 56,
           height: 56,
-          borderRadius: 16,
+          borderRadius: 0,
           backgroundColor: 'var(--color-primary)',
           display: 'flex',
           alignItems: 'center',

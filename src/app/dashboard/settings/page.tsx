@@ -361,14 +361,14 @@ const SettingsPage: React.FC = () => {
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
                   style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-80"
+                  className="px-4 py-2 font-medium transition-colors text-sm hover:opacity-80"
                 >
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
                 <button
                   onClick={() => copyToClipboard(settings.apiKey || '')}
                   style={{ backgroundColor: 'var(--color-primary)', color: '#000' }}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm hover:opacity-90"
+                  className="px-4 py-2 font-medium transition-colors text-sm hover:opacity-90"
                 >
                   Copy
                 </button>
@@ -860,7 +860,7 @@ const SettingsPage: React.FC = () => {
               <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs mt-2">
                 How long to keep device fingerprints for deferred link matching (1-168 hours). Default: 72 hours.
               </p>
-              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 border">
                 <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>About fingerprints:</strong> Device fingerprints help match
                   deferred deep links by capturing device characteristics (IP, user agent,
@@ -893,7 +893,7 @@ const SettingsPage: React.FC = () => {
                 </span>
                 <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Recommended: 70</span>
               </div>
-              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 rounded-lg border">
+              <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 border">
                 <p style={{ color: 'var(--color-text)' }} className="text-sm">
                   <strong>Match threshold:</strong> Minimum confidence score required to
                   confirm a deferred link match. Lower values = more matches but less
@@ -909,7 +909,7 @@ const SettingsPage: React.FC = () => {
           <div className="space-y-6">
             <div>
               <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">Flutter SDK</h3>
-              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 overflow-x-auto">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create <code style={{ backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text)' }} className="px-1 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> and initialize in main.dart:</p>
                 <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`import 'package:smartlink/smartlink.dart';
@@ -937,7 +937,7 @@ void main() async {
 
             <div>
               <h3 style={{ color: 'var(--color-text)' }} className="text-lg font-semibold mb-4">API Usage</h3>
-              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 rounded-lg overflow-x-auto">
+              <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 overflow-x-auto">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create a deep link:</p>
                 <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
 {`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app'}/api/v1/links \\
@@ -953,7 +953,7 @@ void main() async {
               </div>
             </div>
 
-            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="p-4 border rounded-lg">
+            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="p-4 border">
               <p style={{ color: 'var(--color-text)' }} className="text-sm">
                 <strong>Full documentation:</strong>{' '}
                 <a href="/dashboard/docs" style={{ color: 'var(--color-primary)' }} className="hover:underline font-medium">
@@ -972,7 +972,7 @@ void main() async {
               These actions are irreversible. Please proceed with caution.
             </p>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Reset Analytics Data</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Delete all clicks, conversions, and analytics data.
@@ -980,13 +980,13 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('analytics')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Reset Analytics
               </button>
             </div>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete All Links</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete all deep links and associated data.
@@ -994,13 +994,13 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('links')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Delete Links
               </button>
             </div>
 
-            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4 rounded-lg">
+            <div style={{ borderColor: 'rgba(255, 61, 138, 0.3)', backgroundColor: 'rgba(255, 61, 138, 0.12)' }} className="border p-4">
               <h4 style={{ color: 'var(--color-danger)' }} className="font-semibold mb-2">Delete Tenant Account</h4>
               <p style={{ color: 'var(--color-danger)' }} className="text-sm mb-4 opacity-80">
                 Permanently delete this account and all associated data.
@@ -1008,7 +1008,7 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm('account')}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 text-sm font-medium hover:opacity-90"
               >
                 Delete Account
               </button>
@@ -1027,14 +1027,14 @@ void main() async {
               backgroundColor: saving ? 'var(--color-text-tertiary)' : 'var(--color-primary)',
               color: saving ? 'var(--color-text-tertiary)' : '#000'
             }}
-            className="px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="px-6 py-3 font-medium transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             onClick={() => { setLoading(true); fetchSettings(); }}
             style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-            className="px-6 py-3 rounded-lg font-medium transition-colors hover:opacity-80"
+            className="px-6 py-3 font-medium transition-colors hover:opacity-80"
           >
             Reset
           </button>
@@ -1053,7 +1053,7 @@ void main() async {
               <button
                 onClick={() => setShowDeleteConfirm(null)}
                 style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-80"
+                className="flex-1 px-4 py-2 font-medium hover:opacity-80"
               >
                 Cancel
               </button>
@@ -1066,7 +1066,7 @@ void main() async {
                   });
                 }}
                 style={{ backgroundColor: 'var(--color-danger)', color: '#fff' }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium hover:opacity-90"
+                className="flex-1 px-4 py-2 font-medium hover:opacity-90"
               >
                 Delete
               </button>

@@ -67,7 +67,7 @@ function Tooltip({ text }: { text: string }) {
     >
       <InfoIcon />
       {show && (
-        <span style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }} className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 rounded-lg shadow-lg leading-relaxed">
+        <span style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }} className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 shadow-lg leading-relaxed">
           {text}
           <span style={{ borderTopColor: 'var(--color-bg-secondary)' }} className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent" />
         </span>
@@ -80,7 +80,7 @@ function Tooltip({ text }: { text: string }) {
 function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div className="flex items-start gap-3 mb-5">
-      <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center">
+      <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
         {icon}
       </div>
       <div>
@@ -105,7 +105,7 @@ function WelcomeStep({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="w-14 h-14 flex items-center justify-center mx-auto mb-4">
           <RocketIcon />
         </div>
         <h2 style={{ color: 'var(--color-text)' }} className="text-2xl font-bold mb-1">Welcome to SmartLink</h2>
@@ -115,7 +115,7 @@ function WelcomeStep({
       </div>
 
       {/* Features overview */}
-      <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="rounded-xl p-4 space-y-3">
+      <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 space-y-3">
         {[
           ['Deferred Deep Links', 'Route users to the right content even after app install'],
           ['Device Fingerprinting', 'Smart matching between web clicks and app opens'],
@@ -160,13 +160,13 @@ function WelcomeStep({
             color: 'var(--color-text-secondary)',
             borderColor: 'var(--color-border)'
           }}
-          className="w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 border rounded-lg transition-colors hover:border-primary-500 hover:text-primary-500"
+          className="w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 border transition-colors hover:border-primary-500 hover:text-primary-500"
         >
           <KeyIcon />
           Connect with existing API key
         </button>
       ) : (
-        <div style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }} className="border p-4 rounded-xl space-y-3">
+        <div style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }} className="border p-4 space-y-3">
           <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs">
             If you've already registered an app, paste your API key to connect.
           </p>
@@ -354,13 +354,13 @@ function PlatformsStep({
       />
 
       {/* Android Section */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <div className="border border-slate-200 overflow-hidden">
         <button
           onClick={() => setExpandAndroid(!expandAndroid)}
           className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+            <div className="w-8 h-8 bg-green-100 text-green-600 flex items-center justify-center">
               <AndroidIcon />
             </div>
             <span className="font-semibold text-slate-800">Android</span>
@@ -403,13 +403,13 @@ function PlatformsStep({
       </div>
 
       {/* iOS Section */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <div className="border border-slate-200 overflow-hidden">
         <button
           onClick={() => setExpandIos(!expandIos)}
           className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center">
+            <div className="w-8 h-8 bg-slate-200 text-slate-700 flex items-center justify-center">
               <AppleIcon />
             </div>
             <span className="font-semibold text-slate-800">iOS</span>
@@ -486,7 +486,7 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="w-16 h-16 bg-success-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-success-100 flex items-center justify-center mx-auto mb-4">
           <CheckCircleIcon />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-1">You're All Set!</h2>
@@ -496,12 +496,12 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
       </div>
 
       {/* API Key Card */}
-      <div style={{ backgroundColor: 'rgba(74, 222, 128, 0.12)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="border rounded-xl p-5">
+      <div style={{ backgroundColor: 'rgba(74, 222, 128, 0.12)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="border p-5">
         <div className="flex items-center gap-2 mb-3">
           <KeyIcon />
           <p style={{ color: 'var(--color-text)' }} className="text-sm font-semibold">Your API Key</p>
         </div>
-        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="flex items-center gap-3 p-3 rounded-lg border">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'rgba(74, 222, 128, 0.3)' }} className="flex items-center gap-3 p-3 border">
           <code style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }} className="text-xs flex-1 break-all select-all">
             {apiKey}
           </code>
@@ -511,7 +511,7 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
               backgroundColor: copied ? 'rgba(74, 222, 128, 0.12)' : 'var(--color-primary-light)',
               color: copied ? '#4ADE80' : 'var(--color-primary)'
             }}
-            className="text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs font-medium whitespace-nowrap px-3 py-1.5 transition-colors"
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>
@@ -523,7 +523,7 @@ function SuccessStep({ apiKey, appName }: { apiKey: string; appName: string }) {
       </div>
 
       {/* Next Steps */}
-      <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="border rounded-xl p-5">
+      <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="border p-5">
         <h3 style={{ color: 'var(--color-text)' }} className="font-semibold mb-3 text-sm">What's Next</h3>
         <div className="space-y-3">
           {[
@@ -709,9 +709,9 @@ export default function SetupPage() {
         )}
 
         {/* Card */}
-        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="rounded-2xl shadow-lg border p-6 sm:p-8">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="shadow-lg border p-6 sm:p-8">
           {error && (
-            <div style={{ backgroundColor: 'rgba(255, 61, 138, 0.12)', borderColor: 'rgba(255, 61, 138, 0.3)', color: 'var(--color-danger)' }} className="mb-5 border px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+            <div style={{ backgroundColor: 'rgba(255, 61, 138, 0.12)', borderColor: 'rgba(255, 61, 138, 0.3)', color: 'var(--color-danger)' }} className="mb-5 border px-4 py-3 text-sm flex items-start gap-2">
               <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-danger-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>

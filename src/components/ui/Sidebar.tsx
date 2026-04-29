@@ -150,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200"
+            className="hidden lg:flex items-center justify-center w-7 h-7 transition-all duration-200"
             style={{ color: 'var(--color-text-tertiary)' }}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -292,7 +292,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
               key={item.href}
               href={item.href}
               onClick={() => onClose?.()}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isCollapsed ? 'justify-center' : ''}`}
+              className={`flex items-center gap-3 px-3 py-2.5 transition-all duration-200 ${isCollapsed ? 'justify-center' : ''}`}
               style={
                 isActive(item.href)
                   ? {
@@ -327,7 +327,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
         {/* Footer */}
         {!isCollapsed && (
           <div className="flex-shrink-0 p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+            <div className="p-3" style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
               <h4 className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 // docs
               </h4>

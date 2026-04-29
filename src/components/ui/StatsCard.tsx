@@ -91,7 +91,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
           </p>
           {isLoading ? (
             <div
-              className="h-8 rounded animate-pulse w-24"
+              className="h-8 animate-pulse w-24"
               style={{ backgroundColor: 'var(--color-bg-hover)' }}
             />
           ) : (
@@ -116,7 +116,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
         </div>
         {icon && (
           <div
-            className="p-3 rounded-lg"
+            className="p-3"
             style={{
               backgroundColor: 'var(--color-bg-secondary)',
               ...getIconColorStyle(),
