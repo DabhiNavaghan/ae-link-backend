@@ -49,3 +49,9 @@ yarn-error.log*
 # OS
 Thumbs.db
 .DS_Store
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+
+# Claude Code local settings
+.claude/settings.local.json
