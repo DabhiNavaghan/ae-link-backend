@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { smartLinkApi } from '@/lib/api';
@@ -45,57 +45,68 @@ export default function CampaignsPage() {
     }
   }, [isContextReady, can, router]);
 
-  const fetchCampaigns = useCallback(async () => {
+  // Track previous selectedAppId so we can reset page when the app filter changes
+  const prevAppIdRef = useRef(selectedAppId);
+
+  useEffect(() => {
     if (!isContextReady || !can('manage:campaigns')) return;
-    try {
-      setLoading(true);
-      const params: Record<string, any> = {
-        limit: itemsPerPage,
-        offset: (page - 1) * itemsPerPage,
-      };
-      if (selectedAppId) params.appId = selectedAppId;
-      const data = await smartLinkApi.listCampaigns(params);
 
-      const campaignList = data.campaigns as unknown as Campaign[];
-      setCampaigns(campaignList);
-      const total = data.total || 0;
-      setTotalPages(Math.ceil(total / itemsPerPage));
-
-      // Fetch analytics for all campaigns in parallel (background)
-      setAnalyticsLoading(true);
-      Promise.allSettled(
-        campaignList.map((c) => smartLinkApi.getCampaignAnalytics(c._id))
-      ).then((results) => {
-        setCampaigns((prev) =>
-          prev.map((c, i) => {
-            const result = results[i];
-            if (result.status === 'fulfilled') {
-              return {
-                ...c,
-                linkCount: result.value.totalLinks ?? c.linkCount,
-                totalClicks: result.value.totalClicks ?? 0,
-                totalConversions: result.value.totalConversions ?? 0,
-              };
-            }
-            return c;
-          })
-        );
-        setAnalyticsLoading(false);
-      });
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while loading campaigns');
-    } finally {
-      setLoading(false);
+    // When the app filter changes, reset to page 1 and re-run
+    if (prevAppIdRef.current !== selectedAppId) {
+      prevAppIdRef.current = selectedAppId;
+      setPage(1);
+      return;
     }
-  }, [page, isContextReady, can, selectedAppId]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [selectedAppId]);
+    let cancelled = false;
 
-  useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns]);
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const params: Record<string, any> = {
+          limit: itemsPerPage,
+          offset: (page - 1) * itemsPerPage,
+        };
+        if (selectedAppId) params.appId = selectedAppId;
+
+        const data = await smartLinkApi.listCampaigns(params);
+        if (cancelled) return;
+
+        const campaignList = data.campaigns as unknown as Campaign[];
+        setCampaigns(campaignList);
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+
+        setAnalyticsLoading(true);
+        const analyticsResults = await Promise.allSettled(
+          campaignList.map((c) => smartLinkApi.getCampaignAnalytics(c._id))
+        );
+        if (cancelled) return;
+
+        setCampaigns(campaignList.map((c, i) => {
+          const r = analyticsResults[i];
+          if (r.status === 'fulfilled') {
+            return {
+              ...c,
+              linkCount: r.value.totalLinks ?? c.linkCount,
+              totalClicks: r.value.totalClicks ?? 0,
+              totalConversions: r.value.totalConversions ?? 0,
+            };
+          }
+          return c;
+        }));
+        setAnalyticsLoading(false);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || 'An error occurred while loading campaigns');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isContextReady, selectedAppId, page]);
 
   async function handleDelete(id: string) {
     setDeleting(true);
