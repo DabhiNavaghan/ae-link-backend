@@ -9,6 +9,7 @@ import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface LinkData {
   _id: string;
+  title?: string;
   shortCode: string;
   destinationUrl: string;
   linkType: string;
@@ -172,7 +173,12 @@ export default function LinkDetailPage() {
             </span>
           </div>
           <div style={{ padding: 20 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+            {link.title && (
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+                {link.title}
+              </div>
+            )}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: link.title ? 14 : 28, fontWeight: link.title ? 400 : 700, color: 'var(--color-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
               {link.shortCode}
             </div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16 }}>

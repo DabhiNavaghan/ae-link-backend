@@ -199,6 +199,17 @@ body {
   .border-theme { border-color: var(--color-border); }
 }
 
+/* ─── Design-system-aware divide & hover helpers ─── */
+.divide-theme > * + * {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--color-border);
+}
+
+.hover-bg-secondary:hover {
+  background-color: var(--color-bg-secondary);
+}
+
 /* ─── Utility classes ─── */
 @layer utilities {
   .animate-in {

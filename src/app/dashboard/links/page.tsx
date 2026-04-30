@@ -10,6 +10,7 @@ import { useDashboard } from '@/lib/context/DashboardContext';
 
 interface LinkItem {
   _id: string;
+  title?: string;
   shortCode: string;
   destinationUrl: string;
   linkType: string;
@@ -337,12 +338,17 @@ export default function LinksPage() {
                     <td className="px-6 py-4">
                       <Link
                         href={`/dashboard/links/${link._id}`}
-                        className="font-mono font-semibold"
+                        className="font-semibold"
                         style={{ color: 'var(--color-primary)' }}
                       >
-                        {link.shortCode}
+                        {link.title || link.shortCode}
                       </Link>
-                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                      {link.title && (
+                        <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
+                          {link.shortCode}
+                        </p>
+                      )}
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
                         {(typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app')}/{link.shortCode}
                       </p>
                     </td>
@@ -386,30 +392,44 @@ export default function LinksPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Copy link */}
                         <button
                           onClick={() => handleCopyLink(link.shortCode)}
-                          className="px-3 py-1 text-sm rounded transition"
-                          style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-hover)' }}
+                          className="p-1.5 transition-colors hover-bg-secondary"
+                          style={{ color: copiedCode === link.shortCode ? 'var(--color-success)' : 'var(--color-text-secondary)' }}
                           title="Copy link"
                         >
-                          {copiedCode === link.shortCode ? '✓' : '📋'}
+                          {copiedCode === link.shortCode ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                            </svg>
+                          )}
                         </button>
+                        {/* Edit link */}
                         <Link
                           href={`/dashboard/links/${link._id}/edit`}
-                          className="px-3 py-1 text-sm rounded transition"
-                          style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-hover)' }}
+                          className="p-1.5 transition-colors hover-bg-secondary inline-flex"
+                          style={{ color: 'var(--color-text-secondary)' }}
+                          title="Edit link"
                         >
-                          Edit
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                          </svg>
                         </Link>
+                        {/* Delete link */}
                         <button
                           onClick={() => setDeleteConfirm(link._id)}
-                          className="px-2 py-1 text-sm rounded transition"
-                          style={{ color: 'var(--color-accent)' }}
+                          className="p-1.5 transition-colors hover-bg-secondary"
+                          style={{ color: 'var(--color-danger)' }}
                           title="Delete link"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>

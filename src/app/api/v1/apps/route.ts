@@ -6,9 +6,18 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import AppModel from '@/lib/models/App';
+import TenantModel from '@/lib/models/Tenant';
 import { CreateAppDto } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+
+function toSlug(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
 
 const logger = Logger.child({ route: 'apps-list' });
 
@@ -51,10 +60,30 @@ export async function GET(request: NextRequest) {
 
     const filter: Record<string, any> = { tenantId: auth.tenantId };
     if (activeOnly) {
-      filter.isActive = true;
+      filter.isActive = { $ne: false };
     }
 
-    const apps = await AppModel.find(filter).sort({ createdAt: -1 });
+    const apps = await AppModel.find(filter).sort({ createdAt: -1 }).lean();
+
+    // Auto-generate slugs for apps that don't have one yet
+    const appsWithoutSlug = apps.filter((a) => !a.slug);
+    if (appsWithoutSlug.length > 0) {
+      const tenant = await TenantModel.findById(auth.tenantId).select('name').lean();
+      const tenantSlug = toSlug((tenant as any)?.name || 'admin');
+      const existingSlugs = new Set(apps.filter((a) => a.slug).map((a) => a.slug as string));
+
+      await Promise.all(appsWithoutSlug.map(async (app) => {
+        const base = `${tenantSlug}-${toSlug(app.name)}`;
+        let slug = base;
+        let counter = 2;
+        while (existingSlugs.has(slug)) {
+          slug = `${base}-${counter++}`;
+        }
+        existingSlugs.add(slug);
+        await AppModel.findByIdAndUpdate(app._id, { $set: { slug } });
+        app.slug = slug;
+      }));
+    }
 
     const response = NextResponse.json(
       successResponse({ apps, total: apps.length }),

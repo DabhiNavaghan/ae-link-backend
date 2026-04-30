@@ -179,27 +179,29 @@ type RowValue = string | number | boolean | null | undefined;
 
 function ValueBadge({ value }: { value: RowValue }) {
   if (value === null || value === undefined) {
-    return <span className="text-slate-400 italic text-xs">—</span>;
+    return <span style={{ color: 'var(--color-text-tertiary)' }} className="italic text-xs">—</span>;
   }
   if (value === '') {
-    return <span className="text-slate-400 italic text-xs">empty</span>;
+    return <span style={{ color: 'var(--color-text-tertiary)' }} className="italic text-xs">empty</span>;
   }
   if (typeof value === 'boolean') {
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-          value ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-600'
-        }`}
+        style={value
+          ? { backgroundColor: 'var(--color-success-light)', color: 'var(--color-success)' }
+          : { backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)' }
+        }
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
       >
         {value ? '✓' : '✗'} {value ? 'Yes' : 'No'}
       </span>
     );
   }
-  return <span className="text-slate-800 text-xs font-mono break-all">{String(value)}</span>;
+  return <span style={{ color: 'var(--color-text)' }} className="text-xs font-mono break-all">{String(value)}</span>;
 }
 
 function SkeletonRow() {
-  return <div className="h-3.5 w-28 bg-slate-200 rounded animate-pulse" />;
+  return <div style={{ backgroundColor: 'var(--color-bg-hover)' }} className="h-3.5 w-28 rounded animate-pulse" />;
 }
 
 function InfoRow({
@@ -214,8 +216,8 @@ function InfoRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-2 hover:bg-slate-50 transition-colors group">
-      <span className="text-xs text-slate-500 font-medium w-40 flex-shrink-0 pt-0.5 leading-tight">
+    <div className="flex items-start gap-3 px-4 py-2 hover-bg-secondary transition-colors group">
+      <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs font-medium w-40 flex-shrink-0 pt-0.5 leading-tight">
         {label}
       </span>
       <div className="flex-1 min-w-0">
@@ -224,21 +226,22 @@ function InfoRow({
         ) : mono ? (
           <ValueBadge value={value} />
         ) : (
-          <span className="text-xs text-slate-700 break-words">{value as string}</span>
+          <span style={{ color: 'var(--color-text-secondary)' }} className="text-xs break-words">{value as string}</span>
         )}
       </div>
     </div>
   );
 }
 
-const SECTION_COLORS: Record<string, { header: string; dot: string }> = {
-  blue:   { header: 'from-primary-50 to-primary-100 border-primary-200', dot: 'bg-primary-400' },
-  teal:   { header: 'from-secondary-50 to-secondary-100 border-secondary-200', dot: 'bg-secondary-400' },
-  orange: { header: 'from-accent-50 to-accent-100 border-accent-200', dot: 'bg-accent-400' },
-  green:  { header: 'from-success-50 to-success-100 border-success-200', dot: 'bg-success-400' },
-  yellow: { header: 'from-warning-50 to-warning-100 border-warning-200', dot: 'bg-warning-400' },
-  red:    { header: 'from-danger-50 to-danger-100 border-danger-200', dot: 'bg-danger-400' },
-  slate:  { header: 'from-slate-50 to-slate-100 border-slate-200', dot: 'bg-slate-400' },
+// Maps color name → accent CSS variable for loading dots
+const SECTION_DOT: Record<string, string> = {
+  blue:   'var(--color-primary)',
+  teal:   'var(--color-secondary)',
+  orange: 'var(--color-warning)',
+  green:  'var(--color-success)',
+  yellow: 'var(--color-warning)',
+  red:    'var(--color-danger)',
+  slate:  'var(--color-text-tertiary)',
 };
 
 function Section({
@@ -250,25 +253,25 @@ function Section({
 }: {
   title: string;
   icon: string;
-  color?: keyof typeof SECTION_COLORS;
+  color?: keyof typeof SECTION_DOT;
   loading?: boolean;
   children: React.ReactNode;
 }) {
-  const c = SECTION_COLORS[color] ?? SECTION_COLORS.blue;
+  const dotColor = SECTION_DOT[color] ?? SECTION_DOT.blue;
   return (
-    <div className="overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`px-4 py-2.5 bg-gradient-to-r ${c.header} border-b flex items-center gap-2`}>
+    <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
+      <div style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }} className="px-4 py-2.5 border-b flex items-center gap-2">
         <span className="text-base leading-none">{icon}</span>
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{title}</h3>
+        <h3 style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-bold uppercase tracking-wider">{title}</h3>
         {loading && (
           <div className="ml-auto flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${c.dot} animate-bounce`} style={{ animationDelay: '0ms' }} />
-            <div className={`w-1.5 h-1.5 rounded-full ${c.dot} animate-bounce`} style={{ animationDelay: '150ms' }} />
-            <div className={`w-1.5 h-1.5 rounded-full ${c.dot} animate-bounce`} style={{ animationDelay: '300ms' }} />
+            <div style={{ backgroundColor: dotColor, animationDelay: '0ms' }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
+            <div style={{ backgroundColor: dotColor, animationDelay: '150ms' }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
+            <div style={{ backgroundColor: dotColor, animationDelay: '300ms' }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
           </div>
         )}
       </div>
-      <div className="divide-y divide-slate-100">{children}</div>
+      <div className="divide-theme">{children}</div>
     </div>
   );
 }
@@ -551,17 +554,17 @@ export default function GetDevicePage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div style={{ backgroundColor: 'var(--color-bg)' }} className="min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm">
+      <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="sticky top-0 z-10 border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center text-white text-sm font-bold bg-primary-600" style={{ borderRadius: '50%' }}>
+            <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)', borderRadius: '50%' }} className="w-8 h-8 flex items-center justify-center text-sm font-bold">
               🔍
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900">Device Inspector</h1>
-              <p className="text-xs text-slate-500">
+              <h1 style={{ color: 'var(--color-text)' }} className="text-sm font-bold">Device Inspector</h1>
+              <p style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
                 {apiLoading ? 'Collecting device info…' : `Collected ${new Date().toLocaleTimeString()}`}
               </p>
             </div>
@@ -569,17 +572,18 @@ export default function GetDevicePage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors"
+              style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-full hover-bg-secondary transition-colors"
             >
               <span>↺</span> Refresh
             </button>
             <button
               onClick={handleCopyAll}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                copied
-                  ? 'bg-success-100 text-success-700 border border-success-200'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
+              style={copied
+                ? { backgroundColor: 'var(--color-success-light)', color: 'var(--color-success)', borderColor: 'rgba(74, 222, 128, 0.3)' }
+                : { backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)', borderColor: 'transparent' }
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors border"
             >
               {copied ? '✓ Copied!' : '⧉ Copy All JSON'}
             </button>
@@ -589,53 +593,53 @@ export default function GetDevicePage() {
 
       {/* IP + UA quick summary bar */}
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
-        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 flex flex-wrap gap-x-6 gap-y-2 shadow-sm">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="border rounded-2xl px-5 py-3 flex flex-wrap gap-x-6 gap-y-2 shadow-sm">
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Public IP</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>Public IP</span>
             {clientGeoLoading ? <SkeletonRow /> : (
-              <span className="font-mono font-semibold text-slate-800">
+              <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
                 {clientGeo?.ip ?? apiData?.server.ip ?? '—'}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Location</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>Location</span>
             {clientGeoLoading ? <SkeletonRow /> : (
-              <span className="font-mono font-semibold text-slate-800">
+              <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
                 {(clientGeo ?? apiData?.geo)?.city ?? '—'}
                 {(clientGeo ?? apiData?.geo)?.country_code ? `, ${(clientGeo ?? apiData?.geo)?.country_code}` : ''}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Browser</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>Browser</span>
             {apiLoading ? <SkeletonRow /> : (
-              <span className="font-mono font-semibold text-slate-800">
+              <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
                 {[apiData?.ua.browser.name, apiData?.ua.browser.version].filter(Boolean).join(' ') || '—'}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">OS</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>OS</span>
             {apiLoading ? <SkeletonRow /> : (
-              <span className="font-mono font-semibold text-slate-800">
+              <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
                 {[apiData?.ua.os.name, apiData?.ua.os.version].filter(Boolean).join(' ') || '—'}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Device</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>Device</span>
             {apiLoading ? <SkeletonRow /> : (
-              <span className="font-mono font-semibold text-slate-800 capitalize">
+              <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold capitalize">
                 {apiData?.ua.device.type ?? '—'}
                 {apiData?.ua.device.model ? ` · ${apiData.ua.device.model}` : ''}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Online</span>
-            <span className={`w-2 h-2 rounded-full ${browser?.isOnline ? 'bg-success-500' : 'bg-danger-500'}`} />
-            <span className="font-mono font-semibold text-slate-800">
+            <span style={{ color: 'var(--color-text-tertiary)' }}>Online</span>
+            <span style={{ backgroundColor: browser?.isOnline ? 'var(--color-success)' : 'var(--color-danger)' }} className="w-2 h-2 rounded-full" />
+            <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
               {browser ? (browser.isOnline ? 'Online' : 'Offline') : '—'}
             </span>
           </div>
@@ -737,7 +741,7 @@ export default function GetDevicePage() {
         {/* 🔋 Battery */}
         <Section title="Battery" icon="🔋" color="green" loading={batteryLoading}>
           {!batterySupported && !batteryLoading ? (
-            <div className="px-4 py-3 text-xs text-slate-500 italic">Battery API not supported in this browser.</div>
+            <div style={{ color: 'var(--color-text-tertiary)' }} className="px-4 py-3 text-xs italic">Battery API not supported in this browser.</div>
           ) : (
             <>
               <InfoRow label="Battery Level"
@@ -789,7 +793,7 @@ export default function GetDevicePage() {
             <InfoRow key={i} label={`Camera ${i + 1}`} value={label} loading={false} />
           ))}
           {media === null && !mediaLoading && (
-            <div className="px-4 py-3 text-xs text-slate-500 italic">Media devices API not available.</div>
+            <div style={{ color: 'var(--color-text-tertiary)' }} className="px-4 py-3 text-xs italic">Media devices API not available.</div>
           )}
         </Section>
 
@@ -830,16 +834,16 @@ export default function GetDevicePage() {
 
       {/* Raw User Agent */}
       <div className="max-w-7xl mx-auto px-4 pb-8">
-        <div className="overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100 border-b flex items-center gap-2">
+        <div style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} className="overflow-hidden border shadow-sm">
+          <div style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }} className="px-4 py-2.5 border-b flex items-center gap-2">
             <span>🔤</span>
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Raw User Agent</h3>
+            <h3 style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-bold uppercase tracking-wider">Raw User Agent</h3>
           </div>
           <div className="px-4 py-3">
             {apiLoading ? (
-              <div className="h-4 w-full bg-slate-200 rounded animate-pulse" />
+              <div style={{ backgroundColor: 'var(--color-bg-hover)' }} className="h-4 w-full rounded animate-pulse" />
             ) : (
-              <p className="text-xs font-mono text-slate-700 break-all leading-relaxed">
+              <p style={{ color: 'var(--color-text-secondary)' }} className="text-xs font-mono break-all leading-relaxed">
                 {apiData?.ua.raw || '—'}
               </p>
             )}

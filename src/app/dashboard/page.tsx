@@ -107,7 +107,7 @@ function generateChartPaths(
 }
 
 // ─── Copy Store Link Button ──────────────────────────────────────
-function CopyStoreLinkButton({ url }: { url: string }) {
+function CopyStoreLinkButton({ url, slug }: { url: string; slug: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(url).then(() => {
@@ -118,7 +118,7 @@ function CopyStoreLinkButton({ url }: { url: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="btn-dashboard btn-dashboard-sm"
+      className="btn-dashboard"
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
       title={url}
     >
@@ -126,7 +126,7 @@ function CopyStoreLinkButton({ url }: { url: string }) {
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
         <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
       </svg>
-      {copied ? 'copied!' : 'copy store link'}
+      {copied ? 'copied!' : slug}
     </button>
   );
 }
@@ -140,6 +140,7 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
   const { selectedAppId, apps, isContextReady, can } = useDashboard();
@@ -328,9 +329,10 @@ export default function DashboardPage() {
             const currentApp = apps.find((a) => a.id === selectedAppId);
             if (!currentApp || (!currentApp.androidStoreUrl && !currentApp.iosStoreUrl)) return null;
             const storeKey = currentApp.slug || currentApp.id;
-            const storeUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/apps/${storeKey}/store`;
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const storeUrl = `${origin}/apps/${storeKey}/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=${storeKey}`;
             return (
-              <CopyStoreLinkButton url={storeUrl} />
+              <CopyStoreLinkButton url={storeUrl} slug={currentApp.slug || storeKey} />
             );
           })()}
           {can('manage:campaigns') && (
@@ -453,7 +455,7 @@ export default function DashboardPage() {
                     if (!isNaN(d.getTime())) {
                       localTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     }
-                  } catch {}
+                  } catch { }
                   return (
                     <div
                       key={i}
@@ -703,8 +705,8 @@ export default function DashboardPage() {
                             { label: '▸ edit', action: () => router.push(`/dashboard/campaigns/${campaign.id}`) },
                             { label: '▸ duplicate', action: () => router.push(`/dashboard/campaigns/create?duplicate=${campaign.id}`) },
                             { label: '▸ copy slug', action: () => { navigator.clipboard.writeText(campaign.name); } },
-                            { label: campaign.status === 'active' ? '▸ pause' : '▸ resume', action: () => {} },
-                            { label: '▸ archive', action: () => {}, danger: true },
+                            { label: campaign.status === 'active' ? '▸ pause' : '▸ resume', action: () => { } },
+                            { label: '▸ archive', action: () => { }, danger: true },
                           ].map((item) => (
                             <button
                               key={item.label}
@@ -779,7 +781,7 @@ export default function DashboardPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>
-                    {['slug', 'destination', 'campaign', 'clicks', 'cvr', ''].map((h) => (
+                    {['slug', 'campaign', 'clicks', 'cvr', ''].map((h) => (
                       <th
                         key={h}
                         style={{
@@ -803,6 +805,7 @@ export default function DashboardPage() {
                 <tbody>
                   {(overview?.topLinks || []).map((link, idx) => {
                     const cvr = link.clicks > 0 ? ((link.conversions / link.clicks) * 100).toFixed(2) : '0.00';
+                    const isCopied = copiedLinkId === link.linkId;
                     return (
                       <tr
                         key={idx}
@@ -812,11 +815,11 @@ export default function DashboardPage() {
                       >
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
                           <Link href={`/dashboard/links/${link.linkId}`} style={{ textDecoration: 'none' }}>
-                            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)', cursor: 'pointer' }}>{link.shortCode}</span>
+                            <span style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>{link.title || link.shortCode}</span>
                           </Link>
-                        </td>
-                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-secondary)', fontSize: 11, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {link.destinationUrl ? new URL(link.destinationUrl, 'https://x.com').pathname : '—'}
+                          {link.title && (
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{link.shortCode}</div>
+                          )}
                         </td>
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
                           {link.campaignName || '—'}
@@ -827,37 +830,37 @@ export default function DashboardPage() {
                         <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-text)' }}>
                           {cvr}%
                         </td>
-                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
+                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right' }}>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === `link-${link.linkId}` ? null : `link-${link.linkId}`); }}
-                            style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 8px', color: 'var(--color-text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                          >⋯</button>
-                          {openMenu === `link-${link.linkId}` && (
-                            <div ref={menuRef} style={{ position: 'absolute', right: 16, top: '100%', zIndex: 50, background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', minWidth: 160, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                              {[
-                                { label: '▸ view', action: () => router.push(`/dashboard/links/${link.linkId}`) },
-                                { label: '▸ edit', action: () => router.push(`/dashboard/links/${link.linkId}`) },
-                                { label: '▸ duplicate', action: () => router.push(`/dashboard/links/create?duplicate=${link.linkId}`) },
-                                { label: '▸ copy link', action: () => { navigator.clipboard.writeText(`${window.location.origin}/${link.shortCode}`); } },
-                                { label: '▸ copy slug', action: () => { navigator.clipboard.writeText(link.shortCode); } },
-                                { label: '▸ delete', action: () => {}, danger: true },
-                              ].map((item) => (
-                                <button
-                                  key={item.label}
-                                  onClick={() => { item.action(); setOpenMenu(null); }}
-                                  style={{
-                                    display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                                    fontFamily: 'var(--font-mono)', fontSize: 11, color: (item as any).danger ? 'var(--color-warning)' : 'var(--color-text)',
-                                    background: 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em',
-                                  }}
-                                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-hover)'; }}
-                                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                                >
-                                  {item.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/${link.shortCode}`);
+                              setCopiedLinkId(link.linkId);
+                              setTimeout(() => setCopiedLinkId(null), 2000);
+                            }}
+                            title="Copy link"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px 6px',
+                              color: isCopied ? 'var(--color-success)' : 'var(--color-text-tertiary)',
+                              transition: 'color 0.15s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                            }}
+                            onMouseEnter={(e) => { if (!isCopied) (e.currentTarget as HTMLElement).style.color = 'var(--color-text)'; }}
+                            onMouseLeave={(e) => { if (!isCopied) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-tertiary)'; }}
+                          >
+                            {isCopied ? (
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                              </svg>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     );

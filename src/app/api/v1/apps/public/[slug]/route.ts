@@ -25,9 +25,11 @@ export async function GET(
     const { slug } = params;
 
     // Accept either a human-readable slug or a MongoDB ObjectId
+    // Use $ne: false so apps where isActive was never explicitly set are still found
+    const activeFilter = { isActive: { $ne: false } };
     const query = Types.ObjectId.isValid(slug)
-      ? { $or: [{ slug }, { _id: new Types.ObjectId(slug) }], isActive: true }
-      : { slug, isActive: true };
+      ? { $or: [{ slug }, { _id: new Types.ObjectId(slug) }], ...activeFilter }
+      : { slug, ...activeFilter };
 
     const app = await AppModel.findOne(query).select('name slug android ios').lean();
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 interface AppInfo {
   name: string;
@@ -17,9 +17,60 @@ function detectOS(): 'android' | 'ios' | 'other' {
   return 'other';
 }
 
+/**
+ * Append UTM + ct/pt/mt params to a store URL.
+ * Play Store: encode utm_* into `referrer` param.
+ * App Store:  append utm_* + ct/pt/mt directly.
+ */
+function appendStoreParams(
+  baseUrl: string,
+  qs: URLSearchParams,
+  isIos: boolean,
+): string {
+  const utmSource   = qs.get('utm_source');
+  const utmMedium   = qs.get('utm_medium');
+  const utmCampaign = qs.get('utm_campaign');
+  const utmTerm     = qs.get('utm_term');
+  const utmContent  = qs.get('utm_content');
+  const ct          = qs.get('ct');
+  const pt          = qs.get('pt');
+  const mt          = qs.get('mt');
+
+  const hasUtm   = utmSource || utmMedium || utmCampaign || utmTerm || utmContent;
+  const hasStore = ct || pt;
+  if (!hasUtm && !hasStore) return baseUrl;
+
+  try {
+    const url = new URL(baseUrl);
+    if (isIos) {
+      if (utmSource)   url.searchParams.set('utm_source',   utmSource);
+      if (utmMedium)   url.searchParams.set('utm_medium',   utmMedium);
+      if (utmCampaign) url.searchParams.set('utm_campaign', utmCampaign);
+      if (utmTerm)     url.searchParams.set('utm_term',     utmTerm);
+      if (utmContent)  url.searchParams.set('utm_content',  utmContent);
+      if (ct)          url.searchParams.set('ct', ct);
+      if (pt)          url.searchParams.set('pt', pt);
+      url.searchParams.set('mt', mt || '8');
+    } else {
+      const ref = new URLSearchParams();
+      if (utmSource)   ref.set('utm_source',   utmSource);
+      if (utmMedium)   ref.set('utm_medium',   utmMedium);
+      if (utmCampaign) ref.set('utm_campaign', utmCampaign);
+      if (utmTerm)     ref.set('utm_term',     utmTerm);
+      if (utmContent)  ref.set('utm_content',  utmContent);
+      const refStr = ref.toString();
+      if (refStr) url.searchParams.set('referrer', refStr);
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
 export default function StoreRedirectPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const [app, setApp] = useState<AppInfo | null>(null);
+  const { slug }    = useParams<{ slug: string }>();
+  const searchParams = useSearchParams();
+  const [app, setApp]     = useState<AppInfo | null>(null);
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'choose' | 'error'>('loading');
 
   useEffect(() => {
@@ -37,23 +88,33 @@ export default function StoreRedirectPage() {
         setApp(info);
 
         const os = detectOS();
-        if (os === 'android' && info.androidStoreUrl) {
+        const isIos = os === 'ios';
+
+        const androidUrl = info.androidStoreUrl
+          ? appendStoreParams(info.androidStoreUrl, searchParams, false)
+          : null;
+        const iosUrl = info.iosStoreUrl
+          ? appendStoreParams(info.iosStoreUrl, searchParams, true)
+          : null;
+
+        if (os === 'android' && androidUrl) {
           setStatus('redirecting');
-          window.location.href = info.androidStoreUrl;
-        } else if (os === 'ios' && info.iosStoreUrl) {
+          window.location.href = androidUrl;
+        } else if (os === 'ios' && iosUrl) {
           setStatus('redirecting');
-          window.location.href = info.iosStoreUrl;
-        } else if (info.androidStoreUrl && !info.iosStoreUrl) {
+          window.location.href = iosUrl;
+        } else if (androidUrl && !iosUrl) {
           setStatus('redirecting');
-          window.location.href = info.androidStoreUrl;
-        } else if (info.iosStoreUrl && !info.androidStoreUrl) {
+          window.location.href = androidUrl;
+        } else if (iosUrl && !androidUrl) {
           setStatus('redirecting');
-          window.location.href = info.iosStoreUrl;
+          window.location.href = iosUrl;
         } else {
           setStatus('choose');
         }
       })
       .catch(() => setStatus('error'));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // ─── Shared shell ────────────────────────────────────────────────
@@ -100,12 +161,18 @@ export default function StoreRedirectPage() {
           redirecting to {app?.name}...
         </p>
         {app?.androidStoreUrl && (
-          <a href={app.androidStoreUrl} style={{ color: '#22c55e', fontSize: 12 }}>
+          <a
+            href={appendStoreParams(app.androidStoreUrl, searchParams, false)}
+            style={{ color: '#22c55e', fontSize: 12 }}
+          >
             tap here if not redirected (Play Store)
           </a>
         )}
         {app?.iosStoreUrl && (
-          <a href={app.iosStoreUrl} style={{ color: '#a3a3a3', fontSize: 12 }}>
+          <a
+            href={appendStoreParams(app.iosStoreUrl, searchParams, true)}
+            style={{ color: '#a3a3a3', fontSize: 12 }}
+          >
             tap here if not redirected (App Store)
           </a>
         )}
@@ -125,7 +192,7 @@ export default function StoreRedirectPage() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
         {app?.androidStoreUrl && (
           <a
-            href={app.androidStoreUrl}
+            href={appendStoreParams(app.androidStoreUrl, searchParams, false)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -152,7 +219,7 @@ export default function StoreRedirectPage() {
         )}
         {app?.iosStoreUrl && (
           <a
-            href={app.iosStoreUrl}
+            href={appendStoreParams(app.iosStoreUrl, searchParams, true)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -111,14 +111,13 @@ export async function POST(request: NextRequest) {
     const body: CreateLinkDto = await request.json();
 
     // Validate required fields
-    if (!body.destinationUrl || !body.linkType) {
+    if (!body.title || !body.destinationUrl || !body.linkType) {
+      const fieldErrors: Record<string, string> = {};
+      if (!body.title) fieldErrors.title = 'Required';
+      if (!body.destinationUrl) fieldErrors.destinationUrl = 'Required';
+      if (!body.linkType) fieldErrors.linkType = 'Required';
       const errorRes = new NextResponse(
-        JSON.stringify(
-          Errors.VALIDATION_ERROR({
-            destinationUrl: 'Required',
-            linkType: 'Required',
-          })
-        ),
+        JSON.stringify(Errors.VALIDATION_ERROR(fieldErrors)),
         { status: 400 }
       );
       return applyCors(request, errorRes);

@@ -141,6 +141,7 @@ export async function PUT(
 
     const updateData: Record<string, any> = {};
     if (body.name !== undefined) updateData.name = body.name;
+    if (body.slug !== undefined) updateData.slug = body.slug;
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
     if (body.android !== undefined) {
       // Merge with existing android config

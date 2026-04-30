@@ -87,6 +87,7 @@ export interface CreateAppDto {
 
 export interface UpdateAppDto {
   name?: string;
+  slug?: string;
   android?: Partial<IAndroidConfig>;
   ios?: Partial<IIosConfig>;
   isActive?: boolean;
@@ -125,6 +126,9 @@ export interface ILinkParams {
   utmCampaign?: string;
   utmTerm?: string;
   utmContent?: string;
+  ct?: string;
+  pt?: string;
+  mt?: string;
   userEmail?: string;
   userId?: string;
   couponCode?: string;
@@ -150,6 +154,7 @@ export interface ILink extends Document {
   tenantId: Types.ObjectId;
   campaignId?: Types.ObjectId;
   appId?: Types.ObjectId;
+  title?: string;
   shortCode: string;
   destinationUrl: string;
   linkType: LinkType;
@@ -322,6 +327,7 @@ export interface IConversion extends Document {
 export interface CreateLinkDto {
   campaignId?: string;
   appId?: string;
+  title: string;
   destinationUrl: string;
   linkType: LinkType;
   params?: ILinkParams;
@@ -331,6 +337,7 @@ export interface CreateLinkDto {
 }
 
 export interface UpdateLinkDto {
+  title?: string;
   destinationUrl?: string;
   params?: ILinkParams;
   platformOverrides?: IPlatformOverrides;
@@ -441,6 +448,7 @@ export interface DashboardOverview {
   deferredLinksMatched: number;
   topLinks: Array<{
     linkId: string;
+    title?: string;
     shortCode: string;
     destinationUrl: string;
     campaignName?: string;

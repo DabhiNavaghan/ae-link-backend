@@ -21,6 +21,7 @@ interface AppOption {
 }
 
 interface FormData {
+  title: string;
   appId: string;
   campaignId: string;
   destinationUrl: string;
@@ -32,6 +33,9 @@ interface FormData {
   utmCampaign: string;
   utmTerm: string;
   utmContent: string;
+  ct: string;
+  pt: string;
+  mt: string;
   userEmail: string;
   userId: string;
   couponCode: string;
@@ -93,6 +97,7 @@ export default function EditLinkPage() {
   });
 
   const [formData, setFormData] = useState<FormData>({
+    title: '',
     appId: '',
     campaignId: '',
     destinationUrl: '',
@@ -104,6 +109,9 @@ export default function EditLinkPage() {
     utmCampaign: '',
     utmTerm: '',
     utmContent: '',
+    ct: '',
+    pt: '',
+    mt: '',
     userEmail: '',
     userId: '',
     couponCode: '',
@@ -140,6 +148,7 @@ export default function EditLinkPage() {
       const po = l.platformOverrides || {};
 
       setFormData({
+        title: l.title || '',
         appId: l.appId || '',
         campaignId: l.campaignId || '',
         destinationUrl: l.destinationUrl || '',
@@ -151,6 +160,9 @@ export default function EditLinkPage() {
         utmCampaign: params.utmCampaign || '',
         utmTerm: params.utmTerm || '',
         utmContent: params.utmContent || '',
+        ct: params.ct || '',
+        pt: params.pt || '',
+        mt: params.mt || '',
         userEmail: params.userEmail || '',
         userId: params.userId || '',
         couponCode: params.couponCode || '',
@@ -272,6 +284,7 @@ export default function EditLinkPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.title.trim()) { setError('Link name is required'); return; }
     if (!formData.campaignId) { setError('Campaign is required'); return; }
     if (!formData.appId) { setError('App is required'); return; }
     if (!formData.destinationUrl.trim()) { setError('Destination URL is required'); return; }
@@ -279,6 +292,7 @@ export default function EditLinkPage() {
     try {
       setLoading(true); setError(null);
       const payload: any = {
+        title: formData.title,
         destinationUrl: formData.destinationUrl,
         linkType: formData.linkType,
         params: {
@@ -289,6 +303,9 @@ export default function EditLinkPage() {
           ...(formData.utmCampaign && { utmCampaign: formData.utmCampaign }),
           ...(formData.utmTerm && { utmTerm: formData.utmTerm }),
           ...(formData.utmContent && { utmContent: formData.utmContent }),
+          ...(formData.ct && { ct: formData.ct }),
+          ...(formData.pt && { pt: formData.pt }),
+          ...(formData.mt && { mt: formData.mt }),
           ...(formData.userEmail && { userEmail: formData.userEmail }),
           ...(formData.userId && { userId: formData.userId }),
           ...(formData.couponCode && { couponCode: formData.couponCode }),
@@ -374,6 +391,18 @@ export default function EditLinkPage() {
               {sectionHeader('01', 'basic info')}
               <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
+                  <label style={labelStyle}>link name *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g. Summer Sale - Email Campaign"
+                    style={inputStyle}
+                    required
+                  />
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 4 }}>a human-readable name to identify this link</div>
+                </div>
+                <div>
                   <label style={labelStyle}>campaign *</label>
                   <select value={formData.campaignId} onChange={(e) => handleCampaignChange(e.target.value)} style={inputStyle} required>
                     <option value="">Select a campaign</option>
@@ -415,7 +444,7 @@ export default function EditLinkPage() {
 
             {/* UTM */}
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
-              {collapsibleHeader('utm parameters', 'utm')}
+              {collapsibleHeader('utm + store tracking', 'utm')}
               {expandedSections.utm && (
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {(['utmSource', 'utmMedium', 'utmCampaign', 'utmTerm', 'utmContent'] as const).map((field) => (
@@ -424,6 +453,23 @@ export default function EditLinkPage() {
                       <input type="text" value={formData[field]} onChange={(e) => setFormData((prev) => ({ ...prev, [field]: e.target.value }))} placeholder={field.replace('utm', '')} style={inputStyle} />
                     </div>
                   ))}
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 4 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>app store (ct / pt / mt)</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={labelStyle}>ct — campaign token</label>
+                        <input type="text" value={formData.ct} onChange={(e) => setFormData((prev) => ({ ...prev, ct: e.target.value }))} placeholder="summer_sale" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>pt — provider token</label>
+                        <input type="text" value={formData.pt} onChange={(e) => setFormData((prev) => ({ ...prev, pt: e.target.value }))} placeholder="123456" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>mt — media type</label>
+                        <input type="text" value={formData.mt} onChange={(e) => setFormData((prev) => ({ ...prev, mt: e.target.value }))} placeholder="8" style={inputStyle} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

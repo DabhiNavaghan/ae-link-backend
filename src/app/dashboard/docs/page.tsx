@@ -40,7 +40,7 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
         title="Copy to clipboard"
       >
         {copied ? (
-          <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" style={{ color: 'var(--color-success)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
           </svg>
         ) : (
@@ -63,10 +63,10 @@ function DocSection({
 }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">
+      <h2 className="text-xl font-bold mb-4 pb-2 border-b border-theme">
         {title}
       </h2>
-      <div className="space-y-4 text-sm text-slate-700 leading-relaxed">
+      <div className="space-y-4 text-sm text-body leading-relaxed">
         {children}
       </div>
     </section>
@@ -80,22 +80,22 @@ function ReferenceTable({
   rows: { field: string; where: string; example: string }[];
 }) {
   return (
-    <div className="overflow-x-auto border border-slate-200">
+    <div style={{ borderColor: 'var(--color-border)' }} className="overflow-x-auto border">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50">
-            <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Field</th>
-            <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Where to Find</th>
-            <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Example</th>
+          <tr className="bg-secondary">
+            <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Field</th>
+            <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Where to Find</th>
+            <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Example</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={row.field} className={i % 2 ? 'bg-slate-50' : 'bg-white'}>
-              <td className="px-4 py-2.5 font-medium text-slate-800 border-b border-slate-100">{row.field}</td>
-              <td className="px-4 py-2.5 text-slate-600 border-b border-slate-100">{row.where}</td>
-              <td className="px-4 py-2.5 border-b border-slate-100">
-                <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{row.example}</code>
+            <tr key={row.field} className={i % 2 ? 'bg-secondary' : 'bg-card'}>
+              <td className="px-4 py-2.5 font-medium text-heading border-b border-theme">{row.field}</td>
+              <td className="px-4 py-2.5 text-body border-b border-theme">{row.where}</td>
+              <td className="px-4 py-2.5 border-b border-theme">
+                <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="text-xs px-1.5 py-0.5 rounded">{row.example}</code>
               </td>
             </tr>
           ))}
@@ -185,9 +185,9 @@ export default function DocsPage() {
               (routing users to specific content even after a fresh install), device fingerprinting
               for attribution, and real-time analytics.
             </p>
-            <div className="bg-primary-50 border border-primary-200 p-4">
-              <p className="font-semibold text-primary-800 mb-2">How it works</p>
-              <p className="text-primary-700">
+            <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'rgba(201, 255, 61, 0.3)' }} className="border p-4">
+              <p style={{ color: 'var(--color-primary)' }} className="font-semibold mb-2">How it works</p>
+              <p style={{ color: 'var(--color-primary)' }}>
                 When a user clicks a SmartLink deep link on the web, the system captures a device
                 fingerprint (IP, browser, screen, etc.). If the app is already installed, the user
                 is routed directly. If not, they're sent to the app store. After installing and
@@ -202,41 +202,41 @@ export default function DocsPage() {
             <p>Follow these steps to get SmartLink running with your app:</p>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-slate-50">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">1</span>
+              <div className="flex items-start gap-3 p-4 bg-secondary">
+                <span style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center">1</span>
                 <div>
-                  <p className="font-medium text-slate-800">Register your app</p>
-                  <p className="text-slate-600 mt-0.5">
-                    Go to <a href="/dashboard/setup" className="text-primary-600 hover:underline">/dashboard/setup</a> and
+                  <p className="font-medium text-heading">Register your app</p>
+                  <p className="text-body mt-0.5">
+                    Go to <a href="/dashboard/setup" style={{ color: 'var(--color-primary)' }} className="hover:underline">/dashboard/setup</a> and
                     create a new app. You'll get an API key upon completion.
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">2</span>
+              <div className="flex items-start gap-3 p-4 bg-secondary">
+                <span style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center">2</span>
                 <div>
-                  <p className="font-medium text-slate-800">Configure platforms</p>
-                  <p className="text-slate-600 mt-0.5">
+                  <p className="font-medium text-heading">Configure platforms</p>
+                  <p className="text-body mt-0.5">
                     Add your Android package name + SHA256, and iOS Bundle ID + Team ID in the
                     setup wizard or under Settings.
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">3</span>
+              <div className="flex items-start gap-3 p-4 bg-secondary">
+                <span style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center">3</span>
                 <div>
-                  <p className="font-medium text-slate-800">Integrate the Flutter SDK</p>
-                  <p className="text-slate-600 mt-0.5">
-                    Add <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs">smartlink</code> to
+                  <p className="font-medium text-heading">Integrate the Flutter SDK</p>
+                  <p className="text-body mt-0.5">
+                    Add <code style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }} className="px-1.5 py-0.5 rounded border text-xs">smartlink</code> to
                     your Flutter app and initialize with your API key.
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-slate-50">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">4</span>
+              <div className="flex items-start gap-3 p-4 bg-secondary">
+                <span style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center">4</span>
                 <div>
-                  <p className="font-medium text-slate-800">Create and share links</p>
-                  <p className="text-slate-600 mt-0.5">
+                  <p className="font-medium text-heading">Create and share links</p>
+                  <p className="text-body mt-0.5">
                     Use the dashboard to create deep links, attach them to campaigns, and share
                     them via email, social, or SMS.
                   </p>
@@ -244,7 +244,7 @@ export default function DocsPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 p-4 text-amber-800">
+            <div style={{ backgroundColor: 'var(--color-warning-light)', borderColor: 'rgba(255, 184, 77, 0.3)', color: 'var(--color-warning)' }} className="border p-4">
               <p className="font-semibold mb-1">Important</p>
               <p>Your API key is shown once during setup. Copy it and store it securely. You can regenerate it later under Settings, but the old key will stop working immediately.</p>
             </div>
@@ -276,12 +276,12 @@ export default function DocsPage() {
             ]} />
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Finding your SHA256 fingerprint:</p>
+              <p className="font-semibold text-heading">Finding your SHA256 fingerprint:</p>
               <p>Open a terminal in your Android project root and run:</p>
               <CodeBlock code="./gradlew signingReport" />
               <p>
-                Look for the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SHA-256</code> value
-                under the variant you use for release (usually <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">release</code>).
+                Look for the <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">SHA-256</code> value
+                under the variant you use for release (usually <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">release</code>).
               </p>
               <p>
                 Alternatively, if your app is on the Play Store, go to <strong>Google Play Console &gt;
@@ -290,8 +290,8 @@ export default function DocsPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Add to your AndroidManifest.xml:</p>
-              <p>Inside your <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">&lt;activity&gt;</code> tag in <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">android/app/src/main/AndroidManifest.xml</code>:</p>
+              <p className="font-semibold text-heading">Add to your AndroidManifest.xml:</p>
+              <p>Inside your <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">&lt;activity&gt;</code> tag in <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">android/app/src/main/AndroidManifest.xml</code>:</p>
               <CodeBlock language="xml" code={`<!-- SmartLink App Links — opens app when link is clicked -->
 <intent-filter android:autoVerify="true">
     <action android:name="android.intent.action.VIEW" />
@@ -299,17 +299,17 @@ export default function DocsPage() {
     <category android:name="android.intent.category.BROWSABLE" />
     <data android:scheme="https" android:host="${appHost}" />
 </intent-filter>`} />
-              <p className="text-sm text-slate-600">
-                This tells Android to open your app when a user clicks any <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appHost}</code> link.
-                Android verifies ownership via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> which SmartLink serves automatically from your registered app config.
+              <p className="text-body">
+                This tells Android to open your app when a user clicks any <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1 py-0.5 rounded text-xs">{appHost}</code> link.
+                Android verifies ownership via <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1 py-0.5 rounded text-xs">/.well-known/assetlinks.json</code> which SmartLink serves automatically from your registered app config.
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 p-4 text-blue-800">
+            <div style={{ backgroundColor: 'rgba(90, 229, 255, 0.08)', borderColor: 'rgba(90, 229, 255, 0.3)', color: 'var(--color-secondary)' }} className="border p-4">
               <p className="font-semibold mb-1">Verify it works</p>
               <p>
-                After deploying, check: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/assetlinks.json</code>.
-                On device: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">adb shell pm get-app-links your.package.name</code>
+                After deploying, check: <code style={{ backgroundColor: 'rgba(90, 229, 255, 0.15)' }} className="px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/assetlinks.json</code>.
+                On device: <code style={{ backgroundColor: 'rgba(90, 229, 255, 0.15)' }} className="px-1 py-0.5 rounded text-xs">adb shell pm get-app-links your.package.name</code>
               </p>
             </div>
           </DocSection>
@@ -344,37 +344,37 @@ export default function DocsPage() {
             ]} />
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Finding your Team ID:</p>
+              <p className="font-semibold text-heading">Finding your Team ID:</p>
               <p>
-                Sign in to <a href="https://developer.apple.com/account" target="_blank" rel="noopener" className="text-primary-600 hover:underline">developer.apple.com/account</a>,
+                Sign in to <a href="https://developer.apple.com/account" target="_blank" rel="noopener" style={{ color: 'var(--color-primary)' }} className="hover:underline">developer.apple.com/account</a>,
                 go to <strong>Membership</strong>, and look for the 10-character alphanumeric Team ID.
               </p>
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Add Associated Domains in Xcode:</p>
+              <p className="font-semibold text-heading">Add Associated Domains in Xcode:</p>
               <p>Go to your target → <strong>Signing &amp; Capabilities</strong> → click <strong>+ Capability</strong> → add <strong>Associated Domains</strong>, then add:</p>
               <CodeBlock code={`applinks:${appHost}`} />
-              <p className="text-sm text-slate-600">
-                iOS checks <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> to verify your app is authorized.
+              <p className="text-body">
+                iOS checks <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> to verify your app is authorized.
                 SmartLink serves this file automatically from your registered iOS config (Team ID + Bundle ID).
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 p-4 text-blue-800">
+            <div style={{ backgroundColor: 'rgba(90, 229, 255, 0.08)', borderColor: 'rgba(90, 229, 255, 0.3)', color: 'var(--color-secondary)' }} className="border p-4">
               <p className="font-semibold mb-1">Verify it works</p>
               <p>
-                Visit <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> — you should see your app&apos;s Team ID and Bundle ID in the JSON.
+                Visit <code style={{ backgroundColor: 'rgba(90, 229, 255, 0.15)' }} className="px-1 py-0.5 rounded text-xs">{appUrl}/.well-known/apple-app-site-association</code> — you should see your app&apos;s Team ID and Bundle ID in the JSON.
               </p>
             </div>
           </DocSection>
 
           {/* Flutter SDK */}
           <DocSection id="flutter-sdk" title="Flutter SDK Integration">
-            <p>The SmartLink Flutter SDK handles everything: device fingerprinting, deferred deep link matching, and direct app link handling. Use the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SmartLinkService</code> wrapper for the simplest integration.</p>
+            <p>The SmartLink Flutter SDK handles everything: device fingerprinting, deferred deep link matching, and direct app link handling. Use the <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">SmartLinkService</code> wrapper for the simplest integration.</p>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">1. Add dependency</p>
+              <p className="font-semibold text-heading">1. Add dependency</p>
               <CodeBlock language="yaml" code={`# pubspec.yaml
 dependencies:
   smartlink:
@@ -383,8 +383,8 @@ dependencies:
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">2. Create a service file</p>
-              <p>Create <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> — a single file that manages the entire SmartLink lifecycle:</p>
+              <p className="font-semibold text-heading">2. Create a service file</p>
+              <p>Create <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">lib/services/smartlink_service.dart</code> — a single file that manages the entire SmartLink lifecycle:</p>
               <CodeBlock language="dart" code={`import 'package:smartlink/smartlink.dart';
 import 'package:flutter/material.dart';
 
@@ -435,7 +435,7 @@ void _handleDeepLink(DeepLinkData data, GlobalKey<NavigatorState> navKey) {
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">3. Initialize in main.dart</p>
+              <p className="font-semibold text-heading">3. Initialize in main.dart</p>
               <CodeBlock language="dart" code={`import 'package:flutter/material.dart';
 import 'services/smartlink_service.dart';
 
@@ -481,16 +481,16 @@ class MyApp extends StatelessWidget {
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">4. What happens automatically</p>
-              <div className="bg-slate-50 p-4 border border-slate-200 space-y-2">
-                <p className="text-sm text-slate-700"><strong>First launch after install:</strong> SDK collects device fingerprint, calls the backend to match against stored browser fingerprints, and delivers the original link data via <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code>.</p>
-                <p className="text-sm text-slate-700"><strong>Direct app links:</strong> When the app is already installed and the user clicks an SmartLink URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
-                <p className="text-sm text-slate-700"><strong>Auto-confirmation:</strong> Deferred links are automatically confirmed as delivered, tracking the conversion in your analytics.</p>
+              <p className="font-semibold text-heading">4. What happens automatically</p>
+              <div style={{ borderColor: 'var(--color-border)' }} className="bg-secondary p-4 border space-y-2">
+                <p className="text-sm text-body"><strong>First launch after install:</strong> SDK collects device fingerprint, calls the backend to match against stored browser fingerprints, and delivers the original link data via <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1 py-0.5 rounded text-xs">onDeepLink</code>.</p>
+                <p className="text-sm text-body"><strong>Direct app links:</strong> When the app is already installed and the user clicks an SmartLink URL, the SDK receives it via Universal Links (iOS) / App Links (Android) and delivers it through the same <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1 py-0.5 rounded text-xs">onDeepLink</code> callback.</p>
+                <p className="text-sm text-body"><strong>Auto-confirmation:</strong> Deferred links are automatically confirmed as delivered, tracking the conversion in your analytics.</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">5. Available data in DeepLinkData</p>
+              <p className="font-semibold text-heading">5. Available data in DeepLinkData</p>
               <CodeBlock language="dart" code={`onDeepLink: (data) {
   data.eventId;          // "12345"
   data.action;           // "view_event", "buy_ticket"
@@ -520,16 +520,16 @@ class MyApp extends StatelessWidget {
               query analytics, and integrate deep linking into your backend workflows.
             </p>
 
-            <div className="relative border border-slate-200 overflow-hidden">
+            <div style={{ borderColor: 'var(--color-border)' }} className="relative border overflow-hidden">
               {/* Blurred preview of endpoints */}
               <div className="pointer-events-none select-none" style={{ filter: 'blur(5px)', opacity: 0.45 }}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-slate-50">
-                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Method</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Endpoint</th>
-                        <th className="text-left px-4 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Description</th>
+                      <tr className="bg-secondary">
+                        <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Method</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Endpoint</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-body border-b border-theme">Description</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -541,16 +541,16 @@ class MyApp extends StatelessWidget {
                         ['GET', '/campaigns', 'List campaigns'],
                         ['GET', '/analytics/overview', 'Dashboard analytics overview'],
                       ].map(([method, endpoint, desc], i) => (
-                        <tr key={endpoint} className={i % 2 ? 'bg-slate-50' : 'bg-white'}>
-                          <td className="px-4 py-2 border-b border-slate-100">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                        <tr key={endpoint} className={i % 2 ? 'bg-secondary' : 'bg-card'}>
+                          <td className="px-4 py-2 border-b border-theme">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${method === 'GET' ? 'bg-success-100 text-success-700' : 'bg-blue-100 text-blue-700'}`}>
                               {method}
                             </span>
                           </td>
-                          <td className="px-4 py-2 border-b border-slate-100">
-                            <code className="text-xs text-slate-700">{endpoint}</code>
+                          <td className="px-4 py-2 border-b border-theme">
+                            <code style={{ color: 'var(--color-text-secondary)' }} className="text-xs">{endpoint}</code>
                           </td>
-                          <td className="px-4 py-2 text-slate-600 border-b border-slate-100">{desc}</td>
+                          <td style={{ color: 'var(--color-text-secondary)' }} className="px-4 py-2 border-b border-theme">{desc}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -559,17 +559,17 @@ class MyApp extends StatelessWidget {
               </div>
 
               {/* Upgrade overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm">
+              <div style={{ backgroundColor: 'rgba(10, 11, 14, 0.88)' }} className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm">
                 <div className="text-center max-w-md px-6">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-slate-100 mb-4">
-                    <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4">
+                    <svg style={{ color: 'var(--color-text-tertiary)' }} className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
+                  <h3 className="text-lg font-bold text-heading mb-2">
                     API Access requires Pro plan
                   </h3>
-                  <p className="text-sm text-slate-600 mb-5">
+                  <p className="text-sm text-body mb-5">
                     Unlock 14 REST API endpoints to programmatically create links, manage campaigns,
                     query analytics, and integrate SmartLink into your backend. Includes full
                     documentation, code examples, and webhook support.
@@ -577,19 +577,20 @@ class MyApp extends StatelessWidget {
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <a
                       href="/#pricing"
-                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white transition"
-                      style={{ backgroundColor: 'var(--color-primary, #2563eb)' }}
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition"
+                      style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
                     >
                       View Plans &amp; Pricing
                     </a>
                     <a
                       href="/#pricing"
-                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                      style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-secondary)' }}
+                      className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium hover:opacity-80 transition"
                     >
                       Compare Plans
                     </a>
                   </div>
-                  <p className="text-xs text-slate-400 mt-4">
+                  <p className="text-xs text-muted mt-4">
                     Starts at $99/mo &middot; 14-day free trial &middot; No credit card required
                   </p>
                 </div>
@@ -601,12 +602,12 @@ class MyApp extends StatelessWidget {
           <DocSection id="deep-links" title="Creating Deep Links">
             <p>
               Deep links are URLs that route users to specific content in your app. In SmartLink,
-              each link has a short code (e.g., <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{appHost}/abc123</code>)
+              each link has a short code (e.g., <code style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }} className="px-1.5 py-0.5 rounded text-xs">{appHost}/abc123</code>)
               that resolves to your app or web fallback.
             </p>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Link properties:</p>
+              <p className="font-semibold text-heading">Link properties:</p>
               <ReferenceTable rows={[
                 { field: 'title', where: 'Descriptive name for the link', example: 'Summer Festival 2026' },
                 { field: 'destinationUrl', where: 'Web fallback URL', example: 'https://allevents.in/event/...' },
@@ -629,7 +630,7 @@ class MyApp extends StatelessWidget {
               Here's the step-by-step flow:
             </p>
 
-            <div className="bg-slate-50 p-5 space-y-4">
+            <div className="bg-secondary p-5 space-y-4">
               {[
                 {
                   step: '1',
@@ -663,19 +664,19 @@ class MyApp extends StatelessWidget {
                 },
               ].map((item) => (
                 <div key={item.step} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary-200 text-primary-700 text-xs font-bold flex items-center justify-center mt-0.5">
+                  <span style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }} className="flex-shrink-0 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
                     {item.step}
                   </span>
                   <div>
-                    <p className="font-medium text-slate-800">{item.title}</p>
-                    <p className="text-slate-600 text-xs mt-0.5">{item.desc}</p>
+                    <p className="font-medium text-heading">{item.title}</p>
+                    <p className="text-body text-xs mt-0.5">{item.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-800">Fingerprint Matching Scores</p>
+              <p className="font-semibold text-heading">Fingerprint Matching Scores</p>
               <ReferenceTable rows={[
                 { field: 'IP Address', where: 'Exact match of user IP', example: '40 points' },
                 { field: 'User Agent', where: 'Browser/device string hash match', example: '30 points' },
@@ -724,9 +725,9 @@ class MyApp extends StatelessWidget {
                 { title: 'Platform Split', desc: 'Android vs iOS vs Web breakdown' },
                 { title: 'Top Links', desc: 'Your most-clicked and highest-converting links' },
               ].map((metric) => (
-                <div key={metric.title} className="bg-slate-50 p-3">
-                  <p className="font-medium text-slate-800 text-sm">{metric.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{metric.desc}</p>
+                <div key={metric.title} className="bg-secondary p-3">
+                  <p className="font-medium text-heading text-sm">{metric.title}</p>
+                  <p className="text-xs text-muted mt-0.5">{metric.desc}</p>
                 </div>
               ))}
             </div>
@@ -761,9 +762,9 @@ class MyApp extends StatelessWidget {
                   a: 'Ensure you call SmartLinkSdk.init() before runApp(). The SDK performs deferred link matching during initialization. Also check that your API key and base URL are correct.',
                 },
               ].map((item) => (
-                <div key={item.q} className="border-b border-slate-100 pb-4 last:border-0">
-                  <p className="font-semibold text-slate-800">{item.q}</p>
-                  <p className="text-slate-600 mt-1">{item.a}</p>
+                <div key={item.q} className="border-b border-theme pb-4 last:border-0">
+                  <p className="font-semibold text-heading">{item.q}</p>
+                  <p className="text-body mt-1">{item.a}</p>
                 </div>
               ))}
             </div>
