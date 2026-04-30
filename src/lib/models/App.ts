@@ -13,6 +13,11 @@ const appSchema = new Schema<IApp>(
       type: String,
       required: true,
     },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     android: {
       package: { type: String, default: '' },
       sha256: { type: String, default: '' },

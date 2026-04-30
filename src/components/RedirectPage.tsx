@@ -2,6 +2,49 @@
 
 import { useEffect, useState } from 'react';
 
+/**
+ * Append UTM params (and App Store ct/pt/mt) to a store URL.
+ * Play Store: encodes utm_* into the `referrer` param.
+ * App Store:  adds utm_* + ct/pt/mt directly as query params.
+ */
+function appendStoreParams(
+  baseUrl: string,
+  params: Record<string, any> | undefined,
+  isIos: boolean,
+): string {
+  if (!params) return baseUrl;
+  const { utmSource, utmMedium, utmCampaign, utmTerm, utmContent, ct, pt, mt } = params;
+  const hasUtm = utmSource || utmMedium || utmCampaign || utmTerm || utmContent;
+  const hasStore = ct || pt;
+  if (!hasUtm && !hasStore) return baseUrl;
+  try {
+    const url = new URL(baseUrl);
+    if (isIos) {
+      if (utmSource) url.searchParams.set('utm_source', utmSource);
+      if (utmMedium) url.searchParams.set('utm_medium', utmMedium);
+      if (utmCampaign) url.searchParams.set('utm_campaign', utmCampaign);
+      if (utmTerm) url.searchParams.set('utm_term', utmTerm);
+      if (utmContent) url.searchParams.set('utm_content', utmContent);
+      if (ct) url.searchParams.set('ct', ct);
+      if (pt) url.searchParams.set('pt', pt);
+      url.searchParams.set('mt', mt || '8');
+    } else {
+      // Play Store expects utm params inside the `referrer` query param (URL-encoded)
+      const ref = new URLSearchParams();
+      if (utmSource) ref.set('utm_source', utmSource);
+      if (utmMedium) ref.set('utm_medium', utmMedium);
+      if (utmCampaign) ref.set('utm_campaign', utmCampaign);
+      if (utmTerm) ref.set('utm_term', utmTerm);
+      if (utmContent) ref.set('utm_content', utmContent);
+      const refStr = ref.toString();
+      if (refStr) url.searchParams.set('referrer', refStr);
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
 interface RedirectPageProps {
   shortCode: string;
   linkId: string;
@@ -102,30 +145,27 @@ export default function RedirectPage({
 
     if (isAndroid) {
       const appUrl = link.platformOverrides?.android?.url;
-      const storeUrl =
+      const rawStoreUrl =
         link.platformOverrides?.android?.fallback ||
         storeUrls.android;
+      const storeUrl = appendStoreParams(rawStoreUrl, link.params, false);
 
       if (appUrl) {
-        // Try app link — if app isn't installed, the intent will fail silently
-        // and we fall back to the store after a timeout
         tryOpenApp(appUrl, storeUrl);
       } else {
-        // No app deep link configured — go directly to Play Store
         window.location.href = storeUrl;
         setStatus('done');
       }
     } else if (isIOS) {
       const appUrl = link.platformOverrides?.ios?.url;
-      const storeUrl =
+      const rawStoreUrl =
         link.platformOverrides?.ios?.fallback ||
         storeUrls.ios;
+      const storeUrl = appendStoreParams(rawStoreUrl, link.params, true);
 
       if (appUrl) {
-        // Try universal link — if app isn't installed, fall back to store
         tryOpenApp(appUrl, storeUrl);
       } else {
-        // No app deep link configured — go directly to App Store
         window.location.href = storeUrl;
         setStatus('done');
       }
@@ -276,9 +316,9 @@ export default function RedirectPage({
         <a
           href={
             deviceOS === 'android'
-              ? storeUrls.android
+              ? appendStoreParams(storeUrls.android, link.params, false)
               : deviceOS === 'ios'
-              ? storeUrls.ios
+              ? appendStoreParams(storeUrls.ios, link.params, true)
               : link.destinationUrl
           }
           style={{

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { smartLinkApi } from '@/lib/api';
@@ -26,7 +26,7 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const router = useRouter();
-  const { isContextReady, can } = useDashboard();
+  const { isContextReady, can, selectedAppId } = useDashboard();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,51 +45,68 @@ export default function CampaignsPage() {
     }
   }, [isContextReady, can, router]);
 
-  const fetchCampaigns = useCallback(async () => {
-    if (!isContextReady || !can('manage:campaigns')) return;
-    try {
-      setLoading(true);
-      const data = await smartLinkApi.listCampaigns({
-        limit: itemsPerPage,
-        offset: (page - 1) * itemsPerPage,
-      });
-
-      const campaignList = data.campaigns as unknown as Campaign[];
-      setCampaigns(campaignList);
-      const total = data.total || 0;
-      setTotalPages(Math.ceil(total / itemsPerPage));
-
-      // Fetch analytics for all campaigns in parallel (background)
-      setAnalyticsLoading(true);
-      Promise.allSettled(
-        campaignList.map((c) => smartLinkApi.getCampaignAnalytics(c._id))
-      ).then((results) => {
-        setCampaigns((prev) =>
-          prev.map((c, i) => {
-            const result = results[i];
-            if (result.status === 'fulfilled') {
-              return {
-                ...c,
-                linkCount: result.value.totalLinks ?? c.linkCount,
-                totalClicks: result.value.totalClicks ?? 0,
-                totalConversions: result.value.totalConversions ?? 0,
-              };
-            }
-            return c;
-          })
-        );
-        setAnalyticsLoading(false);
-      });
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while loading campaigns');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, isContextReady, can]);
+  // Track previous selectedAppId so we can reset page when the app filter changes
+  const prevAppIdRef = useRef(selectedAppId);
 
   useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns]);
+    if (!isContextReady || !can('manage:campaigns')) return;
+
+    // When the app filter changes, reset to page 1 and re-run
+    if (prevAppIdRef.current !== selectedAppId) {
+      prevAppIdRef.current = selectedAppId;
+      setPage(1);
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const params: Record<string, any> = {
+          limit: itemsPerPage,
+          offset: (page - 1) * itemsPerPage,
+        };
+        if (selectedAppId) params.appId = selectedAppId;
+
+        const data = await smartLinkApi.listCampaigns(params);
+        if (cancelled) return;
+
+        const campaignList = data.campaigns as unknown as Campaign[];
+        setCampaigns(campaignList);
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+
+        setAnalyticsLoading(true);
+        const analyticsResults = await Promise.allSettled(
+          campaignList.map((c) => smartLinkApi.getCampaignAnalytics(c._id))
+        );
+        if (cancelled) return;
+
+        setCampaigns(campaignList.map((c, i) => {
+          const r = analyticsResults[i];
+          if (r.status === 'fulfilled') {
+            return {
+              ...c,
+              linkCount: r.value.totalLinks ?? c.linkCount,
+              totalClicks: r.value.totalClicks ?? 0,
+              totalConversions: r.value.totalConversions ?? 0,
+            };
+          }
+          return c;
+        }));
+        setAnalyticsLoading(false);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || 'An error occurred while loading campaigns');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isContextReady, selectedAppId, page]);
 
   async function handleDelete(id: string) {
     setDeleting(true);
@@ -107,12 +124,12 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="dashboard-header-flex mb-8">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Campaigns</h1>
-          <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Campaigns</h1>
+          <p className="mt-2 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
             {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} total
           </p>
         </div>
@@ -169,7 +186,7 @@ export default function CampaignsPage() {
         </div>
       ) : (
         <div className="shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <div className="overflow-x-auto">
+          <div className="dashboard-table-wrapper">
             <table className="w-full">
               <thead style={{ backgroundColor: 'var(--color-bg-secondary)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
                 <tr>
@@ -247,22 +264,27 @@ export default function CampaignsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Edit campaign */}
                         <Link
                           href={`/dashboard/campaigns/${campaign._id}/edit`}
-                          className="px-3 py-1 text-sm transition"
+                          className="p-1.5 transition-colors hover-bg-secondary inline-flex"
                           style={{ color: 'var(--color-text-secondary)' }}
+                          title="Edit campaign"
                         >
-                          Edit
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                          </svg>
                         </Link>
+                        {/* Delete campaign */}
                         <button
                           onClick={() => setDeleteConfirm(campaign._id)}
-                          className="px-2 py-1 text-sm transition"
+                          className="p-1.5 transition-colors hover-bg-secondary"
                           style={{ color: 'var(--color-danger)' }}
                           title="Delete campaign"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>

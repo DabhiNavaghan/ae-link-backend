@@ -10,6 +10,9 @@ const linkParamsSchema = new Schema<ILinkParams>(
     utmCampaign: String,
     utmTerm: String,
     utmContent: String,
+    ct: String,
+    pt: String,
+    mt: String,
     userEmail: String,
     userId: String,
     couponCode: String,
@@ -53,6 +56,9 @@ const linkSchema = new Schema<ILink>(
       type: Schema.Types.ObjectId,
       ref: 'App',
       index: true,
+    },
+    title: {
+      type: String,
     },
     shortCode: {
       type: String,

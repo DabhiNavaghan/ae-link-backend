@@ -340,11 +340,14 @@ export class AnalyticsService {
     const conversionCount = await ConversionModel.countDocuments(conversionMatch);
 
     // Total links
-    const linkCountMatch: Record<string, any> = { ...linkMatch, isActive: true };
+    const linkCountMatch: Record<string, any> = { ...linkMatch, isActive: { $ne: false } };
     const linkCount = await LinkModel.countDocuments(linkCountMatch);
 
     // Active campaigns
     const campaignMatch: Record<string, any> = { tenantId: tenantObjId, status: 'active' };
+    if (filters?.appId) {
+      campaignMatch.appId = new Types.ObjectId(filters.appId);
+    }
     const campaignCount = await CampaignModel.countDocuments(campaignMatch);
 
     // Deferred links matched
@@ -377,6 +380,7 @@ export class AnalyticsService {
       },
       {
         $project: {
+          title: 1,
           shortCode: 1,
           destinationUrl: 1,
           clicks: '$clickCount',
@@ -388,8 +392,12 @@ export class AnalyticsService {
     const topLinks = await LinkModel.aggregate(topLinksPipeline);
 
     // Top campaigns with full details
+    const topCampaignMatchStage: Record<string, any> = { tenantId: tenantObjId };
+    if (filters?.appId) {
+      topCampaignMatchStage.appId = new Types.ObjectId(filters.appId);
+    }
     const topCampaignsPipeline: any[] = [
-      { $match: { tenantId: tenantObjId } },
+      { $match: topCampaignMatchStage },
       {
         $lookup: {
           from: 'links',
@@ -493,12 +501,24 @@ export class AnalyticsService {
 
     const totalReferrerClicks = topReferrers.reduce((sum, r) => sum + r.clicks, 0);
 
-    // Channel breakdown
+    // Channel breakdown — normalize null / "" / whitespace to "direct" before grouping
     const channelBreakdown = await ClickModel.aggregate([
       { $match: clickMatch },
       {
         $group: {
-          _id: '$channel',
+          _id: {
+            $cond: {
+              if: {
+                $or: [
+                  { $eq: ['$channel', null] },
+                  { $eq: ['$channel', ''] },
+                  { $not: ['$channel'] },
+                ],
+              },
+              then: 'direct',
+              else: { $toLower: '$channel' },
+            },
+          },
           clicks: { $sum: 1 },
         },
       },
@@ -565,6 +585,7 @@ export class AnalyticsService {
       deferredLinksMatched: deferredMatched,
       topLinks: topLinks.map((l) => ({
         linkId: l._id.toString(),
+        title: l.title || undefined,
         shortCode: l.shortCode,
         destinationUrl: l.destinationUrl,
         campaignName: l.campaignName || undefined,
@@ -592,7 +613,7 @@ export class AnalyticsService {
         conversions: convTrendMap.get(ct._id) || 0,
       })),
       channelBreakdown: channelBreakdown.map((cb) => ({
-        channel: cb._id || 'direct',
+        channel: cb._id,
         clicks: cb.clicks,
         percentage: totalChannelClicks > 0 ? Math.round((cb.clicks / totalChannelClicks) * 1000) / 10 : 0,
       })),

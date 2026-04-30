@@ -140,11 +140,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       <aside
         className={`fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 flex flex-col
           lg:static lg:translate-x-0
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64`}
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderRight: '1px solid var(--color-border)',
-          width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (isCollapsed ? '5rem' : '16rem') : '16rem',
         }}
       >
         {/* Logo */}

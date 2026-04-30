@@ -40,6 +40,43 @@ const TrashIcon = () => (
   </svg>
 );
 
+/* ─── Copy Store Link ─── */
+function AppCopyStoreLink({ app }: { app: IApp }) {
+  const [copied, setCopied] = useState(false);
+  const slug = (app as any).slug as string | undefined;
+  const storeKey = slug || String((app as any)._id);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const storeUrl = `${origin}/apps/${storeKey}/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=${storeKey}`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(storeUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      title={storeUrl}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+      style={{
+        border: '1px solid var(--color-primary)',
+        color: copied ? '#000' : 'var(--color-primary)',
+        background: copied ? 'var(--color-primary)' : 'transparent',
+        borderRadius: 2,
+        fontFamily: 'var(--font-mono)',
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+      }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+      </svg>
+      {copied ? 'copied!' : (slug || 'store link')}
+    </button>
+  );
+}
+
 /* ─── App Card ─── */
 function AppCard({
   app,
@@ -54,10 +91,10 @@ function AppCard({
   const hasIos = app.ios && (app.ios.bundleId || app.ios.storeUrl);
 
   return (
-    <div className="card p-6 hover:shadow-md transition-shadow m-4" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-      <div className="flex items-start justify-between mb-4">
+    <div className="card p-4 md:p-6 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+      <div className="flex items-start justify-between mb-4 gap-2 flex-wrap">
         <div>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
+          <h3 className="text-base md:text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
           <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
             ID: {String((app as any)._id).slice(-8)}
           </p>
@@ -68,14 +105,14 @@ function AppCard({
       </div>
 
       {/* Platform badges */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         {hasAndroid && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
+          <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success)' }}>
             <AndroidIcon /> Android
           </span>
         )}
         {hasIos && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
+          <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}>
             <AppleIcon /> iOS
           </span>
         )}
@@ -112,6 +149,13 @@ function AppCard({
           </div>
         )}
       </div>
+
+      {/* Smart store link copy button */}
+      {(app.android?.storeUrl || app.ios?.storeUrl) && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <AppCopyStoreLink app={app} />
+        </div>
+      )}
 
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => onEdit(app)} className="flex-1">
@@ -409,12 +453,12 @@ export default function AppsPage() {
   };
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="space-y-6 p-4 md:p-8" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap md:flex-nowrap">
         <div>
-          <h1 className="text-3xl font-bold mt-4 ml-4" style={{ color: 'var(--color-text)' }}>Apps</h1>
-          <p className="mt-1 ml-4" style={{ color: 'var(--color-text-secondary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>Apps</h1>
+          <p className="mt-1 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
             Manage your Android and iOS app configurations
           </p>
         </div>
