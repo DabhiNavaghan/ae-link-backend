@@ -210,7 +210,17 @@ export default function RedirectPage({
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
-      if (!didLeave) {
+      if (didLeave) {
+        // App opened successfully — update the click record to app_opened
+        if (clickId) {
+          fetch('/api/v1/clicks', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clickId, action: 'app_opened' }),
+          }).catch(() => {});
+        }
+      } else {
+        // App not installed — redirect to store (click stays as store_redirect)
         window.location.replace(storeUrl);
       }
       setStatus('done');
