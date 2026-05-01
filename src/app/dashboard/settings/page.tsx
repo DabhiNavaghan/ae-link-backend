@@ -232,20 +232,6 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleRegenerateKey = async () => {
-    try {
-      const result = await smartLinkApi.regenerateApiKey();
-      setSettings({ ...settings, apiKey: result.apiKey });
-      setMessage({ type: 'success', text: 'API key regenerated. The old key no longer works.' });
-      setTimeout(() => setMessage(null), 5000);
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to regenerate key',
-      });
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setMessage({ type: 'success', text: 'Copied to clipboard' });
@@ -389,20 +375,6 @@ const SettingsPage: React.FC = () => {
                   Copy
                 </button>
               </div>
-              {can('manage:billing') && (
-                <div className="mt-3 flex items-center gap-3">
-                  <button
-                    onClick={handleRegenerateKey}
-                    style={{ color: 'var(--color-danger)' }}
-                    className="text-sm hover:opacity-80 font-medium"
-                  >
-                    Regenerate API Key
-                  </button>
-                  <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">
-                    Warning: this will invalidate the current key immediately.
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         )}

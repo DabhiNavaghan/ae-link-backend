@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import TenantModel from '@/lib/models/Tenant';
+import AppModel from '@/lib/models/App';
 import { Logger } from '@/lib/logger';
 import crypto from 'crypto';
 
@@ -9,10 +10,16 @@ export interface AuthContext {
   tenantId: string;
   apiKey: string;
   isValid: boolean;
+  /** Set when an app-level key was used (prefixed with app_) */
+  appId?: string;
 }
 
 /**
- * Authenticate request using API key
+ * Authenticate request using API key.
+ *
+ * Resolution order:
+ * 1. If the key starts with "app_", look up App.apiKey → resolve tenantId + appId
+ * 2. Otherwise, fall back to Tenant.apiKey (backward-compatible)
  */
 export async function authenticateRequest(
   request: NextRequest
@@ -25,6 +32,22 @@ export async function authenticateRequest(
   }
 
   try {
+    // ── App-level key (prefixed with app_) ──
+    if (apiKey.startsWith('app_')) {
+      const app = await AppModel.findOne({ apiKey, isActive: true });
+      if (!app) {
+        logger.warn({ apiKey: apiKey.substring(0, 12) }, 'Invalid app API key');
+        return null;
+      }
+      return {
+        tenantId: app.tenantId.toString(),
+        apiKey,
+        isValid: true,
+        appId: app._id.toString(),
+      };
+    }
+
+    // ── Tenant-level key (legacy / dashboard) ──
     const tenant = await TenantModel.findOne({
       apiKey,
       isActive: true,

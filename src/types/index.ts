@@ -72,6 +72,7 @@ export interface IApp extends Document {
   tenantId: Types.ObjectId;
   name: string;
   slug?: string;
+  apiKey: string;
   android?: IAndroidConfig;
   ios?: IIosConfig;
   isActive: boolean;

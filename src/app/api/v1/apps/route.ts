@@ -10,6 +10,7 @@ import TenantModel from '@/lib/models/Tenant';
 import { CreateAppDto } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import crypto from 'crypto';
 
 function toSlug(str: string): string {
   return str
@@ -64,6 +65,16 @@ export async function GET(request: NextRequest) {
     }
 
     const apps = await AppModel.find(filter).sort({ createdAt: -1 }).lean();
+
+    // Auto-generate apiKeys for existing apps that don't have one
+    const appsWithoutKey = apps.filter((a) => !a.apiKey);
+    if (appsWithoutKey.length > 0) {
+      await Promise.all(appsWithoutKey.map(async (app) => {
+        const key = 'app_' + crypto.randomBytes(24).toString('hex');
+        await AppModel.findByIdAndUpdate(app._id, { $set: { apiKey: key } });
+        app.apiKey = key;
+      }));
+    }
 
     // Auto-generate slugs for apps that don't have one yet
     const appsWithoutSlug = apps.filter((a) => !a.slug);
