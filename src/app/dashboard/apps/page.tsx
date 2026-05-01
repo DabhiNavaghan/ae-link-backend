@@ -40,6 +40,81 @@ const TrashIcon = () => (
   </svg>
 );
 
+/* ─── Copy API Key ─── */
+function AppApiKey({ apiKey }: { apiKey?: string }) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  if (!apiKey) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(apiKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10 }}>
+        SDK API Key
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type={show ? 'text' : 'password'}
+          value={apiKey}
+          readOnly
+          style={{
+            flex: 1,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            padding: '6px 10px',
+            backgroundColor: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+            outline: 'none',
+            minWidth: 0,
+          }}
+        />
+        <button
+          onClick={() => setShow(!show)}
+          style={{
+            padding: '6px 10px',
+            fontSize: 10,
+            fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {show ? 'hide' : 'show'}
+        </button>
+        <button
+          onClick={handleCopy}
+          style={{
+            padding: '6px 10px',
+            fontSize: 10,
+            fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            background: copied ? 'var(--color-primary)' : 'transparent',
+            border: '1px solid var(--color-primary)',
+            color: copied ? '#000' : 'var(--color-primary)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {copied ? 'copied!' : 'copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Copy Store Link ─── */
 function AppCopyStoreLink({ app }: { app: IApp }) {
   const [copied, setCopied] = useState(false);
@@ -149,6 +224,9 @@ function AppCard({
           </div>
         )}
       </div>
+
+      {/* Per-app SDK API Key */}
+      <AppApiKey apiKey={(app as any).apiKey} />
 
       {/* Smart store link copy button */}
       {(app.android?.storeUrl || app.ios?.storeUrl) && (

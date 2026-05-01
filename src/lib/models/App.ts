@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
+import crypto from 'crypto';
 import { IApp } from '@/types';
 
 const appSchema = new Schema<IApp>(
@@ -17,6 +18,11 @@ const appSchema = new Schema<IApp>(
       type: String,
       unique: true,
       sparse: true,
+    },
+    apiKey: {
+      type: String,
+      unique: true,
+      index: true,
     },
     android: {
       package: { type: String, default: '' },
@@ -37,6 +43,15 @@ const appSchema = new Schema<IApp>(
   },
   { timestamps: true }
 );
+
+// Auto-generate apiKey before first save
+appSchema.pre('save', function (next) {
+  if (!this.apiKey) {
+    // Prefix with 'app_' so it's easy to distinguish from tenant keys
+    this.apiKey = 'app_' + crypto.randomBytes(24).toString('hex');
+  }
+  next();
+});
 
 // Compound index for tenant's apps
 appSchema.index({ tenantId: 1, isActive: 1 });

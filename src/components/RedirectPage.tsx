@@ -131,10 +131,19 @@ export default function RedirectPage({
     setStatus('redirecting');
 
     // Step 2: Redirect based on platform
+    // Use location.replace() for all final redirects so the redirect page
+    // doesn't stay in browser history — Back button returns to the referrer
+    // (email, WhatsApp, etc.) instead of re-triggering the redirect loop.
     if (!isMobile) {
       // Desktop — go straight to the web destination
       const webUrl = link.platformOverrides?.web?.url || link.destinationUrl;
-      window.location.href = webUrl;
+      if (webUrl) {
+        window.location.replace(webUrl);
+      } else {
+        // No web destination — redirect to store (prefer Android for desktop)
+        const fallbackStore = storeUrls.android || storeUrls.ios;
+        if (fallbackStore) window.location.replace(fallbackStore);
+      }
       setStatus('done');
       return;
     }
@@ -153,7 +162,7 @@ export default function RedirectPage({
       if (appUrl) {
         tryOpenApp(appUrl, storeUrl);
       } else {
-        window.location.href = storeUrl;
+        window.location.replace(storeUrl);
         setStatus('done');
       }
     } else if (isIOS) {
@@ -166,7 +175,7 @@ export default function RedirectPage({
       if (appUrl) {
         tryOpenApp(appUrl, storeUrl);
       } else {
-        window.location.href = storeUrl;
+        window.location.replace(storeUrl);
         setStatus('done');
       }
     }
@@ -189,16 +198,30 @@ export default function RedirectPage({
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
-    // Attempt to open the app
+    // Attempt to open the app via deep link
     window.location.href = appUrl;
 
-    // If we're still here after 1.5s, the app is not installed → go to store
+    // If we're still here after 1.5s, the app is not installed → go to store.
+    // Use location.replace() so the redirect page is NOT left in the browser
+    // history — pressing Back from the store returns to the page the user
+    // came from (email, WhatsApp, etc.) instead of re-triggering the redirect
+    // loop and opening the destination URL in the browser.
     setTimeout(() => {
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', onVisibilityChange);
 
-      if (!didLeave) {
-        window.location.href = storeUrl;
+      if (didLeave) {
+        // App opened successfully — update the click record to app_opened
+        if (clickId) {
+          fetch('/api/v1/clicks', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clickId, action: 'app_opened' }),
+          }).catch(() => {});
+        }
+      } else {
+        // App not installed — redirect to store (click stays as store_redirect)
+        window.location.replace(storeUrl);
       }
       setStatus('done');
     }, 1500);

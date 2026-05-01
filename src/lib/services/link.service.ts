@@ -33,7 +33,7 @@ export class LinkService {
       campaignId: dto.campaignId ? new Types.ObjectId(dto.campaignId) : undefined,
       appId: dto.appId ? new Types.ObjectId(dto.appId) : undefined,
       shortCode,
-      destinationUrl: dto.destinationUrl,
+      destinationUrl: dto.destinationUrl || '',
       linkType: dto.linkType,
       params: dto.params || {},
       platformOverrides: dto.platformOverrides || {},

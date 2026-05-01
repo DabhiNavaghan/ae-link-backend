@@ -43,9 +43,9 @@ export class AnalyticsService {
       },
     ]);
 
-    // Get conversion data
+    // Get conversion data — only deferred-match installs
     const conversions = await ConversionModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId) } },
+      { $match: { linkId: new Types.ObjectId(linkId), deferredLinkId: { $exists: true, $ne: null } } },
       {
         $group: {
           _id: '$conversionType',
@@ -187,9 +187,9 @@ export class AnalyticsService {
       },
     ]);
 
-    // Get conversions
+    // Get conversions — only deferred-match installs
     const conversionStats = await ConversionModel.aggregate([
-      { $match: { linkId: { $in: linkIds } } },
+      { $match: { linkId: { $in: linkIds }, deferredLinkId: { $exists: true, $ne: null } } },
       {
         $group: {
           _id: '$linkId',
@@ -232,8 +232,10 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'conversions',
-          localField: '_id',
-          foreignField: 'linkId',
+          let: { lid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$linkId', '$$lid'] }, deferredLinkId: { $exists: true, $ne: null } } },
+          ],
           as: 'conversions',
         },
       },
@@ -272,7 +274,7 @@ export class AnalyticsService {
       totalConversions,
       conversionRate:
         totalClicks > 0
-          ? (totalConversions / totalClicks) * 100
+          ? Math.min((totalConversions / totalClicks) * 100, 100)
           : 0,
       deferredMatchRate: 0,
       byLinkType: byLinkType.reduce(
@@ -332,8 +334,15 @@ export class AnalyticsService {
     // Total clicks
     const clickCount = await ClickModel.countDocuments(clickMatch);
 
-    // Total conversions
-    const conversionMatch: Record<string, any> = { tenantId: tenantObjId };
+    // Installs (store redirects) and opens (app already installed, deep link opened)
+    const installCount = await ClickModel.countDocuments({ ...clickMatch, actionTaken: 'store_redirect' });
+    const openCount = await ClickModel.countDocuments({ ...clickMatch, actionTaken: 'app_opened' });
+
+    // Total conversions — only count deferred-match installs (real attributions)
+    const conversionMatch: Record<string, any> = {
+      tenantId: tenantObjId,
+      deferredLinkId: { $exists: true, $ne: null },
+    };
     if (filteredLinkIds) {
       conversionMatch.linkId = { $in: filteredLinkIds };
     }
@@ -365,8 +374,10 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'conversions',
-          localField: '_id',
-          foreignField: 'linkId',
+          let: { lid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$linkId', '$$lid'] }, deferredLinkId: { $exists: true, $ne: null } } },
+          ],
           as: 'conversions',
         },
       },
@@ -428,8 +439,10 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'conversions',
-          localField: 'links._id',
-          foreignField: 'linkId',
+          let: { linkIds: '$links._id' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$linkId', '$$linkIds'] }, deferredLinkId: { $exists: true, $ne: null } } },
+          ],
           as: 'allConversions',
         },
       },
@@ -475,6 +488,8 @@ export class AnalyticsService {
     if (filteredLinkIds) {
       convTrendMatch.linkId = { $in: filteredLinkIds };
     }
+    // Only count deferred-match installs in trend
+    convTrendMatch.deferredLinkId = { $exists: true, $ne: null };
     const conversionsTrend = await ConversionModel.aggregate([
       { $match: convTrendMatch },
       {
@@ -485,6 +500,18 @@ export class AnalyticsService {
       },
     ]);
     const convTrendMap = new Map(conversionsTrend.map((c) => [c._id, c.conversions]));
+
+    // Opens trend — clicks where the app was already installed and opened
+    const opensTrend = await ClickModel.aggregate([
+      { $match: { ...trendClickMatch, actionTaken: 'app_opened' } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          opens: { $sum: 1 },
+        },
+      },
+    ]);
+    const opensTrendMap = new Map(opensTrend.map((o) => [o._id, o.opens]));
 
     // Top referrers
     const topReferrers = await ClickModel.aggregate([
@@ -578,8 +605,11 @@ export class AnalyticsService {
 
     return {
       totalClicks: clickCount,
+      totalInstalls: installCount,
+      totalOpens: openCount,
       totalConversions: conversionCount,
-      conversionRate: clickCount > 0 ? (conversionCount / clickCount) * 100 : 0,
+      conversionRate: clickCount > 0 ? Math.min((conversionCount / clickCount) * 100, 100) : 0,
+      installRate: clickCount > 0 ? Math.min((installCount / clickCount) * 100, 100) : 0,
       totalLinks: linkCount,
       activeCampaigns: campaignCount,
       deferredLinksMatched: deferredMatched,
@@ -605,12 +635,13 @@ export class AnalyticsService {
         linkCount: c.linkCount,
         clicks: c.clicks,
         conversions: c.conversions,
-        conversionRate: c.clicks > 0 ? (c.conversions / c.clicks) * 100 : 0,
+        conversionRate: c.clicks > 0 ? Math.min((c.conversions / c.clicks) * 100, 100) : 0,
       })),
       clicksTrend: clicksTrend.map((ct) => ({
         date: ct._id,
         clicks: ct.clicks,
         conversions: convTrendMap.get(ct._id) || 0,
+        opens: opensTrendMap.get(ct._id) || 0,
       })),
       channelBreakdown: channelBreakdown.map((cb) => ({
         channel: cb._id,

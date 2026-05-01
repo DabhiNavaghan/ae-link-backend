@@ -69,7 +69,7 @@ const linkSchema = new Schema<ILink>(
     },
     destinationUrl: {
       type: String,
-      required: true,
+      default: '',
     },
     linkType: {
       type: String,

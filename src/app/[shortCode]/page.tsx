@@ -149,7 +149,7 @@ export default async function ResolvePage({ params }: { params: Params }) {
         device: deviceInfo,
         geo: {},
         isAppInstalled: false,
-        actionTaken: isMobile ? 'app_opened' : 'web_fallback',
+        actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
       });
 
       await click.save();

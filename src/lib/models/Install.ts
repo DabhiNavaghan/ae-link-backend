@@ -2,6 +2,7 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 
 export interface IInstall extends Document {
   tenantId: mongoose.Types.ObjectId;
+  appId?: mongoose.Types.ObjectId;
   deviceId: string;
   platform: 'android' | 'ios';
   packageName?: string;
@@ -12,7 +13,7 @@ export interface IInstall extends Document {
   deviceManufacturer?: string;
   locale?: string;
   timezone?: string;
-  installType: 'first_install' | 'reinstall' | 'return_user';
+  installType: 'first_install' | 'reinstall' | 'open';
   matchResult: 'matched' | 'organic' | 'skipped';
   deferredLinkId?: mongoose.Types.ObjectId;
   matchScore?: number;
@@ -20,6 +21,12 @@ export interface IInstall extends Document {
   launchCount: number;
   firstSeenAt: Date;
   lastSeenAt: Date;
+  // Source tracking — populated on every launch (deep link or organic)
+  lastSource?: string;
+  lastMedium?: string;
+  lastCampaign?: string;
+  lastLinkId?: string;
+  lastLaunchUrl?: string;
   createdAt: Date;
 }
 
@@ -29,6 +36,11 @@ const installSchema = new Schema<IInstall>(
       type: Schema.Types.ObjectId,
       ref: 'Tenant',
       required: true,
+      index: true,
+    },
+    appId: {
+      type: Schema.Types.ObjectId,
+      ref: 'App',
       index: true,
     },
     deviceId: {
@@ -51,7 +63,7 @@ const installSchema = new Schema<IInstall>(
     timezone: String,
     installType: {
       type: String,
-      enum: ['first_install', 'reinstall', 'return_user'],
+      enum: ['first_install', 'reinstall', 'open'],
       default: 'first_install',
       index: true,
     },
@@ -79,6 +91,12 @@ const installSchema = new Schema<IInstall>(
       type: Date,
       default: Date.now,
     },
+    // Source tracking — updated on every launch
+    lastSource: String,
+    lastMedium: String,
+    lastCampaign: String,
+    lastLinkId: String,
+    lastLaunchUrl: String,
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

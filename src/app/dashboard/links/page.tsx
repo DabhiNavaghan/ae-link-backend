@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { copyToClipboard } from '@/lib/utils/slug';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import { copyToClipboard } from '@/lib/utils/slug';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface LinkItem {
   _id: string;
@@ -159,87 +159,6 @@ export default function LinksPage() {
         >
           + Create Link
         </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-card shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Campaign Filter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
-              Campaign
-            </label>
-            <select
-              value={campaignFilter}
-              onChange={(e) => {
-                setCampaignFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
-              style={{
-                borderColor: 'var(--color-border)',
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text)',
-              }}
-            >
-              <option value="">All Campaigns</option>
-              {campaigns.map((camp) => (
-                <option key={camp._id} value={camp._id}>
-                  {camp.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Link Type Filter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
-              Link Type
-            </label>
-            <select
-              value={linkTypeFilter}
-              onChange={(e) => {
-                setLinkTypeFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
-              style={{
-                borderColor: 'var(--color-border)',
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text)',
-              }}
-            >
-              <option value="">All Types</option>
-              {linkTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
-              Search
-            </label>
-            <input
-              type="text"
-              placeholder="Search short code or URL..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border focus:outline-none focus:ring-2"
-              style={{
-                borderColor: 'var(--color-border)',
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text)',
-              }}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Error Message */}

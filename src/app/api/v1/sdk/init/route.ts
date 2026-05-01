@@ -1,5 +1,6 @@
 export const maxDuration = 30;
 
+import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth } from '@/lib/middleware/auth';
@@ -73,6 +74,12 @@ export async function POST(request: NextRequest) {
       timezone,
       isFirstLaunch,
       isExistingUser,
+      // Source tracking — sent by SDK when app is opened via a deep link
+      launchSource,
+      launchMedium,
+      launchCampaign,
+      launchLinkId,
+      launchUrl,
     } = body;
 
     if (!deviceId || !platform) {
@@ -93,11 +100,15 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ||
       '127.0.0.1';
 
-    // ── Validate package/bundle ID against App config ──
+    // ── Resolve appId ──
+    // If using an app-level key, auth.appId is already set.
+    // Otherwise, try to match by packageName.
+    let resolvedAppId: string | undefined = auth.appId;
     let appValid = true;
     let appWarning: string | null = null;
 
-    if (packageName) {
+    if (!resolvedAppId && packageName) {
+      // Tenant-level key — match package/bundleId to find the app
       const apps = await AppModel.find({
         tenantId: auth.tenantId,
         isActive: true,
@@ -114,7 +125,9 @@ export async function POST(request: NextRequest) {
           return false;
         });
 
-        if (!matchingApp) {
+        if (matchingApp) {
+          resolvedAppId = (matchingApp._id as any).toString();
+        } else {
           appValid = false;
           appWarning = `Package "${packageName}" does not match any registered app. ` +
             `Register it in the dashboard under Apps.`;
@@ -132,23 +145,33 @@ export async function POST(request: NextRequest) {
       deviceId,
     });
 
-    let installType: 'first_install' | 'reinstall' | 'return_user';
+    let installType: 'first_install' | 'reinstall' | 'open';
+
+    // Source info sent by SDK (from deep link URL if app was opened via a link)
+    const sourceFields = {
+      lastSource: launchSource || null,
+      lastMedium: launchMedium || null,
+      lastCampaign: launchCampaign || null,
+      lastLinkId: launchLinkId || null,
+      lastLaunchUrl: launchUrl || null,
+    };
 
     if (!existingInstall) {
       if (isExistingUser) {
         // Host app explicitly told us this is an existing user
-        installType = 'return_user';
+        installType = 'open';
       } else if (isFirstLaunch) {
         // SDK says first launch + no DB record = genuine new install
         installType = 'first_install';
       } else {
         // SDK says NOT first launch but no DB record = existing user
         // (app was installed before we started tracking)
-        installType = 'return_user';
+        installType = 'open';
       }
 
       await InstallModel.create({
         tenantId: auth.tenantId,
+        appId: resolvedAppId || undefined,
         deviceId,
         platform,
         packageName,
@@ -165,10 +188,11 @@ export async function POST(request: NextRequest) {
         launchCount: 1,
         firstSeenAt: new Date(),
         lastSeenAt: new Date(),
+        ...sourceFields,
       });
 
       logger.info(
-        { tenantId: auth.tenantId, deviceId, platform, installType },
+        { tenantId: auth.tenantId, deviceId, platform, installType, source: launchSource },
         'New install recorded'
       );
     } else if (isFirstLaunch) {
@@ -176,6 +200,7 @@ export async function POST(request: NextRequest) {
       installType = 'reinstall';
 
       existingInstall.installType = 'reinstall';
+      if (resolvedAppId) existingInstall.appId = new (mongoose.Types.ObjectId as any)(resolvedAppId);
       existingInstall.appVersion = appVersion || existingInstall.appVersion;
       existingInstall.appBuildNumber = appBuildNumber || existingInstall.appBuildNumber;
       existingInstall.osVersion = osVersion || existingInstall.osVersion;
@@ -183,25 +208,31 @@ export async function POST(request: NextRequest) {
       existingInstall.lastSeenAt = new Date();
       existingInstall.ipAddress = ip;
       existingInstall.matchResult = 'skipped'; // Reset for new deferred match
+      // Update source tracking
+      Object.assign(existingInstall, sourceFields);
       await existingInstall.save();
 
       logger.info(
-        { tenantId: auth.tenantId, deviceId, platform, installType },
+        { tenantId: auth.tenantId, deviceId, platform, installType, source: launchSource },
         'Reinstall detected'
       );
     } else {
-      // Known device, not first launch — returning user
-      installType = 'return_user';
+      // Known device, not first launch — app open
+      installType = 'open';
 
+      existingInstall.installType = 'open';
+      if (resolvedAppId) existingInstall.appId = new (mongoose.Types.ObjectId as any)(resolvedAppId);
       existingInstall.launchCount += 1;
       existingInstall.lastSeenAt = new Date();
       existingInstall.appVersion = appVersion || existingInstall.appVersion;
       existingInstall.ipAddress = ip;
+      // Update source tracking on every open
+      Object.assign(existingInstall, sourceFields);
       await existingInstall.save();
 
       logger.debug(
-        { tenantId: auth.tenantId, deviceId, launchCount: existingInstall.launchCount },
-        'Return user launch'
+        { tenantId: auth.tenantId, deviceId, launchCount: existingInstall.launchCount, source: launchSource },
+        'App open'
       );
     }
 
@@ -213,6 +244,7 @@ export async function POST(request: NextRequest) {
         valid: true,
         appValid,
         appWarning,
+        appId: resolvedAppId || null,
         installType,
         deviceId,
         config: {

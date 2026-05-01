@@ -72,6 +72,7 @@ export interface IApp extends Document {
   tenantId: Types.ObjectId;
   name: string;
   slug?: string;
+  apiKey: string;
   android?: IAndroidConfig;
   ios?: IIosConfig;
   isActive: boolean;
@@ -328,8 +329,8 @@ export interface CreateLinkDto {
   campaignId?: string;
   appId?: string;
   title: string;
-  destinationUrl: string;
-  linkType: LinkType;
+  destinationUrl?: string;
+  linkType?: LinkType;
   params?: ILinkParams;
   platformOverrides?: IPlatformOverrides;
   expiresAt?: string;
@@ -441,8 +442,11 @@ export interface CampaignAnalytics {
 
 export interface DashboardOverview {
   totalClicks: number;
+  totalInstalls: number;
+  totalOpens: number;
   totalConversions: number;
   conversionRate: number;
+  installRate: number;
   totalLinks: number;
   activeCampaigns: number;
   deferredLinksMatched: number;
@@ -474,6 +478,7 @@ export interface DashboardOverview {
     date: string;
     clicks: number;
     conversions: number;
+    opens: number;
   }>;
   channelBreakdown: Array<{
     channel: string;
