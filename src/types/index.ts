@@ -442,8 +442,11 @@ export interface CampaignAnalytics {
 
 export interface DashboardOverview {
   totalClicks: number;
+  totalInstalls: number;
+  totalOpens: number;
   totalConversions: number;
   conversionRate: number;
+  installRate: number;
   totalLinks: number;
   activeCampaigns: number;
   deferredLinksMatched: number;
@@ -475,6 +478,7 @@ export interface DashboardOverview {
     date: string;
     clicks: number;
     conversions: number;
+    opens: number;
   }>;
   channelBreakdown: Array<{
     channel: string;

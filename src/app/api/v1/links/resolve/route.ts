@@ -4,7 +4,6 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
-import ConversionModel from '@/lib/models/Conversion';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 
@@ -81,21 +80,11 @@ export async function GET(request: NextRequest) {
 
     const params = (link as any).params || {};
 
-    // Track conversion for direct deep link (app already installed)
-    try {
-      await ConversionModel.create({
-        linkId: link._id,
-        tenantId: auth.tenantId,
-        conversionType: 'app_open',
-        metadata: {
-          source: 'direct_deep_link',
-          shortCode,
-        },
-      });
-    } catch (convErr) {
-      // Non-blocking
-      logger.debug({ error: String(convErr) }, 'Failed to create conversion');
-    }
+    // Note: We intentionally do NOT create a conversion here.
+    // Direct deep-link opens (app already installed) are normal navigation,
+    // not meaningful conversions. Only deferred matches (first open after
+    // install via a SmartLink) count as conversions.
+    // This prevents CVR from exceeding 100% due to repeat opens.
 
     const response = NextResponse.json(
       successResponse({

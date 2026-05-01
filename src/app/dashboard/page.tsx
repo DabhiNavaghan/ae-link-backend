@@ -43,8 +43,8 @@ function formatNum(n: number): { value: string; unit: string } {
 
 function actionLabel(action: string): { text: string; warn: boolean } {
   switch (action) {
-    case 'app_opened': return { text: 'install', warn: false };
-    case 'store_redirect': return { text: 'click', warn: false };
+    case 'app_opened': return { text: 'open', warn: false };
+    case 'store_redirect': return { text: 'install', warn: false };
     case 'web_fallback': return { text: 'click', warn: false };
     default: return { text: action, warn: false };
   }
@@ -80,30 +80,35 @@ function generateSparkPath(data: number[], w = 200, h = 36): { line: string; are
 }
 
 function generateChartPaths(
-  data: Array<{ clicks: number; conversions: number }>,
+  data: Array<{ clicks: number; conversions: number; opens?: number }>,
   viewW = 650,
   viewH = 180,
   padL = 40
-): { clicksPath: string; clicksArea: string; conversionsPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }> } {
+): { clicksPath: string; clicksArea: string; conversionsPath: string; opensPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }>; openPts: Array<{ x: number; y: number }> } {
   const usableW = viewW - padL;
-  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', clickPts: [], convPts: [] };
-  const maxClicks = Math.max(...data.map((d) => d.clicks), 1);
+  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', opensPath: '', clickPts: [], convPts: [], openPts: [] };
+  const maxVal = Math.max(...data.map((d) => Math.max(d.clicks, d.opens || 0)), 1);
   const step = usableW / Math.max(data.length - 1, 1);
 
   const clickPts = data.map((d, i) => ({
     x: padL + i * step,
-    y: viewH - (d.clicks / maxClicks) * (viewH - 40) - 20,
+    y: viewH - (d.clicks / maxVal) * (viewH - 40) - 20,
   }));
   const convPts = data.map((d, i) => ({
     x: padL + i * step,
-    y: viewH - (d.conversions / maxClicks) * (viewH - 40) - 20,
+    y: viewH - (d.conversions / maxVal) * (viewH - 40) - 20,
+  }));
+  const openPts = data.map((d, i) => ({
+    x: padL + i * step,
+    y: viewH - ((d.opens || 0) / maxVal) * (viewH - 40) - 20,
   }));
 
   const clicksPathStr = smoothPath(clickPts);
   const clicksArea = `${clicksPathStr} L ${padL + (data.length - 1) * step} ${viewH} L ${padL} ${viewH} Z`;
   const conversionsPath = smoothPath(convPts);
+  const opensPath = smoothPath(openPts);
 
-  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, clickPts, convPts };
+  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, opensPath, clickPts, convPts, openPts };
 }
 
 // ─── Copy Store Link Button ──────────────────────────────────────
@@ -232,7 +237,8 @@ export default function DashboardPage() {
 
   const clicksFmt = formatNum(overview?.totalClicks || 0);
   const convFmt = formatNum(overview?.totalConversions || 0);
-  const convRate = overview?.conversionRate?.toFixed(2) || '0.00';
+  const convRate = overview?.conversionRate?.toFixed(1) || '0.0';
+  const opensFmt = formatNum(overview?.totalOpens || 0);
   const linksFmt = formatNum(overview?.totalLinks || 0);
   const secAgo = Math.round((Date.now() - lastUpdated.getTime()) / 1000);
 
@@ -244,7 +250,7 @@ export default function DashboardPage() {
 
   // Chart paths
   const chartData = overview?.clicksTrend || [];
-  const { clicksPath, clicksArea, conversionsPath, clickPts, convPts } = generateChartPaths(chartData);
+  const { clicksPath, clicksArea, conversionsPath, opensPath, clickPts, convPts, openPts } = generateChartPaths(chartData);
 
   // Date labels for chart
   const chartDates = chartData.length > 0
@@ -359,14 +365,15 @@ export default function DashboardPage() {
       >
         {/* Total Clicks */}
         <StatCell
-          label="Total clicks"
+          label="Clicks"
           id="#01"
           value={clicksFmt.value}
           unit={clicksFmt.unit}
           loading={loading}
           sparkPath={clicksSpark}
+          tooltip="Total times your links were clicked"
         />
-        {/* Total Conversions */}
+        {/* Conversions */}
         <StatCell
           label="Conversions"
           id="#02"
@@ -374,23 +381,35 @@ export default function DashboardPage() {
           unit={convFmt.unit}
           loading={loading}
           sparkPath={convSpark}
+          tooltip="Users who installed your app via a link"
         />
-        {/* CVR */}
+        {/* Conversion Rate */}
         <StatCell
           label="CVR"
           id="#03"
           value={convRate}
           unit="%"
           loading={loading}
+          tooltip="% of clicks that led to an install"
+        />
+        {/* Opens */}
+        <StatCell
+          label="Opens"
+          id="#04"
+          value={opensFmt.value}
+          unit={opensFmt.unit}
+          loading={loading}
+          tooltip="App opened directly from a link"
         />
         {/* Active Links */}
         <StatCell
           label="Active links"
-          id="#04"
+          id="#05"
           value={linksFmt.value}
           unit={linksFmt.unit}
           loading={loading}
           isLast
+          tooltip="Links currently active"
         />
       </div>
 
@@ -522,12 +541,16 @@ export default function DashboardPage() {
           >
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>02</span>
-              // clicks & conversions · 30d
+              // clicks, opens & conversions · 30d
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 14 }}>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-primary)', marginRight: 6, verticalAlign: 'middle' }} />
                 clicks
+              </span>
+              <span>
+                <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-secondary)', marginRight: 6, verticalAlign: 'middle' }} />
+                opens
               </span>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-accent)', marginRight: 6, verticalAlign: 'middle' }} />
@@ -554,6 +577,8 @@ export default function DashboardPage() {
                 {/* Clicks area + smooth line */}
                 <path d={clicksArea} fill="rgba(201, 255, 61, 0.08)" />
                 <path d={clicksPath} fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Opens smooth line */}
+                <path d={opensPath} fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 3" />
                 {/* Conversions smooth line */}
                 <path d={conversionsPath} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Interactive hover zones */}
@@ -567,15 +592,20 @@ export default function DashboardPage() {
                         <line x1={pt.x} y1={20} x2={pt.x} y2={220} stroke="var(--color-border-hover)" strokeWidth="1" strokeDasharray="3 3" />
                         {/* Click dot */}
                         <circle cx={pt.x} cy={pt.y} r="4" fill="var(--color-primary)" stroke="var(--color-bg)" strokeWidth="2" />
+                        {/* Opens dot */}
+                        <circle cx={openPts[i].x} cy={openPts[i].y} r="4" fill="var(--color-secondary)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Conversion dot */}
                         <circle cx={convPts[i].x} cy={convPts[i].y} r="4" fill="var(--color-accent)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Tooltip background */}
-                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={38} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
+                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={50} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
                         {/* Tooltip text */}
                         <text x={Math.min(pt.x - 50, 585)} y={16} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-primary)">
                           clicks: {chartData[i]?.clicks}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={32} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
+                        <text x={Math.min(pt.x - 50, 585)} y={30} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-secondary)">
+                          opens: {chartData[i]?.opens || 0}
+                        </text>
+                        <text x={Math.min(pt.x - 50, 585)} y={44} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
                           conv: {chartData[i]?.conversions}
                         </text>
                       </>
@@ -1092,6 +1122,7 @@ function StatCell({
   loading,
   sparkPath,
   isLast,
+  tooltip,
 }: {
   label: string;
   id: string;
@@ -1100,7 +1131,9 @@ function StatCell({
   loading: boolean;
   sparkPath?: { line: string; area: string };
   isLast?: boolean;
+  tooltip?: string;
 }) {
+  const [showTip, setShowTip] = useState(false);
   return (
     <div
       className="dashboard-stat-cell"
@@ -1110,7 +1143,10 @@ function StatCell({
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        position: 'relative',
       }}
+      onMouseEnter={() => setShowTip(true)}
+      onMouseLeave={() => setShowTip(false)}
     >
       <div
         style={{
@@ -1148,6 +1184,42 @@ function StatCell({
           <path d={sparkPath.area} fill="rgba(201, 255, 61, 0.15)" />
           <path d={sparkPath.line} fill="none" stroke="var(--color-primary)" strokeWidth="1.4" />
         </svg>
+      )}
+      {tooltip && showTip && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: 8,
+            padding: '10px 14px',
+            background: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            lineHeight: 1.5,
+            color: 'var(--color-text-secondary)',
+            whiteSpace: 'nowrap',
+            zIndex: 50,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }}
+        >
+          {tooltip}
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderTop: '6px solid var(--color-border)',
+            }}
+          />
+        </div>
       )}
     </div>
   );
