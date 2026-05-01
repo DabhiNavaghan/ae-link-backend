@@ -111,17 +111,19 @@ export async function POST(request: NextRequest) {
     const body: CreateLinkDto = await request.json();
 
     // Validate required fields
-    if (!body.title || !body.destinationUrl || !body.linkType) {
-      const fieldErrors: Record<string, string> = {};
-      if (!body.title) fieldErrors.title = 'Required';
-      if (!body.destinationUrl) fieldErrors.destinationUrl = 'Required';
-      if (!body.linkType) fieldErrors.linkType = 'Required';
+    if (!body.title) {
       const errorRes = new NextResponse(
-        JSON.stringify(Errors.VALIDATION_ERROR(fieldErrors)),
+        JSON.stringify(Errors.VALIDATION_ERROR({ title: 'Required' })),
         { status: 400 }
       );
       return applyCors(request, errorRes);
     }
+
+    // Default destinationUrl to empty string (app-open-only link)
+    if (!body.destinationUrl) body.destinationUrl = '';
+
+    // Default linkType to 'custom' if not provided
+    if (!body.linkType) body.linkType = 'custom';
 
     const link = await LinkService.createLink(auth.tenantId, body);
 

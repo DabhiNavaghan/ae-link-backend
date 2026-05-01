@@ -329,8 +329,8 @@ export interface CreateLinkDto {
   campaignId?: string;
   appId?: string;
   title: string;
-  destinationUrl: string;
-  linkType: LinkType;
+  destinationUrl?: string;
+  linkType?: LinkType;
   params?: ILinkParams;
   platformOverrides?: IPlatformOverrides;
   expiresAt?: string;

@@ -137,7 +137,13 @@ export default function RedirectPage({
     if (!isMobile) {
       // Desktop — go straight to the web destination
       const webUrl = link.platformOverrides?.web?.url || link.destinationUrl;
-      window.location.replace(webUrl);
+      if (webUrl) {
+        window.location.replace(webUrl);
+      } else {
+        // No web destination — redirect to store (prefer Android for desktop)
+        const fallbackStore = storeUrls.android || storeUrls.ios;
+        if (fallbackStore) window.location.replace(fallbackStore);
+      }
       setStatus('done');
       return;
     }
