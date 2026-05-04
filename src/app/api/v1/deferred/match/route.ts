@@ -122,8 +122,24 @@ export async function POST(request: NextRequest) {
       '📱 NORMALIZED fingerprint for matching'
     );
 
-    // Get tenant settings for match threshold
+    // Get tenant settings for match threshold and deferred link toggle
     const tenant = await TenantModel.findById(auth.tenantId);
+
+    // Check if deferred deep linking is enabled (default: true)
+    const deferredEnabled = tenant?.settings?.enableDeferredDeepLink !== false;
+    if (!deferredEnabled) {
+      logger.info({ tenantId: auth.tenantId }, 'Deferred deep linking disabled for tenant');
+      const response = NextResponse.json(
+        successResponse({
+          matched: false,
+          deferredLinkId: null,
+          debug: { message: 'Deferred deep linking is disabled in settings.' },
+        }),
+        { status: 200 }
+      );
+      return applyCors(request, response);
+    }
+
     const matchThreshold = tenant?.settings?.matchThreshold || 60;
 
     // Find matching deferred link

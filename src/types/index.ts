@@ -36,6 +36,7 @@ export interface ITenantSettings {
   fingerprintTtlHours: number;
   matchThreshold: number;
   defaultFallbackUrl?: string;
+  enableDeferredDeepLink?: boolean;
 }
 
 export interface ITenant extends Document {
