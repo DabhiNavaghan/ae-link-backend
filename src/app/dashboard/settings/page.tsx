@@ -25,6 +25,7 @@ interface TenantSettings {
   };
   fingerprintTtlHours: number;
   matchThreshold: number;
+  enableDeferredDeepLink: boolean;
 }
 
 const SettingsPage: React.FC = () => {
@@ -33,6 +34,7 @@ const SettingsPage: React.FC = () => {
     domain: '',
     fingerprintTtlHours: 6,
     matchThreshold: 60,
+    enableDeferredDeepLink: true,
     android: {
       package: '',
       sha256: '',
@@ -190,6 +192,7 @@ const SettingsPage: React.FC = () => {
         },
         fingerprintTtlHours: (tenant as any).settings?.fingerprintTtlHours || 6,
         matchThreshold: (tenant as any).settings?.matchThreshold || 60,
+        enableDeferredDeepLink: (tenant as any).settings?.enableDeferredDeepLink !== false,
       });
     } catch (err) {
       setMessage({
@@ -213,6 +216,7 @@ const SettingsPage: React.FC = () => {
           defaultFallbackUrl: settings.defaultFallbackUrl || '',
           fingerprintTtlHours: settings.fingerprintTtlHours,
           matchThreshold: settings.matchThreshold,
+          enableDeferredDeepLink: settings.enableDeferredDeepLink,
         },
         app: {
           android: settings.android,
@@ -886,6 +890,66 @@ const SettingsPage: React.FC = () => {
         {/* Deep Link Settings */}
         {activeTab === 'deep-link' && (
           <div className="space-y-6">
+            {/* Deferred Deep Link Toggle */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-bg-secondary)',
+              }}
+            >
+              <div>
+                <h4 style={{ color: 'var(--color-text)', margin: 0, fontSize: 14, fontWeight: 600 }}>
+                  Deferred Deep Linking
+                </h4>
+                <p style={{ color: 'var(--color-text-tertiary)', margin: '4px 0 0', fontSize: 12 }}>
+                  Open the right screen in your app after a user installs from a SmartLink.
+                  Disable this if you don't need post-install attribution.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    enableDeferredDeepLink: !settings.enableDeferredDeepLink,
+                  })
+                }
+                style={{
+                  width: 44,
+                  height: 24,
+                  borderRadius: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  flexShrink: 0,
+                  marginLeft: 16,
+                  background: settings.enableDeferredDeepLink
+                    ? 'var(--color-primary)'
+                    : 'var(--color-border-hover)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.enableDeferredDeepLink ? 23 : 3,
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: settings.enableDeferredDeepLink
+                      ? 'var(--color-bg)'
+                      : 'var(--color-text-tertiary)',
+                    transition: 'left 0.2s, background 0.2s',
+                  }}
+                />
+              </button>
+            </div>
+
             <div>
               <label style={{ color: 'var(--color-text)' }} className="block text-sm font-medium mb-2">
                 Fingerprint TTL (hours)

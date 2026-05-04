@@ -30,6 +30,10 @@ const tenantSettingsSchema = new Schema<ITenantSettings>(
       default: 60,
     },
     defaultFallbackUrl: String,
+    enableDeferredDeepLink: {
+      type: Boolean,
+      default: true,
+    },
   },
   { _id: false }
 );

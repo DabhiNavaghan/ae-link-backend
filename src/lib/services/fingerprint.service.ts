@@ -242,12 +242,69 @@ export class FingerprintService {
    * Designed for CROSS-PLATFORM matching (browser → native app).
    * UA hash is intentionally excluded since browser and app UAs never match.
    */
+  /**
+   * Normalize platform strings to 'ios' | 'android' | null.
+   * Browser sends navigator.platform: "iPhone", "iPad", "Linux armv81", "MacIntel", etc.
+   * Flutter SDK sends: "ios", "android", "iOS", "Android", etc.
+   */
+  private static normalizePlatformOS(platform?: string, userAgent?: string): 'ios' | 'android' | null {
+    if (!platform && !userAgent) return null;
+
+    const p = (platform || '').toLowerCase();
+    const ua = (userAgent || '').toLowerCase();
+
+    // iOS indicators
+    if (
+      p.includes('iphone') || p.includes('ipad') || p.includes('ipod') ||
+      p === 'ios' ||
+      ua.includes('iphone') || ua.includes('ipad')
+    ) {
+      return 'ios';
+    }
+
+    // Android indicators
+    if (
+      p.includes('android') || p.includes('linux arm') || p.includes('linux aarch') ||
+      p === 'android' ||
+      ua.includes('android')
+    ) {
+      return 'android';
+    }
+
+    return null;
+  }
+
   private static calculateMatchScore(
     incoming: FingerprintData,
     candidate: any
   ): { score: number; details: IMatchDetails } {
     let score = 0;
     const details: IMatchDetails = {};
+
+    // ── Platform/OS match: BLOCKING condition ──
+    // An iOS click must only match an iOS app, Android to Android.
+    // If both sides report a platform and they disagree, reject immediately.
+    const incomingOS = this.normalizePlatformOS(incoming.platform, incoming.userAgent);
+    const candidateOS = this.normalizePlatformOS(candidate.platform, candidate.userAgent);
+
+    if (incomingOS && candidateOS && incomingOS !== candidateOS) {
+      details.platformMismatch = true;
+      details.incomingPlatform = incomingOS;
+      details.candidatePlatform = candidateOS;
+      details.totalScore = 0;
+
+      logger.debug(
+        {
+          incomingPlatform: `${incoming.platform} → ${incomingOS}`,
+          candidatePlatform: `${candidate.platform} → ${candidateOS}`,
+        },
+        'Platform mismatch — rejecting candidate'
+      );
+
+      return { score: 0, details };
+    }
+
+    details.platformMatch = incomingOS === candidateOS;
 
     // ── IP match: up to 40 points ──
     // Mobile carriers use CGNAT with multiple exit IPs, so exact match
@@ -314,24 +371,27 @@ export class FingerprintService {
         details.screenMatch = true;
         details.screenScore = 20;
       } else {
-        // Fuzzy screen match: within 10% tolerance
-        // Handles slight differences in how CSS vs logical pixels are reported
+        // Fuzzy screen match: within 5% tolerance (tightened from 10%)
+        // Browser CSS pixels and Flutter logical pixels should be very close
+        // on the same device. 5% tolerance handles minor rounding differences
+        // while preventing cross-device false positives (e.g. iPhone 390×844
+        // should NOT match a typical Android 412×915).
         const widthRatio = incoming.screen.width / candidate.screen.width;
         const heightRatio = incoming.screen.height / candidate.screen.height;
-        if (widthRatio > 0.9 && widthRatio < 1.1 &&
-            heightRatio > 0.9 && heightRatio < 1.1) {
-          score += 12;
+        if (widthRatio > 0.95 && widthRatio < 1.05 &&
+            heightRatio > 0.95 && heightRatio < 1.05) {
+          score += 15;
           details.screenMatch = true;
-          details.screenScore = 12;
+          details.screenScore = 15;
         } else {
           // Try matching with swapped dimensions (portrait vs landscape)
           const swappedWidthRatio = incoming.screen.width / candidate.screen.height;
           const swappedHeightRatio = incoming.screen.height / candidate.screen.width;
-          if (swappedWidthRatio > 0.9 && swappedWidthRatio < 1.1 &&
-              swappedHeightRatio > 0.9 && swappedHeightRatio < 1.1) {
-            score += 12;
+          if (swappedWidthRatio > 0.95 && swappedWidthRatio < 1.05 &&
+              swappedHeightRatio > 0.95 && swappedHeightRatio < 1.05) {
+            score += 15;
             details.screenMatch = true;
-            details.screenScore = 12;
+            details.screenScore = 15;
           }
         }
       }
