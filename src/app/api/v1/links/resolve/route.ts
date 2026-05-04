@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
+import ClickModel from '@/lib/models/Click';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 
@@ -85,6 +86,26 @@ export async function GET(request: NextRequest) {
     // not meaningful conversions. Only deferred matches (first open after
     // install via a SmartLink) count as conversions.
     // This prevents CVR from exceeding 100% due to repeat opens.
+
+    // Mark the most recent click for this link as app_opened.
+    // The SDK calls this endpoint when the app opens via deep link —
+    // this is the definitive "app opened" signal. The web redirect page
+    // initially records the click as store_redirect (conservative default)
+    // because the browser can't reliably call back after the app opens.
+    try {
+      await ClickModel.findOneAndUpdate(
+        {
+          linkId: link._id,
+          tenantId: auth.tenantId,
+          createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // within last 5 min
+        },
+        { $set: { actionTaken: 'app_opened', isAppInstalled: true } },
+        { sort: { createdAt: -1 } } // most recent click
+      );
+    } catch (updateErr) {
+      // Non-blocking — don't fail the resolve if click update fails
+      logger.debug({ error: String(updateErr) }, 'Click action update failed');
+    }
 
     const response = NextResponse.json(
       successResponse({
