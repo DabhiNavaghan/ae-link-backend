@@ -262,11 +262,6 @@ export default function LinksPage() {
                       >
                         {link.title || link.shortCode}
                       </Link>
-                      {link.title && (
-                        <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
-                          {link.shortCode}
-                        </p>
-                      )}
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
                         {(typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app')}/{link.shortCode}
                       </p>

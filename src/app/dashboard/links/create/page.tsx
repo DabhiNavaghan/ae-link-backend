@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generateQRCodeSVG } from '@/lib/utils/qr-code';
+import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 
@@ -239,7 +239,7 @@ export default function CreateLinkPage() {
   async function generateQRCode() {
     if (!formData.destinationUrl) { setQrCodeUrl(''); return; }
     try {
-      const svg = generateQRCodeSVG(formData.destinationUrl, 200);
+      const svg = await generateQRCodeSVG(formData.destinationUrl, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
     } catch { setQrCodeUrl(''); }
   }
@@ -710,7 +710,7 @@ export default function CreateLinkPage() {
                 <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={labelStyle}>custom short code</label>
-                    <input type="text" value={formData.shortCode} onChange={(e) => setFormData((prev) => ({ ...prev, shortCode: e.target.value }))} placeholder="auto-generated" style={inputStyle} />
+                    <input type="text" value={formData.shortCode} onChange={(e) => setFormData((prev) => ({ ...prev, shortCode: e.target.value.toLowerCase() }))} placeholder="auto-generated" style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>expiry date</label>

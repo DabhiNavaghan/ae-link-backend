@@ -1,12 +1,11 @@
 import crypto from 'crypto';
 
-const CHARSET =
-  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const BASE = CHARSET.length; // 62
+const CHARSET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const BASE = CHARSET.length; // 36
 
 /**
- * Generate a random short code using Base62 encoding.
- * Default length: 7 characters = 3.5 trillion combinations
+ * Generate a random short code using lowercase alphanumeric characters.
+ * Default length: 7 characters = ~78 billion combinations (36^7)
  */
 export function generateShortCode(length: number = 7): string {
   const randomBytes = crypto.randomBytes(length);

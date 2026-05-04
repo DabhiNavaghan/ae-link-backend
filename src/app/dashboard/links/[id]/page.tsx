@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
-import { generateQRCodeSVG } from '@/lib/utils/qr-code';
+import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 
@@ -71,7 +71,7 @@ export default function LinkDetailPage() {
 
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
       const deepLink = `${origin}/${(linkData as unknown as LinkData).shortCode}`;
-      const svg = generateQRCodeSVG(deepLink, 200);
+      const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
       setAnalytics({
@@ -173,16 +173,23 @@ export default function LinkDetailPage() {
             </span>
           </div>
           <div style={{ padding: 20 }}>
-            {link.title && (
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4, letterSpacing: '-0.01em' }}>
-                {link.title}
-              </div>
-            )}
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: link.title ? 14 : 28, fontWeight: link.title ? 400 : 700, color: 'var(--color-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
-              {link.shortCode}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+              {link.title || link.shortCode}
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16 }}>
+            <div
+              onClick={async () => {
+                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+                await copyToClipboard(`${origin}/${link.shortCode}`);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Click to copy link"
+            >
               {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{link.shortCode}
+              <span style={{ fontSize: 10, color: copied ? 'var(--color-primary)' : 'var(--color-text-tertiary)', transition: 'color 0.2s' }}>
+                {copied ? '✓ copied' : '⧉'}
+              </span>
             </div>
             <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', padding: '12px 16px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>destination</div>
