@@ -33,6 +33,7 @@ export class LinkService {
       campaignId: dto.campaignId ? new Types.ObjectId(dto.campaignId) : undefined,
       appId: dto.appId ? new Types.ObjectId(dto.appId) : undefined,
       shortCode,
+      title: dto.title || undefined,
       destinationUrl: dto.destinationUrl || '',
       linkType: dto.linkType,
       params: dto.params || {},
@@ -135,6 +136,9 @@ export class LinkService {
   ): Promise<ILink | null> {
     const updateData: Record<string, any> = {};
 
+    if (dto.title !== undefined) {
+      updateData.title = dto.title;
+    }
     if (dto.destinationUrl !== undefined) {
       updateData.destinationUrl = dto.destinationUrl;
     }
