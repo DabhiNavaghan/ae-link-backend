@@ -111,9 +111,13 @@ export async function POST(request: NextRequest) {
     const body: CreateLinkDto = await request.json();
 
     // Validate required fields
-    if (!body.title) {
+    const validationErrors: Record<string, string> = {};
+    if (!body.title) validationErrors.title = 'Required';
+    if (!body.appId) validationErrors.appId = 'Required';
+
+    if (Object.keys(validationErrors).length > 0) {
       const errorRes = new NextResponse(
-        JSON.stringify(Errors.VALIDATION_ERROR({ title: 'Required' })),
+        JSON.stringify(Errors.VALIDATION_ERROR(validationErrors)),
         { status: 400 }
       );
       return applyCors(request, errorRes);
