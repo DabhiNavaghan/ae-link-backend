@@ -110,10 +110,15 @@ export async function POST(request: NextRequest) {
 
     const body: CreateLinkDto = await request.json();
 
+    // Auto-fill appId from per-app API key (app_xxx key auto-resolves the app)
+    if (!body.appId && auth.appId) {
+      body.appId = auth.appId;
+    }
+
     // Validate required fields
     const validationErrors: Record<string, string> = {};
     if (!body.title) validationErrors.title = 'Required';
-    if (!body.appId) validationErrors.appId = 'Required';
+    if (!body.appId) validationErrors.appId = 'Required — pass appId in body or use a per-app API key';
 
     if (Object.keys(validationErrors).length > 0) {
       const errorRes = new NextResponse(
