@@ -170,8 +170,22 @@ function AppCard({
       <div className="flex items-start justify-between mb-4 gap-2 flex-wrap">
         <div>
           <h3 className="text-base md:text-lg font-semibold" style={{ color: 'var(--color-text)' }}>{app.name}</h3>
-          <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-tertiary)' }}>
-            ID: {String((app as any)._id).slice(-8)}
+          <p
+            className="text-xs mt-0.5 font-mono cursor-pointer hover:underline"
+            style={{ color: 'var(--color-text-tertiary)' }}
+            title="Click to copy App ID"
+            onClick={(e) => {
+              e.stopPropagation();
+              const id = String((app as any)._id);
+              navigator.clipboard.writeText(id).then(() => {
+                const el = e.currentTarget;
+                const orig = el.textContent;
+                el.textContent = 'copied!';
+                setTimeout(() => { el.textContent = orig; }, 1500);
+              });
+            }}
+          >
+            App ID: {String((app as any)._id)}
           </p>
         </div>
         <Badge status={app.isActive ? 'active' : 'archived'}>
