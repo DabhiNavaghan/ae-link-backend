@@ -328,7 +328,7 @@ export interface IConversion extends Document {
 
 export interface CreateLinkDto {
   campaignId?: string;
-  appId?: string;
+  appId: string;
   title: string;
   destinationUrl?: string;
   linkType?: LinkType;

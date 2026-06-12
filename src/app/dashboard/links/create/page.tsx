@@ -318,7 +318,7 @@ export default function CreateLinkPage() {
           ...(formData.iosUrl && { ios: { url: formData.iosUrl, ...(formData.iosFallback && { fallback: formData.iosFallback }) } }),
           ...(formData.webUrl && { web: { url: formData.webUrl } }),
         },
-        ...(formData.appId && { appId: formData.appId }),
+        appId: formData.appId,
         ...(formData.campaignId && { campaignId: formData.campaignId }),
         ...(formData.shortCode && { shortCode: formData.shortCode }),
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
