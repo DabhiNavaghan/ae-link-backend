@@ -89,6 +89,11 @@ clickSchema.index({ linkId: 1, createdAt: -1 });
 clickSchema.index({ 'device.os': 1, createdAt: -1 });
 clickSchema.index({ 'device.type': 1, createdAt: -1 });
 clickSchema.index({ tenantId: 1, channel: 1, createdAt: -1 });
+// Indexes for metadata-based analytics (dynamic deep link tracking)
+clickSchema.index({ linkId: 1, actionTaken: 1 });
+clickSchema.index({ linkId: 1, 'metadata.deepLink': 1 }, { sparse: true });
+clickSchema.index({ linkId: 1, 'metadata.ref': 1 }, { sparse: true });
+clickSchema.index({ linkId: 1, 'metadata.utmSource': 1 }, { sparse: true });
 
 const ClickModel: Model<IClick> =
   mongoose.models.Click || mongoose.model<IClick>('Click', clickSchema);

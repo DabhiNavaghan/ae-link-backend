@@ -29,10 +29,21 @@ interface Analytics {
   uniqueClicks: number;
   conversions: number;
   deferredMatches: number;
+  actions: {
+    appOpened: number;
+    storeRedirect: number;
+    webFallback: number;
+  };
   devices: Record<string, number>;
+  channels: Array<{ channel: string; clicks: number }>;
   countries: Array<{ country: string; clicks: number }>;
   browsers: Array<{ browser: string; clicks: number }>;
   referrers: Array<{ referrer: string; clicks: number }>;
+  deepLinks: Array<{ url: string; clicks: number }>;
+  refParams: Array<{ ref: string; clicks: number }>;
+  utmSources: Array<{ source: string; clicks: number }>;
+  utmMediums: Array<{ medium: string; clicks: number }>;
+  utmCampaigns: Array<{ campaign: string; clicks: number }>;
   clicksTrend: Array<{ date: string; clicks: number }>;
 }
 
@@ -79,10 +90,17 @@ export default function LinkDetailPage() {
         uniqueClicks: analyticsData.clicks?.unique || 0,
         conversions: analyticsData.conversions?.total || 0,
         deferredMatches: analyticsData.deferredMatches || 0,
+        actions: analyticsData.actions || { appOpened: 0, storeRedirect: 0, webFallback: 0 },
         devices: analyticsData.devices || {},
+        channels: analyticsData.channels || [],
         countries: analyticsData.topCountries || [],
         browsers: analyticsData.topBrowsers || [],
         referrers: analyticsData.topReferrers || [],
+        deepLinks: analyticsData.topDeepLinks || [],
+        refParams: analyticsData.topRefParams || [],
+        utmSources: analyticsData.topUtmSources || [],
+        utmMediums: analyticsData.topUtmMediums || [],
+        utmCampaigns: analyticsData.topUtmCampaigns || [],
         clicksTrend: analyticsData.clicksTrend || [],
       });
     } catch (err: any) {
@@ -103,23 +121,32 @@ export default function LinkDetailPage() {
     }
   }
 
-  const sectionHeader = (num: string, label: string) => (
-    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
-      <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>{num}</span>
-      // {label}
-    </span>
-  );
+  let sectionNum = 0;
+  const nextSection = (label: string) => {
+    sectionNum++;
+    const num = String(sectionNum).padStart(2, '0');
+    return (
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
+        <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>{num}</span>
+        // {label}
+      </span>
+    );
+  };
 
   const progressBar = (label: string, value: number, max: number, color = 'var(--color-primary)') => (
-    <div style={{ marginBottom: 14 }}>
+    <div key={label} style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 6 }}>
-        <span style={{ color: 'var(--color-text)' }}>{label}</span>
-        <span style={{ color: 'var(--color-text-secondary)' }}>{value}</span>
+        <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }} title={label}>{label}</span>
+        <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0, marginLeft: 8 }}>{value}</span>
       </div>
       <div style={{ height: 6, background: 'var(--color-bg-hover)', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, background: color, transition: 'width 0.6s ease' }} />
       </div>
     </div>
+  );
+
+  const emptyState = (msg: string) => (
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: 40 }}>{msg}</div>
   );
 
   if (loading) {
@@ -145,6 +172,15 @@ export default function LinkDetailPage() {
     );
   }
 
+  // Reset section counter for render
+  sectionNum = 0;
+
+  // Check if there's any metadata-based analytics
+  const hasDeepLinks = analytics && analytics.deepLinks.length > 0;
+  const hasRefParams = analytics && analytics.refParams.length > 0;
+  const hasUtmData = analytics && (analytics.utmSources.length > 0 || analytics.utmMediums.length > 0 || analytics.utmCampaigns.length > 0);
+  const hasTrackingData = hasDeepLinks || hasRefParams || hasUtmData;
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -159,10 +195,10 @@ export default function LinkDetailPage() {
           </div>
         </div>
 
-        {/* 01 Header */}
+        {/* 01 Link Details */}
         <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {sectionHeader('01', 'link details')}
+            {nextSection('link details')}
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 10px',
               border: '1px solid',
@@ -194,10 +230,10 @@ export default function LinkDetailPage() {
             <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', padding: '12px 16px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>destination</div>
               <a href={link.destinationUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-secondary)', wordBreak: 'break-all', textDecoration: 'none' }}>
-                {link.destinationUrl}
+                {link.destinationUrl || '(dynamic — set via deepLink query param)'}
               </a>
             </div>
-            <div style={{ display: 'flex', gap: 24, marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+            <div style={{ display: 'flex', gap: 24, marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', flexWrap: 'wrap' }}>
               <span>type: <span style={{ color: 'var(--color-text)' }}>{link.linkType}</span></span>
               {link.campaignName && <span>campaign: <a href={`/dashboard/campaigns/${link.campaignId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{link.campaignName}</a></span>}
               {link.expiresAt && <span>expires: <span style={{ color: 'var(--color-text)' }}>{formatDate(link.expiresAt)}</span></span>}
@@ -205,13 +241,15 @@ export default function LinkDetailPage() {
           </div>
         </div>
 
-        {/* 02 Stats */}
+        {/* 02 KPI Stats */}
         <div className="dashboard-grid-kpi" style={{ marginBottom: 24 }}>
           {[
-            { label: 'clicks', value: analytics?.totalClicks || 0, accent: true },
-            { label: 'unique', value: analytics?.uniqueClicks || 0 },
+            { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
+            { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
+            { label: 'app opens', value: analytics?.actions.appOpened || 0 },
+            { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
             { label: 'conversions', value: analytics?.conversions || 0 },
-            { label: 'deferred', value: analytics?.deferredMatches || 0 },
+            { label: 'deferred matches', value: analytics?.deferredMatches || 0 },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{s.label}</div>
@@ -220,12 +258,169 @@ export default function LinkDetailPage() {
           ))}
         </div>
 
-        {/* QR + Info + Devices row */}
+        {/* 03 Clicks Trend */}
+        {analytics && analytics.clicksTrend && analytics.clicksTrend.length > 0 && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('clicks trend (30d)')}
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120 }}>
+                {analytics.clicksTrend.map((item, idx) => {
+                  const maxClicks = Math.max(...analytics.clicksTrend.map((t) => t.clicks));
+                  const height = maxClicks > 0 ? (item.clicks / maxClicks) * 100 : 0;
+                  return (
+                    <div
+                      key={idx}
+                      style={{ flex: 1, height: `${height}%`, minHeight: 2, background: 'var(--color-primary)', transition: 'height 0.3s ease', cursor: 'pointer' }}
+                      title={`${item.date}: ${item.clicks} clicks`}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-accent)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary)'; }}
+                    />
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
+                <span>{analytics.clicksTrend[0]?.date}</span>
+                <span>{analytics.clicksTrend[analytics.clicksTrend.length - 1]?.date}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Breakdown + Channels row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
+          {/* Action Breakdown */}
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('actions')}
+            </div>
+            <div style={{ padding: 20 }}>
+              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0) ? (
+                <>
+                  {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
+                  {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
+                  {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
+                </>
+              ) : emptyState('no action data yet')}
+            </div>
+          </div>
+
+          {/* Channels */}
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('channels')}
+            </div>
+            <div style={{ padding: 20 }}>
+              {analytics && analytics.channels.length > 0 ? (
+                analytics.channels.map((item) =>
+                  progressBar(item.channel, item.clicks, analytics.channels[0]?.clicks || 1, 'var(--color-accent)')
+                )
+              ) : emptyState('no channel data yet')}
+            </div>
+          </div>
+        </div>
+
+        {/* Deep Link URLs — only for dynamic links */}
+        {hasDeepLinks && analytics && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('deep link urls')}
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                unique destination urls passed via ?deepLink= param
+              </div>
+              {analytics.deepLinks.map((item) => {
+                let displayUrl = item.url;
+                try { const u = new URL(item.url); displayUrl = u.pathname === '/' ? u.hostname : u.hostname + u.pathname; } catch {}
+                return (
+                  <div key={item.url} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-secondary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }} title={item.url}>
+                        {displayUrl}
+                      </a>
+                      <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0, marginLeft: 8 }}>{item.clicks}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--color-bg-hover)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${analytics.deepLinks[0]?.clicks > 0 ? Math.min(100, (item.clicks / analytics.deepLinks[0].clicks) * 100) : 0}%`, background: 'var(--color-secondary)', transition: 'width 0.6s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Ref Params */}
+        {hasRefParams && analytics && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('ref params')}
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                clicks by ref parameter value
+              </div>
+              {analytics.refParams.map((item) =>
+                progressBar(item.ref, item.clicks, analytics.refParams[0]?.clicks || 1, 'var(--color-primary)')
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* UTM Analytics */}
+        {hasUtmData && analytics && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('utm tracking')}
+            </div>
+            <div style={{ padding: 20 }}>
+              {/* UTM Sources */}
+              {analytics.utmSources.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                    utm_source
+                  </div>
+                  {analytics.utmSources.map((item) =>
+                    progressBar(item.source, item.clicks, analytics.utmSources[0]?.clicks || 1, 'var(--color-primary)')
+                  )}
+                </div>
+              )}
+
+              {/* UTM Mediums */}
+              {analytics.utmMediums.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                    utm_medium
+                  </div>
+                  {analytics.utmMediums.map((item) =>
+                    progressBar(item.medium, item.clicks, analytics.utmMediums[0]?.clicks || 1, 'var(--color-accent)')
+                  )}
+                </div>
+              )}
+
+              {/* UTM Campaigns */}
+              {analytics.utmCampaigns.length > 0 && (
+                <div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                    utm_campaign
+                  </div>
+                  {analytics.utmCampaigns.map((item) =>
+                    progressBar(item.campaign, item.clicks, analytics.utmCampaigns[0]?.clicks || 1, 'var(--color-warning)')
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* QR + Devices row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-2 lg:grid-cols-[1fr_2fr]">
           {/* QR Code */}
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {sectionHeader('03', 'qr code')}
+              {nextSection('qr code')}
             </div>
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" style={{ width: 160, height: 160 }} />}
@@ -236,16 +431,14 @@ export default function LinkDetailPage() {
           {/* Devices */}
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {sectionHeader('04', 'devices')}
+              {nextSection('devices')}
             </div>
             <div style={{ padding: 20 }}>
               {analytics && Object.keys(analytics.devices).length > 0 ? (
                 Object.entries(analytics.devices).map(([device, count]) =>
                   progressBar(device, count, analytics.totalClicks || 1)
                 )
-              ) : (
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: 40 }}>no device data yet</div>
-              )}
+              ) : emptyState('no device data yet')}
             </div>
           </div>
         </div>
@@ -254,7 +447,7 @@ export default function LinkDetailPage() {
         {link.params && Object.keys(link.params).length > 0 && (
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {sectionHeader('05', 'parameters')}
+              {nextSection('parameters')}
             </div>
             <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="md:grid-cols-2">
               {Object.entries(link.params).map(([key, value]) => (
@@ -273,7 +466,7 @@ export default function LinkDetailPage() {
         {link.platformOverrides && Object.keys(link.platformOverrides).length > 0 && (
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {sectionHeader('06', 'platform overrides')}
+              {nextSection('platform overrides')}
             </div>
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {link.platformOverrides.android && (
@@ -304,53 +497,25 @@ export default function LinkDetailPage() {
           </div>
         )}
 
-        {/* Clicks Trend + Countries */}
-        {analytics && analytics.clicksTrend && analytics.clicksTrend.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-[2fr_1fr]">
+        {/* Countries + Browsers */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
+          {analytics && analytics.countries && analytics.countries.length > 0 && (
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-                {sectionHeader('07', 'clicks trend')}
+                {nextSection('countries')}
               </div>
               <div style={{ padding: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120 }}>
-                  {analytics.clicksTrend.map((item, idx) => {
-                    const maxClicks = Math.max(...analytics.clicksTrend.map((t) => t.clicks));
-                    const height = maxClicks > 0 ? (item.clicks / maxClicks) * 100 : 0;
-                    return (
-                      <div
-                        key={idx}
-                        style={{ flex: 1, height: `${height}%`, minHeight: 2, background: 'var(--color-primary)', transition: 'height 0.3s ease', cursor: 'pointer' }}
-                        title={`${item.date}: ${item.clicks} clicks`}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-accent)'; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary)'; }}
-                      />
-                    );
-                  })}
-                </div>
+                {analytics.countries.slice(0, 8).map((item) =>
+                  progressBar(item.country, item.clicks, analytics.countries[0]?.clicks || 1, 'var(--color-secondary)')
+                )}
               </div>
             </div>
+          )}
 
-            {analytics.countries && analytics.countries.length > 0 && (
-              <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-                  {sectionHeader('08', 'countries')}
-                </div>
-                <div style={{ padding: 20 }}>
-                  {analytics.countries.slice(0, 5).map((item) =>
-                    progressBar(item.country, item.clicks, analytics.countries[0]?.clicks || 1, 'var(--color-secondary)')
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Browsers + Referrers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
           {analytics && analytics.browsers && analytics.browsers.length > 0 && (
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-                {sectionHeader('09', 'browsers')}
+                {nextSection('browsers')}
               </div>
               <div style={{ padding: 20 }}>
                 {analytics.browsers.slice(0, 5).map((item) =>
@@ -359,22 +524,23 @@ export default function LinkDetailPage() {
               </div>
             </div>
           )}
-
-          {analytics && analytics.referrers && analytics.referrers.length > 0 && (
-            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-                {sectionHeader('10', 'referrers')}
-              </div>
-              <div style={{ padding: 20 }}>
-                {analytics.referrers.slice(0, 8).map((item) => {
-                  let displayRef = item.referrer;
-                  try { const u = new URL(item.referrer); displayRef = u.hostname; } catch {}
-                  return progressBar(displayRef, item.clicks, analytics.referrers[0]?.clicks || 1, 'var(--color-warning)');
-                })}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Referrers */}
+        {analytics && analytics.referrers && analytics.referrers.length > 0 && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('referrers')}
+            </div>
+            <div style={{ padding: 20 }}>
+              {analytics.referrers.slice(0, 10).map((item) => {
+                let displayRef = item.referrer;
+                try { const u = new URL(item.referrer); displayRef = u.hostname; } catch {}
+                return progressBar(displayRef, item.clicks, analytics.referrers[0]?.clicks || 1, 'var(--color-warning)');
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', gap: 24 }}>

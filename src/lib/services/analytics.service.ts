@@ -21,99 +21,163 @@ export class AnalyticsService {
     const link = await LinkModel.findById(linkId).lean();
     if (!link) return null;
 
-    // Get click data
-    const clicks = await ClickModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId) } },
-      {
-        $group: {
-          _id: '$device.os',
-          count: { $sum: 1 },
+    const linkObjId = new Types.ObjectId(linkId);
+    const matchStage = { $match: { linkId: linkObjId } };
+
+    // Run all independent aggregations in parallel for performance
+    const [
+      clicks,
+      devices,
+      actions,
+      uniqueIps,
+      conversions,
+      deferredStats,
+      topCountries,
+      topBrowsers,
+      topReferrers,
+      channels,
+      clicksTrend,
+      topDeepLinks,
+      topRefParams,
+      topUtmSources,
+      topUtmMediums,
+      topUtmCampaigns,
+      latestClicks,
+    ] = await Promise.all([
+      // OS breakdown
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$device.os', count: { $sum: 1 } } },
+      ]),
+
+      // Device type breakdown
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$device.type', count: { $sum: 1 } } },
+      ]),
+
+      // Action breakdown (app_opened / store_redirect / web_fallback)
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$actionTaken', count: { $sum: 1 } } },
+      ]),
+
+      // Unique clicks by IP
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$ipAddress' } },
+        { $count: 'unique' },
+      ]),
+
+      // Conversion data — only deferred-match installs
+      ConversionModel.aggregate([
+        { $match: { linkId: linkObjId, deferredLinkId: { $exists: true, $ne: null } } },
+        { $group: { _id: '$conversionType', count: { $sum: 1 } } },
+      ]),
+
+      // Deferred match stats
+      DeferredLinkModel.aggregate([
+        { $match: { linkId: linkObjId, status: { $in: ['matched', 'confirmed'] } } },
+        { $count: 'matched' },
+      ]),
+
+      // Top countries
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$geo.country', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // Top browsers
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$device.browser', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 5 },
+      ]),
+
+      // Top referrers
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, referer: { $nin: [null, ''] } } },
+        { $group: { _id: '$referer', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // Channel breakdown
+      ClickModel.aggregate([
+        matchStage,
+        { $group: { _id: '$channel', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+      ]),
+
+      // Clicks trend — last 30 days grouped by date
+      ClickModel.aggregate([
+        {
+          $match: {
+            linkId: linkObjId,
+            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          },
         },
-      },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            clicks: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Top deepLink URLs from metadata
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.deepLink': { $exists: true, $ne: null } } },
+        { $group: { _id: '$metadata.deepLink', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 20 },
+      ]),
+
+      // Top ref params from metadata
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.ref': { $exists: true, $ne: null } } },
+        { $group: { _id: '$metadata.ref', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 15 },
+      ]),
+
+      // Top UTM sources from metadata
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.utmSource': { $exists: true, $ne: null } } },
+        { $group: { _id: '$metadata.utmSource', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // Top UTM mediums from metadata
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.utmMedium': { $exists: true, $ne: null } } },
+        { $group: { _id: '$metadata.utmMedium', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // Top UTM campaigns from metadata
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.utmCampaign': { $exists: true, $ne: null } } },
+        { $group: { _id: '$metadata.utmCampaign', clicks: { $sum: 1 } } },
+        { $sort: { clicks: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // Latest click
+      ClickModel.findOne(
+        { linkId: linkObjId },
+        { createdAt: 1 },
+        { sort: { createdAt: -1 } }
+      ).lean(),
     ]);
 
-    // Get device type breakdown
-    const devices = await ClickModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId) } },
-      {
-        $group: {
-          _id: '$device.type',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    // Get conversion data — only deferred-match installs
-    const conversions = await ConversionModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId), deferredLinkId: { $exists: true, $ne: null } } },
-      {
-        $group: {
-          _id: '$conversionType',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    // Get deferred match stats
-    const deferredStats = await DeferredLinkModel.aggregate([
-      {
-        $match: {
-          linkId: new Types.ObjectId(linkId),
-          status: { $in: ['matched', 'confirmed'] },
-        },
-      },
-      {
-        $count: 'matched',
-      },
-    ]);
-
-    // Get geo data
-    const topCountries = await ClickModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId) } },
-      {
-        $group: {
-          _id: '$geo.country',
-          clicks: { $sum: 1 },
-        },
-      },
-      { $sort: { clicks: -1 } },
-      { $limit: 10 },
-    ]);
-
-    // Get browser data
-    const topBrowsers = await ClickModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId) } },
-      {
-        $group: {
-          _id: '$device.browser',
-          clicks: { $sum: 1 },
-        },
-      },
-      { $sort: { clicks: -1 } },
-      { $limit: 5 },
-    ]);
-
-    // Get top referrers
-    const topReferrers = await ClickModel.aggregate([
-      { $match: { linkId: new Types.ObjectId(linkId), referer: { $nin: [null, ''] } } },
-      {
-        $group: {
-          _id: '$referer',
-          clicks: { $sum: 1 },
-        },
-      },
-      { $sort: { clicks: -1 } },
-      { $limit: 10 },
-    ]);
-
-    // Get latest clicks
-    const latestClicks = await ClickModel.findOne(
-      { linkId: new Types.ObjectId(linkId) },
-      { createdAt: 1 },
-      { sort: { createdAt: -1 } }
-    ).lean();
-
-    const totalConversions = conversions.reduce((sum, c) => sum + c.count, 0);
+    const totalConversions = conversions.reduce((sum: number, c: any) => sum + c.count, 0);
     const totalClicks = link.clickCount || 0;
     const deferredMatches = deferredStats[0]?.matched || 0;
 
@@ -122,40 +186,74 @@ export class AnalyticsService {
       shortCode: link.shortCode,
       totalClicks,
       clicks: {
-        web: clicks.find((c) => c._id === 'other')?.count || 0,
-        android: clicks.find((c) => c._id === 'android')?.count || 0,
-        ios: clicks.find((c) => c._id === 'ios')?.count || 0,
+        unique: uniqueIps[0]?.unique || 0,
+        web: clicks.find((c: any) => c._id === 'other')?.count || 0,
+        android: clicks.find((c: any) => c._id === 'android')?.count || 0,
+        ios: clicks.find((c: any) => c._id === 'ios')?.count || 0,
         other:
-          clicks.find((c) => !['android', 'ios', 'other'].includes(c._id))
+          clicks.find((c: any) => !['android', 'ios', 'other'].includes(c._id))
             ?.count || 0,
       },
       devices: {
-        mobile: devices.find((d) => d._id === 'mobile')?.count || 0,
-        tablet: devices.find((d) => d._id === 'tablet')?.count || 0,
-        desktop: devices.find((d) => d._id === 'desktop')?.count || 0,
+        mobile: devices.find((d: any) => d._id === 'mobile')?.count || 0,
+        tablet: devices.find((d: any) => d._id === 'tablet')?.count || 0,
+        desktop: devices.find((d: any) => d._id === 'desktop')?.count || 0,
+      },
+      actions: {
+        appOpened: actions.find((a: any) => a._id === 'app_opened')?.count || 0,
+        storeRedirect: actions.find((a: any) => a._id === 'store_redirect')?.count || 0,
+        webFallback: actions.find((a: any) => a._id === 'web_fallback')?.count || 0,
       },
       conversions: {
         total: totalConversions,
-        appOpen: conversions.find((c) => c._id === 'app_open')?.count || 0,
+        appOpen: conversions.find((c: any) => c._id === 'app_open')?.count || 0,
         registration:
-          conversions.find((c) => c._id === 'registration')?.count || 0,
+          conversions.find((c: any) => c._id === 'registration')?.count || 0,
         purchase:
-          conversions.find((c) => c._id === 'ticket_purchase')?.count || 0,
-        view: conversions.find((c) => c._id === 'event_view')?.count || 0,
+          conversions.find((c: any) => c._id === 'ticket_purchase')?.count || 0,
+        view: conversions.find((c: any) => c._id === 'event_view')?.count || 0,
       },
       deferredMatches,
       deferredMatchRate: totalClicks > 0 ? (deferredMatches / totalClicks) * 100 : 0,
-      topCountries: topCountries.map((c) => ({
+      channels: channels.map((c: any) => ({
+        channel: c._id || 'direct',
+        clicks: c.clicks,
+      })),
+      topCountries: topCountries.map((c: any) => ({
         country: c._id || 'Unknown',
         clicks: c.clicks,
       })),
-      topBrowsers: topBrowsers.map((b) => ({
+      topBrowsers: topBrowsers.map((b: any) => ({
         browser: b._id || 'Unknown',
         clicks: b.clicks,
       })),
-      topReferrers: topReferrers.map((r) => ({
+      topReferrers: topReferrers.map((r: any) => ({
         referrer: r._id || 'Unknown',
         clicks: r.clicks,
+      })),
+      topDeepLinks: topDeepLinks.map((d: any) => ({
+        url: d._id || 'Unknown',
+        clicks: d.clicks,
+      })),
+      topRefParams: topRefParams.map((r: any) => ({
+        ref: r._id || 'Unknown',
+        clicks: r.clicks,
+      })),
+      topUtmSources: topUtmSources.map((s: any) => ({
+        source: s._id || 'Unknown',
+        clicks: s.clicks,
+      })),
+      topUtmMediums: topUtmMediums.map((m: any) => ({
+        medium: m._id || 'Unknown',
+        clicks: m.clicks,
+      })),
+      topUtmCampaigns: topUtmCampaigns.map((c: any) => ({
+        campaign: c._id || 'Unknown',
+        clicks: c.clicks,
+      })),
+      clicksTrend: clicksTrend.map((t: any) => ({
+        date: t._id,
+        clicks: t.clicks,
       })),
       createdAt: (link as any).createdAt,
       lastClicked: latestClicks?.createdAt || (link as any).createdAt,

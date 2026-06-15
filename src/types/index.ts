@@ -408,6 +408,11 @@ export interface LinkAnalytics {
     tablet: number;
     desktop: number;
   };
+  actions: {
+    appOpened: number;
+    storeRedirect: number;
+    webFallback: number;
+  };
   conversions: {
     total: number;
     appOpen?: number;
@@ -417,9 +422,15 @@ export interface LinkAnalytics {
   };
   deferredMatches: number;
   deferredMatchRate: number;
+  channels: Array<{ channel: string; clicks: number }>;
   topCountries: Array<{ country: string; clicks: number }>;
   topBrowsers: Array<{ browser: string; clicks: number }>;
   topReferrers: Array<{ referrer: string; clicks: number }>;
+  topDeepLinks: Array<{ url: string; clicks: number }>;
+  topRefParams: Array<{ ref: string; clicks: number }>;
+  topUtmSources: Array<{ source: string; clicks: number }>;
+  topUtmMediums: Array<{ medium: string; clicks: number }>;
+  topUtmCampaigns: Array<{ campaign: string; clicks: number }>;
   clicksTrend?: Array<{ date: string; clicks: number }>;
   createdAt?: Date;
   lastClicked?: Date;
