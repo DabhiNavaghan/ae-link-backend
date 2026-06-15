@@ -120,6 +120,10 @@ export default function RedirectPage({
           tenantId,
           clickId,
           fingerprint,
+          // Forward merged deep link data so DeferredLink stores the
+          // effective destinationUrl + params (including query overrides)
+          mergedDestinationUrl: link.destinationUrl || undefined,
+          mergedParams: link.params || undefined,
         }),
       });
       await fpResponse.json();

@@ -202,6 +202,7 @@ export interface IClick extends Document {
   geo: IGeoInfo;
   isAppInstalled: boolean;
   actionTaken: ActionTaken;
+  metadata?: Record<string, any>;
   createdAt: Date;
 }
 

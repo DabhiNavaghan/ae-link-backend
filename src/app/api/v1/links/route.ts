@@ -118,7 +118,11 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     const validationErrors: Record<string, string> = {};
     if (!body.title) validationErrors.title = 'Required';
-    if (!body.appId) validationErrors.appId = 'Required — pass appId in body or use a per-app API key';
+    if (!body.appId) {
+      validationErrors.appId = 'Required — pass appId in body or use a per-app API key';
+    } else if (!/^[a-f\d]{24}$/i.test(body.appId)) {
+      validationErrors.appId = 'Invalid appId format — use the App ID from dashboard (not the API key)';
+    }
 
     if (Object.keys(validationErrors).length > 0) {
       const errorRes = new NextResponse(
@@ -136,17 +140,26 @@ export async function POST(request: NextRequest) {
 
     const link = await LinkService.createLink(auth.tenantId, body);
 
+    // Build full short link URL from request host
+    const host = request.headers.get('host') || 'smartlink.apps.allevents.app';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const linkUrl = `${protocol}://${host}/${link.shortCode}`;
+
     const response = NextResponse.json(
-      successResponse(link),
+      successResponse({ ...link.toJSON(), url: linkUrl }),
       { status: 201 }
     );
 
     return applyCors(request, response);
-  } catch (error) {
+  } catch (error: any) {
+    // Return specific error message for known errors (validation, duplicates, etc.)
+    const message = error?.message || 'Internal Server Error';
+    const isKnownError = message.includes('short code') || message.includes('Invalid') || message.includes('already in use');
+
     logger.error({ error: String(error) }, 'Create link error');
     const errorRes = new NextResponse(
-      JSON.stringify(Errors.INTERNAL_ERROR()),
-      { status: 500 }
+      JSON.stringify(isKnownError ? Errors.VALIDATION_ERROR({ error: message }) : Errors.INTERNAL_ERROR()),
+      { status: isKnownError ? 400 : 500 }
     );
     return applyCors(request, errorRes);
   }

@@ -75,6 +75,10 @@ const clickSchema = new Schema<IClick>(
       enum: ['app_opened', 'store_redirect', 'web_fallback'],
       required: true,
     },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: undefined,
+    },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
