@@ -68,9 +68,22 @@ const SYSTEM_PATHS = new Set([
 const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|map|txt|xml|json)$/i;
 
 /**
- * Resolve short link and perform server-side click recording
+ * Resolve short link and perform server-side click recording.
+ *
+ * Supports dynamic query-param deep links:
+ *   /mgo109n?deepLink=https://allevents.in/event/xyz&ref=eventlist&action=view_event
+ *
+ * The `deepLink` query param becomes the destinationUrl when the link
+ * itself has no destination stored. All other query params are merged
+ * into the link's params and stored in the click record for analytics.
  */
-export default async function ResolvePage({ params }: { params: Params }) {
+export default async function ResolvePage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   try {
     const { shortCode } = params;
 
@@ -87,6 +100,62 @@ export default async function ResolvePage({ params }: { params: Params }) {
     if (!link) {
       logger.warn({ shortCode }, 'Link not found');
       notFound();
+    }
+
+    // ── Merge URL query params with stored link data ──
+    // Flatten searchParams (Next.js may give string[] for repeated keys)
+    const queryParams: Record<string, string> = {};
+    for (const [key, val] of Object.entries(searchParams)) {
+      if (val) queryParams[key] = Array.isArray(val) ? val[0] : val;
+    }
+
+    const linkData = link.toObject ? link.toObject() : (link as any);
+    const storedParams = linkData.params || {};
+
+    // deepLink query param → becomes destinationUrl if link has none
+    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    const effectiveDestinationUrl =
+      deepLinkUrl && !linkData.destinationUrl
+        ? deepLinkUrl
+        : linkData.destinationUrl;
+
+    // Merge stored params with query params (query overrides stored)
+    // Map both snake_case and camelCase to our camelCase keys
+    const paramMap: Record<string, string> = {
+      utm_source: 'utmSource', utmSource: 'utmSource',
+      utm_medium: 'utmMedium', utmMedium: 'utmMedium',
+      utm_campaign: 'utmCampaign', utmCampaign: 'utmCampaign',
+      utm_term: 'utmTerm', utmTerm: 'utmTerm',
+      utm_content: 'utmContent', utmContent: 'utmContent',
+      event_id: 'eventId', eventId: 'eventId',
+      action: 'action',
+      user_email: 'userEmail', userEmail: 'userEmail',
+      user_id: 'userId', userId: 'userId',
+      coupon_code: 'couponCode', couponCode: 'couponCode',
+      referral_code: 'referralCode', referralCode: 'referralCode',
+      ref: 'ref',
+    };
+
+    const skipKeys = new Set(['deepLink', 'deep_link', ...Object.keys(paramMap)]);
+    const mergedParams: Record<string, any> = { ...storedParams };
+
+    // Apply known param overrides from query
+    for (const [qKey, qVal] of Object.entries(queryParams)) {
+      const mappedKey = paramMap[qKey];
+      if (mappedKey && qVal) {
+        mergedParams[mappedKey] = qVal;
+      }
+    }
+
+    // Any remaining query params → store under custom
+    const customFromUrl: Record<string, string> = {};
+    for (const [qKey, qVal] of Object.entries(queryParams)) {
+      if (!skipKeys.has(qKey) && !paramMap[qKey] && qVal) {
+        customFromUrl[qKey] = qVal;
+      }
+    }
+    if (Object.keys(customFromUrl).length > 0) {
+      mergedParams.custom = { ...(storedParams.custom || {}), ...customFromUrl };
     }
 
     // Get real request headers
@@ -110,10 +179,8 @@ export default async function ResolvePage({ params }: { params: Params }) {
       ios: 'https://apps.apple.com/app/id488116646',
     };
 
-    // If link references a specific App, use its store URLs
-    const linkObj = link.toObject ? link.toObject() : (link as any);
-    if (linkObj.appId) {
-      const app = await AppModel.findById(linkObj.appId).lean();
+    if (linkData.appId) {
+      const app = await AppModel.findById(linkData.appId).lean();
       if (app) {
         storeUrls = {
           android: app.android?.storeUrl || storeUrls.android,
@@ -121,23 +188,23 @@ export default async function ResolvePage({ params }: { params: Params }) {
         };
       }
     } else if (tenant?.app) {
-      // Legacy: fallback to tenant-level app config
       storeUrls = {
         android: tenant.app.android?.storeUrl || storeUrls.android,
         ios: tenant.app.ios?.storeUrl || storeUrls.ios,
       };
     }
 
-    // Record click
+    // Record click — include query params as metadata for analytics
     let clickId: string | undefined = undefined;
     try {
-      // Detect channel from referer and link UTM params
-      const linkParams = (link as any).params || {};
       const channel = detectChannel(
         referer,
-        linkParams.utmSource,
-        linkParams.utmMedium
+        mergedParams.utmSource,
+        mergedParams.utmMedium
       );
+
+      // Store the query params as metadata (for per-event analytics etc.)
+      const hasQueryParams = Object.keys(queryParams).length > 0;
 
       const click = new ClickModel({
         linkId: link._id,
@@ -150,12 +217,17 @@ export default async function ResolvePage({ params }: { params: Params }) {
         geo: {},
         isAppInstalled: false,
         actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
+        ...(hasQueryParams && {
+          metadata: {
+            queryParams,
+            deepLink: deepLinkUrl || undefined,
+          },
+        }),
       });
 
       await click.save();
       clickId = click._id.toString();
 
-      // Increment link click count
       await LinkService.incrementClickCount(link._id.toString());
 
       logger.info(
@@ -164,6 +236,7 @@ export default async function ResolvePage({ params }: { params: Params }) {
           shortCode,
           clickId,
           deviceOS: deviceInfo.os,
+          deepLink: deepLinkUrl || undefined,
         },
         'Click recorded'
       );
@@ -171,16 +244,13 @@ export default async function ResolvePage({ params }: { params: Params }) {
       logger.error({ error: err }, 'Click recording failed');
     }
 
-    // Serialize link for client component
-    const linkData = link.toObject ? link.toObject() : (link as any);
-
     return (
       <RedirectPage
         shortCode={shortCode}
         linkId={link._id.toString()}
         link={{
-          destinationUrl: linkData.destinationUrl,
-          params: linkData.params,
+          destinationUrl: effectiveDestinationUrl,
+          params: mergedParams,
           platformOverrides: linkData.platformOverrides,
         }}
         deviceOS={deviceInfo.os}

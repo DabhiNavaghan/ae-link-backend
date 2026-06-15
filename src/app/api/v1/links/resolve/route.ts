@@ -70,6 +70,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // ── Merge URL query params with stored link data ──
+    // The SDK forwards all query params from the original URL so we can
+    // track them and return merged data.
+    const queryParams: Record<string, string> = {};
+    searchParams.forEach((val, key) => {
+      if (key !== 'shortCode') queryParams[key] = val;
+    });
+
+    const storedParams = (link as any).params || {};
+
+    // deepLink query param → becomes destinationUrl if link has none
+    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    const effectiveDestinationUrl =
+      deepLinkUrl && !link.destinationUrl
+        ? deepLinkUrl
+        : link.destinationUrl;
+
+    // Merge stored params with query params (query overrides stored)
+    const paramMap: Record<string, string> = {
+      utm_source: 'utmSource', utmSource: 'utmSource',
+      utm_medium: 'utmMedium', utmMedium: 'utmMedium',
+      utm_campaign: 'utmCampaign', utmCampaign: 'utmCampaign',
+      utm_term: 'utmTerm', utmTerm: 'utmTerm',
+      utm_content: 'utmContent', utmContent: 'utmContent',
+      event_id: 'eventId', eventId: 'eventId',
+      action: 'action',
+      user_email: 'userEmail', userEmail: 'userEmail',
+      user_id: 'userId', userId: 'userId',
+      coupon_code: 'couponCode', couponCode: 'couponCode',
+      referral_code: 'referralCode', referralCode: 'referralCode',
+      ref: 'ref',
+    };
+
+    const skipKeys = new Set(['deepLink', 'deep_link', ...Object.keys(paramMap)]);
+    const mergedParams: Record<string, any> = { ...storedParams };
+
+    for (const [qKey, qVal] of Object.entries(queryParams)) {
+      const mappedKey = paramMap[qKey];
+      if (mappedKey && qVal) mergedParams[mappedKey] = qVal;
+    }
+
+    // Unknown query params → custom
+    const customFromUrl: Record<string, string> = {};
+    for (const [qKey, qVal] of Object.entries(queryParams)) {
+      if (!skipKeys.has(qKey) && !paramMap[qKey] && qVal) customFromUrl[qKey] = qVal;
+    }
+    if (Object.keys(customFromUrl).length > 0) {
+      mergedParams.custom = { ...(storedParams.custom || {}), ...customFromUrl };
+    }
+
     // Get full campaign data if link has a campaign
     let campaign: any = null;
     if (link.campaignId) {
@@ -79,31 +129,30 @@ export async function GET(request: NextRequest) {
       } catch (_) {}
     }
 
-    const params = (link as any).params || {};
-
-    // Note: We intentionally do NOT create a conversion here.
-    // Direct deep-link opens (app already installed) are normal navigation,
-    // not meaningful conversions. Only deferred matches (first open after
-    // install via a SmartLink) count as conversions.
-    // This prevents CVR from exceeding 100% due to repeat opens.
-
-    // Mark the most recent click for this link as app_opened.
-    // The SDK calls this endpoint when the app opens via deep link —
-    // this is the definitive "app opened" signal. The web redirect page
-    // initially records the click as store_redirect (conservative default)
-    // because the browser can't reliably call back after the app opens.
+    // Mark the most recent click for this link as app_opened + store metadata.
     try {
+      const hasQueryParams = Object.keys(queryParams).length > 0;
       await ClickModel.findOneAndUpdate(
         {
           linkId: link._id,
           tenantId: auth.tenantId,
-          createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // within last 5 min
+          createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
         },
-        { $set: { actionTaken: 'app_opened', isAppInstalled: true } },
-        { sort: { createdAt: -1 } } // most recent click
+        {
+          $set: {
+            actionTaken: 'app_opened',
+            isAppInstalled: true,
+            ...(hasQueryParams && {
+              metadata: {
+                queryParams,
+                deepLink: deepLinkUrl || undefined,
+              },
+            }),
+          },
+        },
+        { sort: { createdAt: -1 } }
       );
     } catch (updateErr) {
-      // Non-blocking — don't fail the resolve if click update fails
       logger.debug({ error: String(updateErr) }, 'Click action update failed');
     }
 
@@ -111,7 +160,7 @@ export async function GET(request: NextRequest) {
       successResponse({
         linkId: link._id,
         shortCode: link.shortCode,
-        destinationUrl: link.destinationUrl,
+        destinationUrl: effectiveDestinationUrl,
         linkType: link.linkType,
         campaignId: link.campaignId || null,
         campaignName: campaign?.name || null,
@@ -125,18 +174,19 @@ export async function GET(request: NextRequest) {
           metadata: campaign.metadata || {},
         } : null,
         params: {
-          eventId: params.eventId || null,
-          action: params.action || null,
-          utmSource: params.utmSource || null,
-          utmMedium: params.utmMedium || null,
-          utmCampaign: params.utmCampaign || null,
-          utmTerm: params.utmTerm || null,
-          utmContent: params.utmContent || null,
-          userEmail: params.userEmail || null,
-          userId: params.userId || null,
-          couponCode: params.couponCode || null,
-          referralCode: params.referralCode || null,
-          custom: params.custom || null,
+          eventId: mergedParams.eventId || null,
+          action: mergedParams.action || null,
+          ref: mergedParams.ref || null,
+          utmSource: mergedParams.utmSource || null,
+          utmMedium: mergedParams.utmMedium || null,
+          utmCampaign: mergedParams.utmCampaign || null,
+          utmTerm: mergedParams.utmTerm || null,
+          utmContent: mergedParams.utmContent || null,
+          userEmail: mergedParams.userEmail || null,
+          userId: mergedParams.userId || null,
+          couponCode: mergedParams.couponCode || null,
+          referralCode: mergedParams.referralCode || null,
+          custom: mergedParams.custom || null,
         },
         platformOverrides: link.platformOverrides || {},
       }),

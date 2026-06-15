@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { linkId, tenantId, clickId, fingerprint } = body;
+    const { linkId, tenantId, clickId, fingerprint, mergedDestinationUrl, mergedParams } = body;
 
     if (!linkId || !tenantId || !fingerprint) {
       const errorRes = new NextResponse(
@@ -99,13 +99,18 @@ export async function POST(request: NextRequest) {
     const link = await LinkModel.findById(linkId).lean();
 
     if (link) {
+      // Use merged data from redirect page (includes query param overrides
+      // like ?deepLink=...&ref=...) — falls back to stored link data
+      const deferredParams = mergedParams || link.params || {};
+      const deferredDestination = mergedDestinationUrl || link.destinationUrl;
+
       // 3. Create a DeferredLink record — this is what the Flutter SDK will match against
       await DeferredService.createDeferredLink(
         storedFingerprint._id.toString(),
         linkId,
         tenantId,
-        link.params || {},
-        link.destinationUrl,
+        deferredParams,
+        deferredDestination,
         ttlHours
       );
 

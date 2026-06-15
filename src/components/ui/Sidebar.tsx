@@ -370,6 +370,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 View docs &rarr;
               </Link>
             </div>
+            <p
+              className="mt-3 text-center"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                color: 'var(--color-text-tertiary)',
+                letterSpacing: '0.05em',
+              }}
+            >
+              v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+            </p>
+          </div>
+        )}
+        {isCollapsed && (
+          <div
+            className="flex-shrink-0 py-3 text-center"
+            style={{ borderTop: '1px solid var(--color-border)' }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9,
+                color: 'var(--color-text-tertiary)',
+              }}
+              title={`v${process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}`}
+            >
+              {process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+            </span>
           </div>
         )}
       </aside>
