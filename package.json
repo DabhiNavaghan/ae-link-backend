@@ -4,6 +4,7 @@
   "description": "AE-LINK: Deep linking platform for AllEvents",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm version patch --no-git-tag-version",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src --ext .ts,.tsx",
