@@ -42,6 +42,7 @@ export class AnalyticsService {
       topUtmSources,
       topUtmMediums,
       topUtmCampaigns,
+      customParams,
       latestClicks,
     ] = await Promise.all([
       // OS breakdown
@@ -169,6 +170,21 @@ export class AnalyticsService {
         { $limit: 10 },
       ]),
 
+      // Custom params — flatten metadata.custom object keys and count values
+      ClickModel.aggregate([
+        { $match: { linkId: linkObjId, 'metadata.custom': { $exists: true, $type: 'object' } } },
+        { $project: { customEntries: { $objectToArray: '$metadata.custom' } } },
+        { $unwind: '$customEntries' },
+        {
+          $group: {
+            _id: { key: '$customEntries.k', value: '$customEntries.v' },
+            clicks: { $sum: 1 },
+          },
+        },
+        { $sort: { clicks: -1 } },
+        { $limit: 30 },
+      ]),
+
       // Latest click
       ClickModel.findOne(
         { linkId: linkObjId },
@@ -250,6 +266,11 @@ export class AnalyticsService {
       topUtmCampaigns: topUtmCampaigns.map((c: any) => ({
         campaign: c._id || 'Unknown',
         clicks: c.clicks,
+      })),
+      customParams: customParams.map((p: any) => ({
+        key: p._id?.key || 'unknown',
+        value: String(p._id?.value || ''),
+        clicks: p.clicks,
       })),
       clicksTrend: clicksTrend.map((t: any) => ({
         date: t._id,

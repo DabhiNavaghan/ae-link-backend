@@ -80,8 +80,24 @@ export async function GET(request: NextRequest) {
 
     const storedParams = (link as any).params || {};
 
-    // deepLink query param → becomes destinationUrl if link has none
-    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    // deepLink query param → becomes destinationUrl if link has none.
+    // If the value is a relative path, reconstruct the full URL.
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
+      // Try to get origin from referer header
+      const refererHeader = request.headers.get('referer') || '';
+      let baseOrigin = '';
+      try { if (refererHeader) baseOrigin = new URL(refererHeader).origin; } catch {}
+      // Fallback: extract origin from the link's stored destinationUrl
+      if (!baseOrigin && link.destinationUrl) {
+        try { baseOrigin = new URL(link.destinationUrl).origin; } catch {}
+      }
+      if (baseOrigin) {
+        deepLinkUrl = deepLinkUrl.startsWith('/')
+          ? `${baseOrigin}${deepLinkUrl}`
+          : `${baseOrigin}/${deepLinkUrl}`;
+      }
+    }
     const effectiveDestinationUrl =
       deepLinkUrl && !link.destinationUrl
         ? deepLinkUrl
@@ -132,6 +148,26 @@ export async function GET(request: NextRequest) {
     // Mark the most recent click for this link as app_opened + store metadata.
     try {
       const hasQueryParams = Object.keys(queryParams).length > 0;
+
+      // Build flat metadata matching redirect page format
+      let resolveMetadata: Record<string, any> | undefined = undefined;
+      if (hasQueryParams) {
+        resolveMetadata = {};
+        if (deepLinkUrl) resolveMetadata.deepLink = deepLinkUrl;
+        if (mergedParams.ref) resolveMetadata.ref = mergedParams.ref;
+        if (mergedParams.utmSource) resolveMetadata.utmSource = mergedParams.utmSource;
+        if (mergedParams.utmMedium) resolveMetadata.utmMedium = mergedParams.utmMedium;
+        if (mergedParams.utmCampaign) resolveMetadata.utmCampaign = mergedParams.utmCampaign;
+        if (mergedParams.utmTerm) resolveMetadata.utmTerm = mergedParams.utmTerm;
+        if (mergedParams.utmContent) resolveMetadata.utmContent = mergedParams.utmContent;
+        if (mergedParams.action) resolveMetadata.action = mergedParams.action;
+        if (mergedParams.eventId) resolveMetadata.eventId = mergedParams.eventId;
+        if (mergedParams.custom && Object.keys(mergedParams.custom).length > 0) {
+          resolveMetadata.custom = mergedParams.custom;
+        }
+        resolveMetadata.rawQuery = queryParams;
+      }
+
       await ClickModel.findOneAndUpdate(
         {
           linkId: link._id,
@@ -142,12 +178,7 @@ export async function GET(request: NextRequest) {
           $set: {
             actionTaken: 'app_opened',
             isAppInstalled: true,
-            ...(hasQueryParams && {
-              metadata: {
-                queryParams,
-                deepLink: deepLinkUrl || undefined,
-              },
-            }),
+            ...(resolveMetadata && { metadata: resolveMetadata }),
           },
         },
         { sort: { createdAt: -1 } }

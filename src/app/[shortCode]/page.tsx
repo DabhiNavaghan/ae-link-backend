@@ -112,8 +112,27 @@ export default async function ResolvePage({
     const linkData = link.toObject ? link.toObject() : (link as any);
     const storedParams = linkData.params || {};
 
-    // deepLink query param → becomes destinationUrl if link has none
-    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    // deepLink query param → becomes destinationUrl if link has none.
+    // If the value is a relative path (starts with /), reconstruct the
+    // full URL using the referer origin or the link's stored destination.
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
+      // Try to get the origin from the referer header
+      const earlyReferer = headers().get('referer') || '';
+      let baseOrigin = '';
+      try {
+        if (earlyReferer) baseOrigin = new URL(earlyReferer).origin;
+      } catch {}
+      // Fallback: extract origin from the link's stored destinationUrl
+      if (!baseOrigin && linkData.destinationUrl) {
+        try { baseOrigin = new URL(linkData.destinationUrl).origin; } catch {}
+      }
+      if (baseOrigin) {
+        deepLinkUrl = deepLinkUrl.startsWith('/')
+          ? `${baseOrigin}${deepLinkUrl}`
+          : `${baseOrigin}/${deepLinkUrl}`;
+      }
+    }
     const effectiveDestinationUrl =
       deepLinkUrl && !linkData.destinationUrl
         ? deepLinkUrl
@@ -203,8 +222,32 @@ export default async function ResolvePage({
         mergedParams.utmMedium
       );
 
-      // Store the query params as metadata (for per-event analytics etc.)
+      // Build flat metadata for analytics aggregation.
+      // Each tracking param is stored at the top level so MongoDB
+      // can aggregate on metadata.ref, metadata.utmSource etc. directly.
       const hasQueryParams = Object.keys(queryParams).length > 0;
+      let clickMetadata: Record<string, any> | undefined = undefined;
+
+      if (hasQueryParams) {
+        clickMetadata = {};
+        // Deep link destination URL
+        if (deepLinkUrl) clickMetadata.deepLink = deepLinkUrl;
+        // Known tracking params — flat at top level
+        if (mergedParams.ref) clickMetadata.ref = mergedParams.ref;
+        if (mergedParams.utmSource) clickMetadata.utmSource = mergedParams.utmSource;
+        if (mergedParams.utmMedium) clickMetadata.utmMedium = mergedParams.utmMedium;
+        if (mergedParams.utmCampaign) clickMetadata.utmCampaign = mergedParams.utmCampaign;
+        if (mergedParams.utmTerm) clickMetadata.utmTerm = mergedParams.utmTerm;
+        if (mergedParams.utmContent) clickMetadata.utmContent = mergedParams.utmContent;
+        if (mergedParams.action) clickMetadata.action = mergedParams.action;
+        if (mergedParams.eventId) clickMetadata.eventId = mergedParams.eventId;
+        // Custom params (unknown keys like no_app_redirect etc.)
+        if (mergedParams.custom && Object.keys(mergedParams.custom).length > 0) {
+          clickMetadata.custom = mergedParams.custom;
+        }
+        // Raw query string for debugging
+        clickMetadata.rawQuery = queryParams;
+      }
 
       const click = new ClickModel({
         linkId: link._id,
@@ -217,12 +260,7 @@ export default async function ResolvePage({
         geo: {},
         isAppInstalled: false,
         actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
-        ...(hasQueryParams && {
-          metadata: {
-            queryParams,
-            deepLink: deepLinkUrl || undefined,
-          },
-        }),
+        ...(clickMetadata && { metadata: clickMetadata }),
       });
 
       await click.save();
