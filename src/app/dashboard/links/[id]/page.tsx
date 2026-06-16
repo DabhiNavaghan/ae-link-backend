@@ -44,6 +44,7 @@ interface Analytics {
   utmSources: Array<{ source: string; clicks: number }>;
   utmMediums: Array<{ medium: string; clicks: number }>;
   utmCampaigns: Array<{ campaign: string; clicks: number }>;
+  customParams: Array<{ key: string; value: string; clicks: number }>;
   clicksTrend: Array<{ date: string; clicks: number }>;
 }
 
@@ -101,6 +102,7 @@ export default function LinkDetailPage() {
         utmSources: analyticsData.topUtmSources || [],
         utmMediums: analyticsData.topUtmMediums || [],
         utmCampaigns: analyticsData.topUtmCampaigns || [],
+        customParams: analyticsData.customParams || [],
         clicksTrend: analyticsData.clicksTrend || [],
       });
     } catch (err: any) {
@@ -179,7 +181,8 @@ export default function LinkDetailPage() {
   const hasDeepLinks = analytics && analytics.deepLinks.length > 0;
   const hasRefParams = analytics && analytics.refParams.length > 0;
   const hasUtmData = analytics && (analytics.utmSources.length > 0 || analytics.utmMediums.length > 0 || analytics.utmCampaigns.length > 0);
-  const hasTrackingData = hasDeepLinks || hasRefParams || hasUtmData;
+  const hasCustomParams = analytics && analytics.customParams.length > 0;
+  const hasTrackingData = hasDeepLinks || hasRefParams || hasUtmData || hasCustomParams;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
@@ -415,6 +418,38 @@ export default function LinkDetailPage() {
           </div>
         )}
 
+        {/* Custom Params (e.g. no_app_redirect, etc.) */}
+        {hasCustomParams && analytics && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+              {nextSection('custom params')}
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                other query params passed with the link
+              </div>
+              {(() => {
+                // Group custom params by key
+                const grouped: Record<string, Array<{ value: string; clicks: number }>> = {};
+                analytics.customParams.forEach((p) => {
+                  if (!grouped[p.key]) grouped[p.key] = [];
+                  grouped[p.key].push({ value: p.value, clicks: p.clicks });
+                });
+                return Object.entries(grouped).map(([key, values]) => (
+                  <div key={key} style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-primary)', marginBottom: 10, fontWeight: 600 }}>
+                      {key}
+                    </div>
+                    {values.map((v) =>
+                      progressBar(`${v.value}`, v.clicks, values[0]?.clicks || 1, 'var(--color-text-tertiary)')
+                    )}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* QR + Devices row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-2 lg:grid-cols-[1fr_2fr]">
           {/* QR Code */}
@@ -535,8 +570,27 @@ export default function LinkDetailPage() {
             <div style={{ padding: 20 }}>
               {analytics.referrers.slice(0, 10).map((item) => {
                 let displayRef = item.referrer;
-                try { const u = new URL(item.referrer); displayRef = u.hostname; } catch {}
-                return progressBar(displayRef, item.clicks, analytics.referrers[0]?.clicks || 1, 'var(--color-warning)');
+                try {
+                  const u = new URL(item.referrer);
+                  // Show hostname + path + search params (strip protocol only)
+                  displayRef = u.hostname + (u.pathname !== '/' ? u.pathname : '') + u.search;
+                } catch {}
+                return (
+                  <div key={item.referrer} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>
+                      <a href={item.referrer} target="_blank" rel="noopener noreferrer"
+                        style={{ color: 'var(--color-warning)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}
+                        title={item.referrer}
+                      >
+                        {displayRef}
+                      </a>
+                      <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0, marginLeft: 8 }}>{item.clicks}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--color-bg-hover)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${analytics.referrers[0]?.clicks > 0 ? Math.min(100, (item.clicks / analytics.referrers[0].clicks) * 100) : 0}%`, background: 'var(--color-warning)', transition: 'width 0.6s ease' }} />
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>

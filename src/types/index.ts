@@ -431,6 +431,7 @@ export interface LinkAnalytics {
   topUtmSources: Array<{ source: string; clicks: number }>;
   topUtmMediums: Array<{ medium: string; clicks: number }>;
   topUtmCampaigns: Array<{ campaign: string; clicks: number }>;
+  customParams: Array<{ key: string; value: string; clicks: number }>;
   clicksTrend?: Array<{ date: string; clicks: number }>;
   createdAt?: Date;
   lastClicked?: Date;

@@ -132,6 +132,26 @@ export async function GET(request: NextRequest) {
     // Mark the most recent click for this link as app_opened + store metadata.
     try {
       const hasQueryParams = Object.keys(queryParams).length > 0;
+
+      // Build flat metadata matching redirect page format
+      let resolveMetadata: Record<string, any> | undefined = undefined;
+      if (hasQueryParams) {
+        resolveMetadata = {};
+        if (deepLinkUrl) resolveMetadata.deepLink = deepLinkUrl;
+        if (mergedParams.ref) resolveMetadata.ref = mergedParams.ref;
+        if (mergedParams.utmSource) resolveMetadata.utmSource = mergedParams.utmSource;
+        if (mergedParams.utmMedium) resolveMetadata.utmMedium = mergedParams.utmMedium;
+        if (mergedParams.utmCampaign) resolveMetadata.utmCampaign = mergedParams.utmCampaign;
+        if (mergedParams.utmTerm) resolveMetadata.utmTerm = mergedParams.utmTerm;
+        if (mergedParams.utmContent) resolveMetadata.utmContent = mergedParams.utmContent;
+        if (mergedParams.action) resolveMetadata.action = mergedParams.action;
+        if (mergedParams.eventId) resolveMetadata.eventId = mergedParams.eventId;
+        if (mergedParams.custom && Object.keys(mergedParams.custom).length > 0) {
+          resolveMetadata.custom = mergedParams.custom;
+        }
+        resolveMetadata.rawQuery = queryParams;
+      }
+
       await ClickModel.findOneAndUpdate(
         {
           linkId: link._id,
@@ -142,12 +162,7 @@ export async function GET(request: NextRequest) {
           $set: {
             actionTaken: 'app_opened',
             isAppInstalled: true,
-            ...(hasQueryParams && {
-              metadata: {
-                queryParams,
-                deepLink: deepLinkUrl || undefined,
-              },
-            }),
+            ...(resolveMetadata && { metadata: resolveMetadata }),
           },
         },
         { sort: { createdAt: -1 } }

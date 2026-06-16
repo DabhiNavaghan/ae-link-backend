@@ -203,8 +203,32 @@ export default async function ResolvePage({
         mergedParams.utmMedium
       );
 
-      // Store the query params as metadata (for per-event analytics etc.)
+      // Build flat metadata for analytics aggregation.
+      // Each tracking param is stored at the top level so MongoDB
+      // can aggregate on metadata.ref, metadata.utmSource etc. directly.
       const hasQueryParams = Object.keys(queryParams).length > 0;
+      let clickMetadata: Record<string, any> | undefined = undefined;
+
+      if (hasQueryParams) {
+        clickMetadata = {};
+        // Deep link destination URL
+        if (deepLinkUrl) clickMetadata.deepLink = deepLinkUrl;
+        // Known tracking params — flat at top level
+        if (mergedParams.ref) clickMetadata.ref = mergedParams.ref;
+        if (mergedParams.utmSource) clickMetadata.utmSource = mergedParams.utmSource;
+        if (mergedParams.utmMedium) clickMetadata.utmMedium = mergedParams.utmMedium;
+        if (mergedParams.utmCampaign) clickMetadata.utmCampaign = mergedParams.utmCampaign;
+        if (mergedParams.utmTerm) clickMetadata.utmTerm = mergedParams.utmTerm;
+        if (mergedParams.utmContent) clickMetadata.utmContent = mergedParams.utmContent;
+        if (mergedParams.action) clickMetadata.action = mergedParams.action;
+        if (mergedParams.eventId) clickMetadata.eventId = mergedParams.eventId;
+        // Custom params (unknown keys like no_app_redirect etc.)
+        if (mergedParams.custom && Object.keys(mergedParams.custom).length > 0) {
+          clickMetadata.custom = mergedParams.custom;
+        }
+        // Raw query string for debugging
+        clickMetadata.rawQuery = queryParams;
+      }
 
       const click = new ClickModel({
         linkId: link._id,
@@ -217,12 +241,7 @@ export default async function ResolvePage({
         geo: {},
         isAppInstalled: false,
         actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
-        ...(hasQueryParams && {
-          metadata: {
-            queryParams,
-            deepLink: deepLinkUrl || undefined,
-          },
-        }),
+        ...(clickMetadata && { metadata: clickMetadata }),
       });
 
       await click.save();
