@@ -80,8 +80,24 @@ export async function GET(request: NextRequest) {
 
     const storedParams = (link as any).params || {};
 
-    // deepLink query param → becomes destinationUrl if link has none
-    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    // deepLink query param → becomes destinationUrl if link has none.
+    // If the value is a relative path, reconstruct the full URL.
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
+      // Try to get origin from referer header
+      const refererHeader = request.headers.get('referer') || '';
+      let baseOrigin = '';
+      try { if (refererHeader) baseOrigin = new URL(refererHeader).origin; } catch {}
+      // Fallback: extract origin from the link's stored destinationUrl
+      if (!baseOrigin && link.destinationUrl) {
+        try { baseOrigin = new URL(link.destinationUrl).origin; } catch {}
+      }
+      if (baseOrigin) {
+        deepLinkUrl = deepLinkUrl.startsWith('/')
+          ? `${baseOrigin}${deepLinkUrl}`
+          : `${baseOrigin}/${deepLinkUrl}`;
+      }
+    }
     const effectiveDestinationUrl =
       deepLinkUrl && !link.destinationUrl
         ? deepLinkUrl

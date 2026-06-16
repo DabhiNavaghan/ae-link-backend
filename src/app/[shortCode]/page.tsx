@@ -112,8 +112,27 @@ export default async function ResolvePage({
     const linkData = link.toObject ? link.toObject() : (link as any);
     const storedParams = linkData.params || {};
 
-    // deepLink query param → becomes destinationUrl if link has none
-    const deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    // deepLink query param → becomes destinationUrl if link has none.
+    // If the value is a relative path (starts with /), reconstruct the
+    // full URL using the referer origin or the link's stored destination.
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
+      // Try to get the origin from the referer header
+      const earlyReferer = headers().get('referer') || '';
+      let baseOrigin = '';
+      try {
+        if (earlyReferer) baseOrigin = new URL(earlyReferer).origin;
+      } catch {}
+      // Fallback: extract origin from the link's stored destinationUrl
+      if (!baseOrigin && linkData.destinationUrl) {
+        try { baseOrigin = new URL(linkData.destinationUrl).origin; } catch {}
+      }
+      if (baseOrigin) {
+        deepLinkUrl = deepLinkUrl.startsWith('/')
+          ? `${baseOrigin}${deepLinkUrl}`
+          : `${baseOrigin}/${deepLinkUrl}`;
+      }
+    }
     const effectiveDestinationUrl =
       deepLinkUrl && !linkData.destinationUrl
         ? deepLinkUrl
