@@ -72,7 +72,7 @@ const clickSchema = new Schema<IClick>(
     },
     actionTaken: {
       type: String,
-      enum: ['app_opened', 'store_redirect', 'web_fallback'],
+      enum: ['app_opened', 'app_installed', 'store_redirect', 'web_fallback'],
       required: true,
     },
     metadata: {
