@@ -57,6 +57,7 @@ export default function LinkDetailPage() {
   const [link, setLink] = useState<LinkData | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -108,6 +109,35 @@ export default function LinkDetailPage() {
       setError(err.message || 'Failed to load link');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshData() {
+    try {
+      setRefreshing(true);
+      const analyticsData = await smartLinkApi.getLinkAnalytics(linkId);
+      setAnalytics({
+        totalClicks: analyticsData.totalClicks || 0,
+        uniqueClicks: analyticsData.clicks?.unique || 0,
+        conversions: analyticsData.conversions?.total || 0,
+        deferredMatches: analyticsData.deferredMatches || 0,
+        actions: analyticsData.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
+        devices: analyticsData.devices || {},
+        channels: analyticsData.channels || [],
+        countries: analyticsData.topCountries || [],
+        browsers: analyticsData.topBrowsers || [],
+        referrers: analyticsData.topReferrers || [],
+        deepLinks: analyticsData.topDeepLinks || [],
+        refParams: analyticsData.topRefParams || [],
+        utmSources: analyticsData.topUtmSources || [],
+        utmMediums: analyticsData.topUtmMediums || [],
+        utmCampaigns: analyticsData.topUtmCampaigns || [],
+        customParams: analyticsData.customParams || [],
+      });
+    } catch (err: any) {
+      console.error('Refresh failed:', err);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -210,7 +240,19 @@ export default function LinkDetailPage() {
         {/* Nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={refreshData}
+              disabled={refreshing}
+              className="btn-dashboard btn-dashboard-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, opacity: refreshing ? 0.6 : 1 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
+                <path d="M21 12a9 9 0 1 1-3.2-6.85" />
+                <polyline points="21 3 21 9 15 9" />
+              </svg>
+              {refreshing ? 'refreshing...' : 'refresh data'}
+            </button>
             <button onClick={handleCopy} className="btn-dashboard btn-dashboard-sm">{copied ? 'copied!' : 'copy link'}</button>
             <button onClick={() => router.push(`/dashboard/links/create?duplicate=${linkId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
             <button onClick={() => router.push(`/dashboard/links/${linkId}/edit`)} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">edit</button>
@@ -581,6 +623,7 @@ export default function LinkDetailPage() {
           <span>updated {formatRelativeTime(link.updatedAt)}</span>
         </div>
       </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
