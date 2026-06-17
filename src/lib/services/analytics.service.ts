@@ -4,6 +4,7 @@ import ConversionModel from '@/lib/models/Conversion';
 import LinkModel from '@/lib/models/Link';
 import CampaignModel from '@/lib/models/Campaign';
 import DeferredLinkModel from '@/lib/models/DeferredLink';
+import FingerprintModel from '@/lib/models/Fingerprint';
 import {
   LinkAnalytics,
   CampaignAnalytics,
@@ -23,6 +24,22 @@ export class AnalyticsService {
 
     const linkObjId = new Types.ObjectId(linkId);
     const matchStage = { $match: { linkId: linkObjId } };
+
+    // Resolve click IDs that resulted in confirmed installs.
+    // Chain: DeferredLink(matched/confirmed) → fingerprintId → Fingerprint.clickId
+    // This is the source of truth for installs; the click's actionTaken field
+    // may not be updated for historical data.
+    const matchedDeferred = await DeferredLinkModel.find(
+      { linkId: linkObjId, status: { $in: ['matched', 'confirmed'] } },
+      { fingerprintId: 1 }
+    ).lean();
+    const fpIds = matchedDeferred.map((d: any) => d.fingerprintId).filter(Boolean);
+    const fingerprints = fpIds.length > 0
+      ? await FingerprintModel.find({ _id: { $in: fpIds } }, { clickId: 1 }).lean()
+      : [];
+    const installClickObjIds = fingerprints
+      .map((fp: any) => fp.clickId)
+      .filter(Boolean);
 
     // Run all independent aggregations in parallel for performance
     const [
@@ -137,7 +154,7 @@ export class AnalyticsService {
           _id: '$metadata.deepLink',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 20 },
@@ -150,7 +167,7 @@ export class AnalyticsService {
           _id: '$metadata.ref',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 15 },
@@ -163,7 +180,7 @@ export class AnalyticsService {
           _id: '$metadata.utmSource',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -176,7 +193,7 @@ export class AnalyticsService {
           _id: '$metadata.utmMedium',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -189,7 +206,7 @@ export class AnalyticsService {
           _id: '$metadata.utmCampaign',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -205,7 +222,7 @@ export class AnalyticsService {
             _id: { key: '$customEntries.k', value: '$customEntries.v' },
             clicks: { $sum: 1 },
             appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-            installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+            installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
           },
         },
         { $sort: { clicks: -1 } },

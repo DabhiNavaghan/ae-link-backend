@@ -57,6 +57,7 @@ export default function LinkDetailPage() {
   const [link, setLink] = useState<LinkData | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -111,6 +112,35 @@ export default function LinkDetailPage() {
     }
   }
 
+  async function refreshData() {
+    try {
+      setRefreshing(true);
+      const analyticsData = await smartLinkApi.getLinkAnalytics(linkId);
+      setAnalytics({
+        totalClicks: analyticsData.totalClicks || 0,
+        uniqueClicks: analyticsData.clicks?.unique || 0,
+        conversions: analyticsData.conversions?.total || 0,
+        deferredMatches: analyticsData.deferredMatches || 0,
+        actions: analyticsData.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
+        devices: analyticsData.devices || {},
+        channels: analyticsData.channels || [],
+        countries: analyticsData.topCountries || [],
+        browsers: analyticsData.topBrowsers || [],
+        referrers: analyticsData.topReferrers || [],
+        deepLinks: analyticsData.topDeepLinks || [],
+        refParams: analyticsData.topRefParams || [],
+        utmSources: analyticsData.topUtmSources || [],
+        utmMediums: analyticsData.topUtmMediums || [],
+        utmCampaigns: analyticsData.topUtmCampaigns || [],
+        customParams: analyticsData.customParams || [],
+      });
+    } catch (err: any) {
+      console.error('Refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   async function handleCopy() {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
@@ -147,11 +177,11 @@ export default function LinkDetailPage() {
   );
 
   // Progress bar showing link clicks + installs + app opens per param value
-  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0) => {
+  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0, tooltip?: string) => {
     return (
       <div key={label} style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 6, alignItems: 'center' }}>
-          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={label}>{label}</span>
+          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={tooltip || label}>{label}</span>
           <span style={{ flexShrink: 0, marginLeft: 8, display: 'flex', gap: 14 }}>
             <span style={{ color: 'var(--color-text-secondary)' }}>{clicks} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>clicks</span></span>
             <span style={{ color: 'var(--color-success, #22c55e)' }}>{installs} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>installs</span></span>
@@ -210,7 +240,19 @@ export default function LinkDetailPage() {
         {/* Nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={refreshData}
+              disabled={refreshing}
+              className="btn-dashboard btn-dashboard-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, opacity: refreshing ? 0.6 : 1 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
+                <path d="M21 12a9 9 0 1 1-3.2-6.85" />
+                <polyline points="21 3 21 9 15 9" />
+              </svg>
+              {refreshing ? 'refreshing...' : 'refresh data'}
+            </button>
             <button onClick={handleCopy} className="btn-dashboard btn-dashboard-sm">{copied ? 'copied!' : 'copy link'}</button>
             <button onClick={() => router.push(`/dashboard/links/create?duplicate=${linkId}`)} className="btn-dashboard btn-dashboard-sm">duplicate</button>
             <button onClick={() => router.push(`/dashboard/links/${linkId}/edit`)} className="btn-dashboard btn-dashboard-sm btn-dashboard-primary">edit</button>
@@ -268,10 +310,9 @@ export default function LinkDetailPage() {
           {[
             { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
             { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
-            { label: 'installs', value: analytics?.actions.appInstalled || 0 },
+            { label: 'installs', value: analytics?.deferredMatches || 0 },
             { label: 'app opens', value: analytics?.actions.appOpened || 0 },
             { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
-            { label: 'deferred matches', value: analytics?.deferredMatches || 0 },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{s.label}</div>
@@ -289,10 +330,10 @@ export default function LinkDetailPage() {
               {nextSection('actions')}
             </div>
             <div style={{ padding: 20 }}>
-              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0) ? (
+              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.deferredMatches > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
-                  {progressBar('app installed', analytics.actions.appInstalled, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
+                  {progressBar('installs', analytics.deferredMatches, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
                   {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
                 </>
@@ -328,7 +369,7 @@ export default function LinkDetailPage() {
               {analytics.deepLinks.map((item) => {
                 let displayUrl = item.url;
                 try { const u = new URL(item.url); displayUrl = u.pathname === '/' ? u.hostname : u.hostname + u.pathname; } catch {}
-                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs);
+                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs, item.url);
               })}
             </div>
           </div>
@@ -581,6 +622,7 @@ export default function LinkDetailPage() {
           <span>updated {formatRelativeTime(link.updatedAt)}</span>
         </div>
       </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

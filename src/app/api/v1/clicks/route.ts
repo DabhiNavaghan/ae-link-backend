@@ -7,17 +7,10 @@ import { Logger } from '@/lib/logger';
 const logger = Logger.child({ route: 'clicks' });
 
 /**
- * PATCH /api/v1/clicks
- *
- * Called by the redirect page when the deep link succeeds (app opens).
- * Updates the click's actionTaken from 'store_redirect' to 'app_opened'.
- *
- * Body: { clickId: string, action: 'app_opened' }
- *
- * No auth required — this is called from the public redirect page.
- * Only allows updating to 'app_opened' to prevent abuse.
+ * Shared handler for updating a click to app_opened.
+ * Used by both POST (sendBeacon) and PATCH (fetch) handlers.
  */
-export async function PATCH(request: NextRequest) {
+async function handleAppOpenedUpdate(request: NextRequest) {
   try {
     await connectDB();
   } catch {
@@ -57,4 +50,30 @@ export async function PATCH(request: NextRequest) {
       NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
     );
   }
+}
+
+/**
+ * POST /api/v1/clicks
+ *
+ * Same as PATCH but accepts POST for navigator.sendBeacon compatibility.
+ * sendBeacon always sends POST; on mobile the browser kills the page on
+ * app switch, so sendBeacon is the only reliable way to fire this call.
+ */
+export async function POST(request: NextRequest) {
+  return handleAppOpenedUpdate(request);
+}
+
+/**
+ * PATCH /api/v1/clicks
+ *
+ * Called by the redirect page when the deep link succeeds (app opens).
+ * Updates the click's actionTaken from 'store_redirect' to 'app_opened'.
+ *
+ * Body: { clickId: string, action: 'app_opened' }
+ *
+ * No auth required — this is called from the public redirect page.
+ * Only allows updating to 'app_opened' to prevent abuse.
+ */
+export async function PATCH(request: NextRequest) {
+  return handleAppOpenedUpdate(request);
 }

@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
+import { DeviceDetector } from '@/lib/services/device-detector';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 
@@ -146,6 +147,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Mark the most recent click for this link as app_opened + store metadata.
+    // If no recent click exists (e.g. universal link bypassed the redirect page),
+    // create a new app_opened click so analytics count it.
     try {
       const hasQueryParams = Object.keys(queryParams).length > 0;
 
@@ -168,7 +171,7 @@ export async function GET(request: NextRequest) {
         resolveMetadata.rawQuery = queryParams;
       }
 
-      await ClickModel.findOneAndUpdate(
+      const updatedClick = await ClickModel.findOneAndUpdate(
         {
           linkId: link._id,
           tenantId: auth.tenantId,
@@ -183,6 +186,36 @@ export async function GET(request: NextRequest) {
         },
         { sort: { createdAt: -1 } }
       );
+
+      // No recent click found — universal link or app link bypassed the redirect
+      // page entirely, so the click was never recorded. Create one now.
+      if (!updatedClick) {
+        const userAgent = request.headers.get('user-agent') || '';
+        const ip =
+          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          request.headers.get('x-real-ip') ||
+          '127.0.0.1';
+
+        const detector = new DeviceDetector(userAgent);
+        const deviceInfo = detector.detect();
+
+        const newClick = new ClickModel({
+          linkId: link._id,
+          tenantId: link.tenantId,
+          ipAddress: ip,
+          userAgent,
+          referer: '',
+          channel: 'direct',
+          device: deviceInfo,
+          geo: {},
+          isAppInstalled: true,
+          actionTaken: 'app_opened',
+          ...(resolveMetadata && { metadata: resolveMetadata }),
+        });
+        await newClick.save();
+        await LinkService.incrementClickCount(link._id.toString());
+        logger.info({ clickId: newClick._id, linkId: link._id }, 'Created app_opened click (universal link bypass)');
+      }
     } catch (updateErr) {
       logger.debug({ error: String(updateErr) }, 'Click action update failed');
     }
