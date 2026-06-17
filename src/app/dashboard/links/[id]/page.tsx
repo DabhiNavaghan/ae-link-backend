@@ -237,8 +237,8 @@ export default function LinkDetailPage() {
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1rem' }} className="md:p-8">
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
-        {/* Nav */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem' }} className="md:flex-nowrap">
+        {/* Nav — sticky so refresh is always reachable */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem', paddingTop: 4, paddingBottom: 12, borderBottom: '1px solid var(--color-border)' }} className="md:flex-nowrap">
           <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button
