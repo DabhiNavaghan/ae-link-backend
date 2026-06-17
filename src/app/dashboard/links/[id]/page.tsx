@@ -31,6 +31,7 @@ interface Analytics {
   deferredMatches: number;
   actions: {
     appOpened: number;
+    appInstalled: number;
     storeRedirect: number;
     webFallback: number;
   };
@@ -39,13 +40,12 @@ interface Analytics {
   countries: Array<{ country: string; clicks: number }>;
   browsers: Array<{ browser: string; clicks: number }>;
   referrers: Array<{ referrer: string; clicks: number }>;
-  deepLinks: Array<{ url: string; clicks: number }>;
-  refParams: Array<{ ref: string; clicks: number }>;
-  utmSources: Array<{ source: string; clicks: number }>;
-  utmMediums: Array<{ medium: string; clicks: number }>;
-  utmCampaigns: Array<{ campaign: string; clicks: number }>;
-  customParams: Array<{ key: string; value: string; clicks: number }>;
-  clicksTrend: Array<{ date: string; clicks: number }>;
+  deepLinks: Array<{ url: string; clicks: number; appOpened: number; installs: number }>;
+  refParams: Array<{ ref: string; clicks: number; appOpened: number; installs: number }>;
+  utmSources: Array<{ source: string; clicks: number; appOpened: number; installs: number }>;
+  utmMediums: Array<{ medium: string; clicks: number; appOpened: number; installs: number }>;
+  utmCampaigns: Array<{ campaign: string; clicks: number; appOpened: number; installs: number }>;
+  customParams: Array<{ key: string; value: string; clicks: number; appOpened: number; installs: number }>;
 }
 
 export default function LinkDetailPage() {
@@ -91,7 +91,7 @@ export default function LinkDetailPage() {
         uniqueClicks: analyticsData.clicks?.unique || 0,
         conversions: analyticsData.conversions?.total || 0,
         deferredMatches: analyticsData.deferredMatches || 0,
-        actions: analyticsData.actions || { appOpened: 0, storeRedirect: 0, webFallback: 0 },
+        actions: analyticsData.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
         devices: analyticsData.devices || {},
         channels: analyticsData.channels || [],
         countries: analyticsData.topCountries || [],
@@ -103,7 +103,6 @@ export default function LinkDetailPage() {
         utmMediums: analyticsData.topUtmMediums || [],
         utmCampaigns: analyticsData.topUtmCampaigns || [],
         customParams: analyticsData.customParams || [],
-        clicksTrend: analyticsData.clicksTrend || [],
       });
     } catch (err: any) {
       setError(err.message || 'Failed to load link');
@@ -146,6 +145,26 @@ export default function LinkDetailPage() {
       </div>
     </div>
   );
+
+  // Progress bar showing link clicks + installs + app opens per param value
+  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0) => {
+    return (
+      <div key={label} style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 6, alignItems: 'center' }}>
+          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={label}>{label}</span>
+          <span style={{ flexShrink: 0, marginLeft: 8, display: 'flex', gap: 14 }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>{clicks} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>clicks</span></span>
+            <span style={{ color: 'var(--color-success, #22c55e)' }}>{installs} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>installs</span></span>
+            <span style={{ color: 'var(--color-primary)' }}>{appOpened} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>app opens</span></span>
+          </span>
+        </div>
+        <div style={{ height: 6, background: 'var(--color-bg-hover)', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${maxClicks > 0 ? Math.min(100, (clicks / maxClicks) * 100) : 0}%`, background: color, opacity: 0.3, transition: 'width 0.6s ease' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${maxClicks > 0 ? Math.min(100, ((appOpened + installs) / maxClicks) * 100) : 0}%`, background: color, transition: 'width 0.6s ease' }} />
+        </div>
+      </div>
+    );
+  };
 
   const emptyState = (msg: string) => (
     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: 40 }}>{msg}</div>
@@ -249,9 +268,9 @@ export default function LinkDetailPage() {
           {[
             { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
             { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
+            { label: 'installs', value: analytics?.actions.appInstalled || 0 },
             { label: 'app opens', value: analytics?.actions.appOpened || 0 },
             { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
-            { label: 'conversions', value: analytics?.conversions || 0 },
             { label: 'deferred matches', value: analytics?.deferredMatches || 0 },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
@@ -261,35 +280,6 @@ export default function LinkDetailPage() {
           ))}
         </div>
 
-        {/* 03 Clicks Trend */}
-        {analytics && analytics.clicksTrend && analytics.clicksTrend.length > 0 && (
-          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {nextSection('clicks trend (30d)')}
-            </div>
-            <div style={{ padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120 }}>
-                {analytics.clicksTrend.map((item, idx) => {
-                  const maxClicks = Math.max(...analytics.clicksTrend.map((t) => t.clicks));
-                  const height = maxClicks > 0 ? (item.clicks / maxClicks) * 100 : 0;
-                  return (
-                    <div
-                      key={idx}
-                      style={{ flex: 1, height: `${height}%`, minHeight: 2, background: 'var(--color-primary)', transition: 'height 0.3s ease', cursor: 'pointer' }}
-                      title={`${item.date}: ${item.clicks} clicks`}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-accent)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary)'; }}
-                    />
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
-                <span>{analytics.clicksTrend[0]?.date}</span>
-                <span>{analytics.clicksTrend[analytics.clicksTrend.length - 1]?.date}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Action Breakdown + Channels row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
@@ -302,6 +292,7 @@ export default function LinkDetailPage() {
               {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
+                  {progressBar('app installed', analytics.actions.appInstalled, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
                   {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
                 </>
@@ -337,19 +328,7 @@ export default function LinkDetailPage() {
               {analytics.deepLinks.map((item) => {
                 let displayUrl = item.url;
                 try { const u = new URL(item.url); displayUrl = u.pathname === '/' ? u.hostname : u.hostname + u.pathname; } catch {}
-                return (
-                  <div key={item.url} style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-secondary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }} title={item.url}>
-                        {displayUrl}
-                      </a>
-                      <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0, marginLeft: 8 }}>{item.clicks}</span>
-                    </div>
-                    <div style={{ height: 4, background: 'var(--color-bg-hover)', position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${analytics.deepLinks[0]?.clicks > 0 ? Math.min(100, (item.clicks / analytics.deepLinks[0].clicks) * 100) : 0}%`, background: 'var(--color-secondary)', transition: 'width 0.6s ease' }} />
-                    </div>
-                  </div>
-                );
+                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs);
               })}
             </div>
           </div>
@@ -363,10 +342,10 @@ export default function LinkDetailPage() {
             </div>
             <div style={{ padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                clicks by ref parameter value
+                clicks, installs & app opens by ref parameter value
               </div>
               {analytics.refParams.map((item) =>
-                progressBar(item.ref, item.clicks, analytics.refParams[0]?.clicks || 1, 'var(--color-primary)')
+                dualStatBar(item.ref, item.clicks, item.appOpened, analytics.refParams[0]?.clicks || 1, 'var(--color-primary)', item.installs)
               )}
             </div>
           </div>
@@ -386,7 +365,7 @@ export default function LinkDetailPage() {
                     utm_source
                   </div>
                   {analytics.utmSources.map((item) =>
-                    progressBar(item.source, item.clicks, analytics.utmSources[0]?.clicks || 1, 'var(--color-primary)')
+                    dualStatBar(item.source, item.clicks, item.appOpened, analytics.utmSources[0]?.clicks || 1, 'var(--color-primary)', item.installs)
                   )}
                 </div>
               )}
@@ -398,7 +377,7 @@ export default function LinkDetailPage() {
                     utm_medium
                   </div>
                   {analytics.utmMediums.map((item) =>
-                    progressBar(item.medium, item.clicks, analytics.utmMediums[0]?.clicks || 1, 'var(--color-accent)')
+                    dualStatBar(item.medium, item.clicks, item.appOpened, analytics.utmMediums[0]?.clicks || 1, 'var(--color-accent)', item.installs)
                   )}
                 </div>
               )}
@@ -410,7 +389,7 @@ export default function LinkDetailPage() {
                     utm_campaign
                   </div>
                   {analytics.utmCampaigns.map((item) =>
-                    progressBar(item.campaign, item.clicks, analytics.utmCampaigns[0]?.clicks || 1, 'var(--color-warning)')
+                    dualStatBar(item.campaign, item.clicks, item.appOpened, analytics.utmCampaigns[0]?.clicks || 1, 'var(--color-warning)', item.installs)
                   )}
                 </div>
               )}
@@ -430,10 +409,10 @@ export default function LinkDetailPage() {
               </div>
               {(() => {
                 // Group custom params by key
-                const grouped: Record<string, Array<{ value: string; clicks: number }>> = {};
+                const grouped: Record<string, Array<{ value: string; clicks: number; appOpened: number; installs: number }>> = {};
                 analytics.customParams.forEach((p) => {
                   if (!grouped[p.key]) grouped[p.key] = [];
-                  grouped[p.key].push({ value: p.value, clicks: p.clicks });
+                  grouped[p.key].push({ value: p.value, clicks: p.clicks, appOpened: p.appOpened, installs: p.installs });
                 });
                 return Object.entries(grouped).map(([key, values]) => (
                   <div key={key} style={{ marginBottom: 20 }}>
@@ -441,7 +420,7 @@ export default function LinkDetailPage() {
                       {key}
                     </div>
                     {values.map((v) =>
-                      progressBar(`${v.value}`, v.clicks, values[0]?.clicks || 1, 'var(--color-text-tertiary)')
+                      dualStatBar(`${v.value}`, v.clicks, v.appOpened, values[0]?.clicks || 1, 'var(--color-text-tertiary)', v.installs)
                     )}
                   </div>
                 ));

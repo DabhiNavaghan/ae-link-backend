@@ -175,7 +175,7 @@ export interface ILink extends Document {
 
 export type DeviceOS = 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'other';
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
-export type ActionTaken = 'app_opened' | 'store_redirect' | 'web_fallback';
+export type ActionTaken = 'app_opened' | 'app_installed' | 'store_redirect' | 'web_fallback';
 export type ClickChannel = 'whatsapp' | 'email' | 'qr' | 'instagram' | 'sms' | 'push' | 'web' | 'direct' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'other';
 
 export interface IDeviceInfo {
@@ -410,6 +410,7 @@ export interface LinkAnalytics {
   };
   actions: {
     appOpened: number;
+    appInstalled: number;
     storeRedirect: number;
     webFallback: number;
   };
@@ -426,12 +427,12 @@ export interface LinkAnalytics {
   topCountries: Array<{ country: string; clicks: number }>;
   topBrowsers: Array<{ browser: string; clicks: number }>;
   topReferrers: Array<{ referrer: string; clicks: number }>;
-  topDeepLinks: Array<{ url: string; clicks: number }>;
-  topRefParams: Array<{ ref: string; clicks: number }>;
-  topUtmSources: Array<{ source: string; clicks: number }>;
-  topUtmMediums: Array<{ medium: string; clicks: number }>;
-  topUtmCampaigns: Array<{ campaign: string; clicks: number }>;
-  customParams: Array<{ key: string; value: string; clicks: number }>;
+  topDeepLinks: Array<{ url: string; clicks: number; appOpened: number; installs: number }>;
+  topRefParams: Array<{ ref: string; clicks: number; appOpened: number; installs: number }>;
+  topUtmSources: Array<{ source: string; clicks: number; appOpened: number; installs: number }>;
+  topUtmMediums: Array<{ medium: string; clicks: number; appOpened: number; installs: number }>;
+  topUtmCampaigns: Array<{ campaign: string; clicks: number; appOpened: number; installs: number }>;
+  customParams: Array<{ key: string; value: string; clicks: number; appOpened: number; installs: number }>;
   clicksTrend?: Array<{ date: string; clicks: number }>;
   createdAt?: Date;
   lastClicked?: Date;

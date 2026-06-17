@@ -130,10 +130,15 @@ export class AnalyticsService {
         { $sort: { _id: 1 } },
       ]),
 
-      // Top deepLink URLs from metadata
+      // Top deepLink URLs from metadata (clicks + app opens + installs in one pass)
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.deepLink': { $exists: true, $ne: null } } },
-        { $group: { _id: '$metadata.deepLink', clicks: { $sum: 1 } } },
+        { $group: {
+          _id: '$metadata.deepLink',
+          clicks: { $sum: 1 },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+        } },
         { $sort: { clicks: -1 } },
         { $limit: 20 },
       ]),
@@ -141,7 +146,12 @@ export class AnalyticsService {
       // Top ref params from metadata
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.ref': { $exists: true, $ne: null } } },
-        { $group: { _id: '$metadata.ref', clicks: { $sum: 1 } } },
+        { $group: {
+          _id: '$metadata.ref',
+          clicks: { $sum: 1 },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+        } },
         { $sort: { clicks: -1 } },
         { $limit: 15 },
       ]),
@@ -149,7 +159,12 @@ export class AnalyticsService {
       // Top UTM sources from metadata
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.utmSource': { $exists: true, $ne: null } } },
-        { $group: { _id: '$metadata.utmSource', clicks: { $sum: 1 } } },
+        { $group: {
+          _id: '$metadata.utmSource',
+          clicks: { $sum: 1 },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+        } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
       ]),
@@ -157,7 +172,12 @@ export class AnalyticsService {
       // Top UTM mediums from metadata
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.utmMedium': { $exists: true, $ne: null } } },
-        { $group: { _id: '$metadata.utmMedium', clicks: { $sum: 1 } } },
+        { $group: {
+          _id: '$metadata.utmMedium',
+          clicks: { $sum: 1 },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+        } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
       ]),
@@ -165,7 +185,12 @@ export class AnalyticsService {
       // Top UTM campaigns from metadata
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.utmCampaign': { $exists: true, $ne: null } } },
-        { $group: { _id: '$metadata.utmCampaign', clicks: { $sum: 1 } } },
+        { $group: {
+          _id: '$metadata.utmCampaign',
+          clicks: { $sum: 1 },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
+        } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
       ]),
@@ -173,12 +198,14 @@ export class AnalyticsService {
       // Custom params — flatten metadata.custom object keys and count values
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.custom': { $exists: true, $type: 'object' } } },
-        { $project: { customEntries: { $objectToArray: '$metadata.custom' } } },
+        { $project: { customEntries: { $objectToArray: '$metadata.custom' }, actionTaken: 1 } },
         { $unwind: '$customEntries' },
         {
           $group: {
             _id: { key: '$customEntries.k', value: '$customEntries.v' },
             clicks: { $sum: 1 },
+            appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+            installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
           },
         },
         { $sort: { clicks: -1 } },
@@ -217,6 +244,7 @@ export class AnalyticsService {
       },
       actions: {
         appOpened: actions.find((a: any) => a._id === 'app_opened')?.count || 0,
+        appInstalled: actions.find((a: any) => a._id === 'app_installed')?.count || 0,
         storeRedirect: actions.find((a: any) => a._id === 'store_redirect')?.count || 0,
         webFallback: actions.find((a: any) => a._id === 'web_fallback')?.count || 0,
       },
@@ -250,27 +278,39 @@ export class AnalyticsService {
       topDeepLinks: topDeepLinks.map((d: any) => ({
         url: d._id || 'Unknown',
         clicks: d.clicks,
+        appOpened: d.appOpened || 0,
+        installs: d.installs || 0,
       })),
       topRefParams: topRefParams.map((r: any) => ({
         ref: r._id || 'Unknown',
         clicks: r.clicks,
+        appOpened: r.appOpened || 0,
+        installs: r.installs || 0,
       })),
       topUtmSources: topUtmSources.map((s: any) => ({
         source: s._id || 'Unknown',
         clicks: s.clicks,
+        appOpened: s.appOpened || 0,
+        installs: s.installs || 0,
       })),
       topUtmMediums: topUtmMediums.map((m: any) => ({
         medium: m._id || 'Unknown',
         clicks: m.clicks,
+        appOpened: m.appOpened || 0,
+        installs: m.installs || 0,
       })),
       topUtmCampaigns: topUtmCampaigns.map((c: any) => ({
         campaign: c._id || 'Unknown',
         clicks: c.clicks,
+        appOpened: c.appOpened || 0,
+        installs: c.installs || 0,
       })),
       customParams: customParams.map((p: any) => ({
         key: p._id?.key || 'unknown',
         value: String(p._id?.value || ''),
         clicks: p.clicks,
+        appOpened: p.appOpened || 0,
+        installs: p.installs || 0,
       })),
       clicksTrend: clicksTrend.map((t: any) => ({
         date: t._id,

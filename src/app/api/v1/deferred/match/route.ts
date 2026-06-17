@@ -9,6 +9,8 @@ import DeferredService from '@/lib/services/deferred.service';
 import TenantModel from '@/lib/models/Tenant';
 import InstallModel from '@/lib/models/Install';
 import ConversionModel from '@/lib/models/Conversion';
+import ClickModel from '@/lib/models/Click';
+import FingerprintModel from '@/lib/models/Fingerprint';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
@@ -215,6 +217,22 @@ export async function POST(request: NextRequest) {
       },
       '✅ Deferred link matched from app'
     );
+
+    // Mark the original click as 'app_installed' (new install via deferred match).
+    // Chain: deferredLink.fingerprintId → fingerprint.clickId → click
+    try {
+      const fp = await FingerprintModel.findById(deferredLink.fingerprintId).lean();
+      if (fp?.clickId) {
+        await ClickModel.updateOne(
+          { _id: fp.clickId },
+          { $set: { actionTaken: 'app_installed', isAppInstalled: true } }
+        );
+        logger.info({ clickId: fp.clickId }, 'Original click marked as app_installed');
+      }
+    } catch (clickErr) {
+      // Non-blocking
+      logger.debug({ error: String(clickErr) }, 'Failed to update click to app_installed');
+    }
 
     // Create a Conversion record for analytics tracking
     try {
