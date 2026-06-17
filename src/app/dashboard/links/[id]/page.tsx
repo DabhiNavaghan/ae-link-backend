@@ -177,11 +177,11 @@ export default function LinkDetailPage() {
   );
 
   // Progress bar showing link clicks + installs + app opens per param value
-  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0) => {
+  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0, tooltip?: string) => {
     return (
       <div key={label} style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 6, alignItems: 'center' }}>
-          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={label}>{label}</span>
+          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={tooltip || label}>{label}</span>
           <span style={{ flexShrink: 0, marginLeft: 8, display: 'flex', gap: 14 }}>
             <span style={{ color: 'var(--color-text-secondary)' }}>{clicks} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>clicks</span></span>
             <span style={{ color: 'var(--color-success, #22c55e)' }}>{installs} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>installs</span></span>
@@ -310,10 +310,9 @@ export default function LinkDetailPage() {
           {[
             { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
             { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
-            { label: 'installs', value: analytics?.actions.appInstalled || 0 },
+            { label: 'installs', value: analytics?.deferredMatches || 0 },
             { label: 'app opens', value: analytics?.actions.appOpened || 0 },
             { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
-            { label: 'deferred matches', value: analytics?.deferredMatches || 0 },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{s.label}</div>
@@ -331,10 +330,10 @@ export default function LinkDetailPage() {
               {nextSection('actions')}
             </div>
             <div style={{ padding: 20 }}>
-              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0) ? (
+              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.deferredMatches > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
-                  {progressBar('app installed', analytics.actions.appInstalled, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
+                  {progressBar('installs', analytics.deferredMatches, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
                   {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
                 </>
@@ -370,7 +369,7 @@ export default function LinkDetailPage() {
               {analytics.deepLinks.map((item) => {
                 let displayUrl = item.url;
                 try { const u = new URL(item.url); displayUrl = u.pathname === '/' ? u.hostname : u.hostname + u.pathname; } catch {}
-                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs);
+                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs, item.url);
               })}
             </div>
           </div>

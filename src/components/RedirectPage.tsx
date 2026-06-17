@@ -192,30 +192,59 @@ export default function RedirectPage({
 
   const tryOpenApp = (appUrl: string, storeUrl: string) => {
     let didLeave = false;
+    let patchSent = false;
 
-    const onBlur = () => { didLeave = true; };
+    // Send app_opened PATCH as soon as we detect the user left the page.
+    // Uses sendBeacon for reliability — on mobile the browser may kill the
+    // page the instant the OS switches to the native app.
+    const sendAppOpenedPatch = () => {
+      if (patchSent || !clickId) return;
+      patchSent = true;
+      const payload = JSON.stringify({ clickId, action: 'app_opened' });
+      // sendBeacon is fire-and-forget; the browser guarantees delivery
+      // even if the page is being unloaded.
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/v1/clicks', blob);
+      } else {
+        fetch('/api/v1/clicks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+
+    const onBlur = () => {
+      didLeave = true;
+      sendAppOpenedPatch();
+    };
     const onVisibilityChange = () => {
-      if (document.hidden) didLeave = true;
+      if (document.hidden) {
+        didLeave = true;
+        sendAppOpenedPatch();
+      }
+    };
+    const onPageHide = () => {
+      didLeave = true;
+      sendAppOpenedPatch();
     };
 
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
 
     window.location.href = appUrl;
 
+    // Fallback: if the app didn't open (no blur/visibility change after
+    // 1.5s), redirect to the store instead.
     setTimeout(() => {
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
 
-      if (didLeave) {
-        if (clickId) {
-          fetch('/api/v1/clicks', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ clickId, action: 'app_opened' }),
-          }).catch(() => {});
-        }
-      } else {
+      if (!didLeave) {
         window.location.replace(storeUrl);
       }
       setStatus('done');
