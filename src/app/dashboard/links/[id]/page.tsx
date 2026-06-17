@@ -309,10 +309,10 @@ export default function LinkDetailPage() {
         <div className="dashboard-grid-kpi" style={{ marginBottom: 24 }}>
           {[
             { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
-            { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
-            { label: 'installs', value: analytics?.deferredMatches || 0 },
-            { label: 'app opens', value: analytics?.actions.appOpened || 0 },
             { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
+            { label: 'installs', value: analytics?.deferredMatches || 0 },
+            { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
+            { label: 'app opens', value: analytics?.actions.appOpened || 0 },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{s.label}</div>
