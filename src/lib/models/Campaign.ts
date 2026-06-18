@@ -35,6 +35,11 @@ const campaignSchema = new Schema<ICampaign>(
     startDate: Date,
     endDate: Date,
     metadata: Schema.Types.Mixed,
+    createdBy: {
+      name: String,
+      email: String,
+      avatarUrl: String,
+    },
   },
   { timestamps: true }
 );

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
@@ -24,6 +25,7 @@ interface Campaign {
   startDate?: string;
   endDate?: string;
   metadata?: Record<string, any>;
+  createdBy?: { name: string; email: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +53,7 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const campaignId = params.id as string;
   const { can, isContextReady } = useDashboard();
+  const { user } = useUser();
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
@@ -493,10 +496,41 @@ export default function CampaignDetailPage() {
         </div>
 
         {/* Footer info */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', gap: 24 }}>
-          <span>created {formatRelativeTime(campaign.createdAt)}</span>
-          <span>updated {formatRelativeTime(campaign.updatedAt)}</span>
-        </div>
+        {(() => {
+          const clerkUser = user ? {
+            name: user.fullName || user.firstName || 'Unknown',
+            email: user.primaryEmailAddress?.emailAddress || '',
+            avatarUrl: user.imageUrl || undefined,
+          } : null;
+          const creator = campaign.createdBy || clerkUser;
+          const avatarEl = (u: { name: string; avatarUrl?: string }) => u.avatarUrl ? (
+            <img src={u.avatarUrl} alt={u.name} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+          ) : (
+            <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--color-primary)', color: 'var(--color-bg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+              {u.name?.charAt(0)?.toUpperCase() || '?'}
+            </span>
+          );
+          return (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>created {formatRelativeTime(campaign.createdAt)}</span>
+                {creator && (<>
+                  <span>by</span>
+                  {avatarEl(creator)}
+                  <span>{creator.name}</span>
+                </>)}
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>updated {formatRelativeTime(campaign.updatedAt)}</span>
+                {clerkUser && (<>
+                  <span>by</span>
+                  {avatarEl(clerkUser)}
+                  <span>{clerkUser.name}</span>
+                </>)}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Delete Modal */}

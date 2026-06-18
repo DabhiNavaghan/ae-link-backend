@@ -94,6 +94,11 @@ const linkSchema = new Schema<ILink>(
       type: Number,
       default: 0,
     },
+    createdBy: {
+      name: String,
+      email: String,
+      avatarUrl: String,
+    },
   },
   { timestamps: true }
 );

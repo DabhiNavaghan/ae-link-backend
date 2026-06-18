@@ -24,6 +24,7 @@ export class CampaignService {
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       metadata: dto.metadata || {},
+      ...(dto.createdBy && { createdBy: dto.createdBy }),
     });
 
     await campaign.save();

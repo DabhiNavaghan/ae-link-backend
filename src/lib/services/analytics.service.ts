@@ -148,12 +148,15 @@ export class AnalyticsService {
       ]),
 
       // Top deepLink URLs from metadata (clicks + app opens + installs in one pass)
+      // Note: installs and app_opened are mutually exclusive — a click whose actionTaken
+      // was updated to 'app_opened' by the resolve route may still be the install click
+      // (its ID is in installClickObjIds), so we exclude install clicks from the app_opened count.
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.deepLink': { $exists: true, $ne: null } } },
         { $group: {
           _id: '$metadata.deepLink',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
           installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
@@ -166,7 +169,7 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.ref',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
           installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
@@ -179,7 +182,7 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmSource',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
           installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
@@ -192,7 +195,7 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmMedium',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
           installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
@@ -205,7 +208,7 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmCampaign',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
           installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
