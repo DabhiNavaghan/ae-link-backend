@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
@@ -104,6 +105,7 @@ export default function CreateLinkPage() {
   const campaignIdFromUrl = searchParams.get('campaignId');
   const duplicateId = searchParams.get('duplicate');
   const { can, isContextReady, selectedAppId } = useDashboard();
+  const { user } = useUser();
 
   // Permission gate
   useEffect(() => {
@@ -323,6 +325,15 @@ export default function CreateLinkPage() {
         ...(formData.shortCode && { shortCode: formData.shortCode }),
         ...(formData.expiryDate && { expiresAt: formData.expiryDate }),
       };
+
+      // Attach creator info from Clerk session
+      if (user) {
+        payload.createdBy = {
+          name: user.fullName || user.firstName || 'Unknown',
+          email: user.primaryEmailAddress?.emailAddress || '',
+          ...(user.imageUrl && { avatarUrl: user.imageUrl }),
+        };
+      }
 
       const link = await smartLinkApi.createLink(payload);
       setSuccess({ shortCode: (link as any).shortCode, id: (link as any)._id });

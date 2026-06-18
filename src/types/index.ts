@@ -96,6 +96,15 @@ export interface UpdateAppDto {
 }
 
 // ============================================================================
+// Created By (embedded author info)
+// ============================================================================
+
+export interface ICreatedBy {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}
+
 // Campaign Types
 // ============================================================================
 
@@ -110,6 +119,7 @@ export interface ICampaign extends Document {
   startDate?: Date;
   endDate?: Date;
   metadata?: Record<string, any>;
+  createdBy?: ICreatedBy;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -165,6 +175,7 @@ export interface ILink extends Document {
   isActive: boolean;
   expiresAt?: Date;
   clickCount: number;
+  createdBy?: ICreatedBy;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -337,6 +348,7 @@ export interface CreateLinkDto {
   platformOverrides?: IPlatformOverrides;
   expiresAt?: string;
   shortCode?: string;
+  createdBy?: ICreatedBy;
 }
 
 export interface UpdateLinkDto {
@@ -357,6 +369,7 @@ export interface CreateCampaignDto {
   startDate?: string;
   endDate?: string;
   metadata?: Record<string, any>;
+  createdBy?: ICreatedBy;
 }
 
 export interface UpdateCampaignDto {

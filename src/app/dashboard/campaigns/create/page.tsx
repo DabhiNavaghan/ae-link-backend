@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { generateSlug } from '@/lib/utils/slug';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
@@ -43,6 +44,7 @@ export default function CreateCampaignPage() {
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get('duplicate');
   const { apps, selectedAppId, can, isContextReady, tenant } = useDashboard();
+  const { user } = useUser();
 
   // Permission gate
   useEffect(() => {
@@ -149,6 +151,15 @@ export default function CreateCampaignPage() {
       const metaWithUtm = { ...formData.metadata };
       if (formData.utmCampaign) metaWithUtm.utmCampaign = formData.utmCampaign;
       if (Object.keys(metaWithUtm).length > 0) payload.metadata = metaWithUtm;
+
+      // Attach creator info from Clerk session
+      if (user) {
+        payload.createdBy = {
+          name: user.fullName || user.firstName || 'Unknown',
+          email: user.primaryEmailAddress?.emailAddress || '',
+          ...(user.imageUrl && { avatarUrl: user.imageUrl }),
+        };
+      }
 
       const campaign = await smartLinkApi.createCampaign(payload);
       setSuccess({ id: String(campaign._id), name: campaign.name });

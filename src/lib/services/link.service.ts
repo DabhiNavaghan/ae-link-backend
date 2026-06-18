@@ -40,6 +40,7 @@ export class LinkService {
       platformOverrides: dto.platformOverrides || {},
       isActive: true,
       expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+      ...(dto.createdBy && { createdBy: dto.createdBy }),
     });
 
     await link.save();

@@ -438,7 +438,7 @@ const Header: React.FC<HeaderProps> = ({
                   borderTop: '1px solid var(--color-border)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'center',
                 }}>
                   <span style={{
                     fontFamily: 'var(--font-mono)',
@@ -448,14 +448,6 @@ const Header: React.FC<HeaderProps> = ({
                     letterSpacing: '0.1em',
                   }}>
                     SmartLink v1.0
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    color: 'var(--color-text-tertiary)',
-                    letterSpacing: '0.06em',
-                  }}>
-                    ⌘K for search
                   </span>
                 </div>
               </div>

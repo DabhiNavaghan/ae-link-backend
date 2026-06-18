@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
@@ -20,6 +21,7 @@ interface LinkData {
   platformOverrides?: Record<string, any>;
   campaignId?: string;
   campaignName?: string;
+  createdBy?: { name: string; email: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +55,7 @@ export default function LinkDetailPage() {
   const params = useParams();
   const linkId = params.id as string;
   const { can, isContextReady } = useDashboard();
+  const { user } = useUser();
 
   const [link, setLink] = useState<LinkData | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -61,6 +64,7 @@ export default function LinkDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [hoveredDeepLink, setHoveredDeepLink] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -177,12 +181,12 @@ export default function LinkDetailPage() {
   );
 
   // Progress bar showing link clicks + installs + app opens per param value
-  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0, tooltip?: string) => {
+  const dualStatBar = (label: string, clicks: number, appOpened: number, maxClicks: number, color = 'var(--color-primary)', installs = 0) => {
     return (
       <div key={label} style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 6, alignItems: 'center' }}>
-          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }} title={tooltip || label}>{label}</span>
-          <span style={{ flexShrink: 0, marginLeft: 8, display: 'flex', gap: 14 }}>
+          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }} title={label}>{label}</span>
+          <span style={{ flexShrink: 0, marginLeft: 12, display: 'flex', gap: 14 }}>
             <span style={{ color: 'var(--color-text-secondary)' }}>{clicks} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>clicks</span></span>
             <span style={{ color: 'var(--color-success, #22c55e)' }}>{installs} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>installs</span></span>
             <span style={{ color: 'var(--color-primary)' }}>{appOpened} <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>app opens</span></span>
@@ -367,9 +371,49 @@ export default function LinkDetailPage() {
                 unique destination urls passed via ?deepLink= param
               </div>
               {analytics.deepLinks.map((item) => {
-                let displayUrl = item.url;
-                try { const u = new URL(item.url); displayUrl = u.pathname === '/' ? u.hostname : u.hostname + u.pathname; } catch {}
-                return dualStatBar(displayUrl, item.clicks, item.appOpened, analytics.deepLinks[0]?.clicks || 1, 'var(--color-secondary)', item.installs, item.url);
+                const maxClicks = analytics.deepLinks[0]?.clicks || 1;
+                const pctClicks = Math.min(100, (item.clicks / maxClicks) * 100);
+                const isHovered = hoveredDeepLink === item.url;
+                // No conversion percentage — installs/opens are not clean subsets of clicks
+                return (
+                  <div
+                    key={item.url}
+                    onMouseEnter={() => setHoveredDeepLink(item.url)}
+                    onMouseLeave={() => setHoveredDeepLink(null)}
+                    style={{
+                      padding: '10px 12px', marginBottom: 2,
+                      background: isHovered ? 'var(--color-bg-hover)' : 'transparent',
+                      transition: 'background 0.15s ease', cursor: 'default',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                      {/* URL */}
+                      <div style={{ flex: 1, minWidth: 0, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.url}>
+                        {item.url.split('?')[0]}
+                      </div>
+                      {/* Stats — compact inline, expand on hover */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, overflow: 'hidden', transition: 'all 0.25s ease' }}>
+                        {isHovered && (
+                          <>
+                            <span className="deeplink-stat-fade" style={{ fontSize: 11, color: 'var(--color-success, #22c55e)', whiteSpace: 'nowrap', paddingRight: 14 }}>
+                              {item.installs}<span style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginLeft: 3 }}>installs</span>
+                            </span>
+                            <span className="deeplink-stat-fade" style={{ fontSize: 11, color: 'var(--color-primary)', whiteSpace: 'nowrap', paddingRight: 14 }}>
+                              {item.appOpened}<span style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginLeft: 3 }}>opens</span>
+                            </span>
+                          </>
+                        )}
+                        <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                          {item.clicks}<span style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginLeft: 3 }}>clicks</span>
+                        </span>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ height: 3, background: 'var(--color-bg-hover)', marginTop: 6, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${pctClicks}%`, background: 'var(--color-secondary)', opacity: isHovered ? 0.7 : 0.35, transition: 'all 0.3s ease' }} />
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>
@@ -617,12 +661,50 @@ export default function LinkDetailPage() {
         )}
 
         {/* Footer */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', gap: 24 }}>
-          <span>created {formatRelativeTime(link.createdAt)}</span>
-          <span>updated {formatRelativeTime(link.updatedAt)}</span>
-        </div>
+        {(() => {
+          const clerkUser = user ? {
+            name: user.fullName || user.firstName || 'Unknown',
+            email: user.primaryEmailAddress?.emailAddress || '',
+            avatarUrl: user.imageUrl || undefined,
+          } : null;
+          const creator = link.createdBy || clerkUser;
+          const avatarEl = (u: { name: string; avatarUrl?: string }) => u.avatarUrl ? (
+            <img src={u.avatarUrl} alt={u.name} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+          ) : (
+            <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--color-primary)', color: 'var(--color-bg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+              {u.name?.charAt(0)?.toUpperCase() || '?'}
+            </span>
+          );
+          return (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>created {formatRelativeTime(link.createdAt)}</span>
+                {creator && (<>
+                  <span>by</span>
+                  {avatarEl(creator)}
+                  <span>{creator.name}</span>
+                </>)}
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>updated {formatRelativeTime(link.updatedAt)}</span>
+                {clerkUser && (<>
+                  <span>by</span>
+                  {avatarEl(clerkUser)}
+                  <span>{clerkUser.name}</span>
+                </>)}
+              </div>
+            </div>
+          );
+        })()}
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .deeplink-stat-fade { animation: statFadeIn 0.2s ease both; }
+        .deeplink-stat-fade:nth-child(1) { animation-delay: 0s; }
+        .deeplink-stat-fade:nth-child(2) { animation-delay: 0.04s; }
+        .deeplink-stat-fade:nth-child(3) { animation-delay: 0.08s; }
+        @keyframes statFadeIn { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
     </div>
   );
 }
