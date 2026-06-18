@@ -118,6 +118,7 @@ export default function CreateLinkPage() {
   const [duplicateLoading, setDuplicateLoading] = useState(!!duplicateId);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ shortCode: string; id: string } | null>(null);
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [apps, setApps] = useState<AppOption[]>([]);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
@@ -372,10 +373,16 @@ export default function CreateLinkPage() {
               {smartLinkUrl}
             </div>
             <button
-              onClick={() => { navigator.clipboard.writeText(smartLinkUrl); }}
-              style={{ width: '100%', padding: '10px 0', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: 'var(--color-primary)', color: '#000', border: 'none', cursor: 'pointer' }}
+              onClick={() => {
+                navigator.clipboard.writeText(smartLinkUrl);
+                setCopiedSuccess(true);
+                setTimeout(() => {
+                  if (success?.id) router.push(`/dashboard/links/${success.id}`);
+                }, 2000);
+              }}
+              style={{ width: '100%', padding: '10px 0', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: copiedSuccess ? 'var(--color-success, #22c55e)' : 'var(--color-primary)', color: '#000', border: 'none', cursor: 'pointer', transition: 'background 0.2s ease' }}
             >
-              copy link
+              {copiedSuccess ? '✓ copied — redirecting...' : 'copy link'}
             </button>
           </div>
 
@@ -391,6 +398,7 @@ export default function CreateLinkPage() {
             <button
               onClick={() => {
                 setSuccess(null);
+                setCopiedSuccess(false);
                 setFormData((prev) => ({ ...prev, title: '', destinationUrl: '', shortCode: '' }));
                 setTitleManuallyEdited(false);
               }}

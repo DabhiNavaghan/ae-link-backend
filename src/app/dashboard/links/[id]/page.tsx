@@ -325,8 +325,8 @@ export default function LinkDetailPage() {
           ))}
         </div>
 
-
-        {/* Action Breakdown + Channels row */}
+        {/* Action Breakdown + Channels row — only show when there are clicks */}
+        {analytics && analytics.totalClicks > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
           {/* Action Breakdown */}
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
@@ -334,7 +334,7 @@ export default function LinkDetailPage() {
               {nextSection('actions')}
             </div>
             <div style={{ padding: 20 }}>
-              {analytics && (analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.deferredMatches > 0) ? (
+              {(analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.deferredMatches > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
                   {progressBar('installs', analytics.deferredMatches, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
@@ -351,7 +351,7 @@ export default function LinkDetailPage() {
               {nextSection('channels')}
             </div>
             <div style={{ padding: 20 }}>
-              {analytics && analytics.channels.length > 0 ? (
+              {analytics.channels.length > 0 ? (
                 analytics.channels.map((item) =>
                   progressBar(item.channel, item.clicks, analytics.channels[0]?.clicks || 1, 'var(--color-accent)')
                 )
@@ -359,6 +359,7 @@ export default function LinkDetailPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Deep Link URLs — only for dynamic links */}
         {hasDeepLinks && analytics && (
@@ -514,52 +515,74 @@ export default function LinkDetailPage() {
           </div>
         )}
 
-        {/* QR + Devices row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-2 lg:grid-cols-[1fr_2fr]">
-          {/* QR Code */}
-          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {nextSection('qr code')}
-            </div>
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" style={{ width: 160, height: 160 }} />}
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 12, textAlign: 'center' }}>scan to open link</div>
-            </div>
-          </div>
+        {/* QR / Parameters / Devices — adaptive layout */}
+        {(() => {
+          const hasClicks = analytics && analytics.totalClicks > 0;
+          const hasParams = link.params && Object.keys(link.params).length > 0;
+          const paramEntries = hasParams ? Object.entries(link.params!) : [];
 
-          {/* Devices */}
-          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {nextSection('devices')}
+          const qrCard = (
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                {nextSection('qr code')}
+              </div>
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" style={{ width: 160, height: 160 }} />}
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 12, textAlign: 'center' }}>scan to open link</div>
+              </div>
             </div>
-            <div style={{ padding: 20 }}>
-              {analytics && Object.keys(analytics.devices).length > 0 ? (
-                Object.entries(analytics.devices).map(([device, count]) =>
-                  progressBar(device, count, analytics.totalClicks || 1)
-                )
-              ) : emptyState('no device data yet')}
-            </div>
-          </div>
-        </div>
+          );
 
-        {/* Parameters */}
-        {link.params && Object.keys(link.params).length > 0 && (
-          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-              {nextSection('parameters')}
+          const paramsCard = hasParams ? (
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                {nextSection('parameters')}
+              </div>
+              <div style={{ padding: 20, display: 'grid', gridTemplateColumns: paramEntries.length > 2 ? '1fr 1fr' : '1fr', gap: 10 }}>
+                {paramEntries.map(([key, value]) => (
+                  <div key={key} style={{ background: 'var(--color-bg)', padding: '10px 14px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{key}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text)', wordBreak: 'break-all' }}>
+                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="md:grid-cols-2">
-              {Object.entries(link.params).map(([key, value]) => (
-                <div key={key} style={{ background: 'var(--color-bg)', padding: 12, border: '1px solid var(--color-border)' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{key}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text)', wordBreak: 'break-all' }}>
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+          ) : null;
+
+          if (hasClicks) {
+            // With clicks: QR + Devices in one row, Parameters full width below
+            return (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, marginBottom: 24 }}>
+                  {qrCard}
+                  <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                      {nextSection('devices')}
+                    </div>
+                    <div style={{ padding: 20 }}>
+                      {Object.keys(analytics!.devices).length > 0 ? (
+                        Object.entries(analytics!.devices).map(([device, count]) =>
+                          progressBar(device, count, analytics!.totalClicks || 1)
+                        )
+                      ) : emptyState('no device data yet')}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                {paramsCard && <div style={{ marginBottom: 24 }}>{paramsCard}</div>}
+              </>
+            );
+          } else {
+            // No clicks: QR + Parameters side by side (or QR alone)
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: hasParams ? '1fr 2fr' : '1fr 2fr', gap: 24, marginBottom: 24 }}>
+                {qrCard}
+                {paramsCard || <div />}
+              </div>
+            );
+          }
+        })()}
 
         {/* Platform Overrides */}
         {link.platformOverrides && Object.keys(link.platformOverrides).length > 0 && (
@@ -675,6 +698,7 @@ export default function LinkDetailPage() {
               {u.name?.charAt(0)?.toUpperCase() || '?'}
             </span>
           );
+          const wasUpdated = Math.abs(new Date(link.updatedAt).getTime() - new Date(link.createdAt).getTime()) > 2000;
           return (
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -685,14 +709,16 @@ export default function LinkDetailPage() {
                   <span>{creator.name}</span>
                 </>)}
               </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span>updated {formatRelativeTime(link.updatedAt)}</span>
-                {clerkUser && (<>
-                  <span>by</span>
-                  {avatarEl(clerkUser)}
-                  <span>{clerkUser.name}</span>
-                </>)}
-              </div>
+              {wasUpdated && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span>updated {formatRelativeTime(link.updatedAt)}</span>
+                  {clerkUser && (<>
+                    <span>by</span>
+                    {avatarEl(clerkUser)}
+                    <span>{clerkUser.name}</span>
+                  </>)}
+                </div>
+              )}
             </div>
           );
         })()}
