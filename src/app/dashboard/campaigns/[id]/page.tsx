@@ -32,6 +32,7 @@ interface Campaign {
 
 interface LinkItem {
   _id: string;
+  title?: string;
   shortCode: string;
   destinationUrl: string;
   linkType: string;
@@ -455,7 +456,7 @@ export default function CampaignDetailPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>
-                    {['slug', 'destination', 'clicks', 'conversions', ''].map((h) => (
+                    {['name', 'slug', 'clicks', 'conversions', ''].map((h) => (
                       <th key={h} style={{ textAlign: h === 'clicks' || h === 'conversions' ? 'right' : 'left', padding: '12px 16px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', fontWeight: 500, borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -465,11 +466,11 @@ export default function CampaignDetailPage() {
                     <tr key={link._id} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-secondary)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                       <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
                         <Link href={`/dashboard/links/${link._id}`} style={{ textDecoration: 'none' }}>
-                          <span style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>{link.shortCode}</span>
+                          <span style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>{link.title || link.shortCode}</span>
                         </Link>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-secondary)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.destinationUrl}>
-                        {link.destinationUrl}
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-tertiary)', fontSize: 11 }}>
+                        {link.shortCode}
                       </td>
                       <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', textAlign: 'right', color: 'var(--color-primary)' }}>
                         {linkAnalyticsLoading ? <span style={{ color: 'var(--color-text-tertiary)' }}>...</span> : link.clickCount.toLocaleString()}
@@ -510,6 +511,7 @@ export default function CampaignDetailPage() {
               {u.name?.charAt(0)?.toUpperCase() || '?'}
             </span>
           );
+          const wasUpdated = Math.abs(new Date(campaign.updatedAt).getTime() - new Date(campaign.createdAt).getTime()) > 2000;
           return (
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', padding: '12px 0', borderTop: '1px dashed var(--color-border)', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -520,14 +522,16 @@ export default function CampaignDetailPage() {
                   <span>{creator.name}</span>
                 </>)}
               </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span>updated {formatRelativeTime(campaign.updatedAt)}</span>
-                {clerkUser && (<>
-                  <span>by</span>
-                  {avatarEl(clerkUser)}
-                  <span>{clerkUser.name}</span>
-                </>)}
-              </div>
+              {wasUpdated && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span>updated {formatRelativeTime(campaign.updatedAt)}</span>
+                  {clerkUser && (<>
+                    <span>by</span>
+                    {avatarEl(clerkUser)}
+                    <span>{clerkUser.name}</span>
+                  </>)}
+                </div>
+              )}
             </div>
           );
         })()}
