@@ -107,14 +107,17 @@ export class FingerprintService {
    * - Language/locale match: 10 points  (device locale persists)
    * - Time proximity:        15 points  (closer = more likely same user)
    *
-   * Default threshold: 60 points
-   * IP + screen alone = 60 (solid match)
-   * IP + timezone + language + proximity = 40+15+10+15 = 80 (strong match)
+   * Default threshold: 75 points
+   * IP exact + screen = 40+20 = 60 (needs more signals)
+   * IP exact + screen + timezone = 40+20+15 = 75 (solid match)
+   * IP /24 + screen + timezone + language = 30+20+15+10 = 75 (solid match)
+   * IP /24 + timezone + language + proximity = 30+15+10+15 = 70 (NOT enough — prevents
+   *   false positives from same-ISP users who never installed via this link)
    */
   static async findMatchingFingerprint(
     tenantId: string,
     incomingFingerprint: FingerprintData,
-    matchThreshold: number = 60,
+    matchThreshold: number = 75,
     linkId?: string
   ): Promise<{
     fingerprint: IFingerprint | null;

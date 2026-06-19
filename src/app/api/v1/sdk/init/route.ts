@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
         installType,
         deviceId,
         config: {
-          matchThreshold: tenant?.settings?.matchThreshold || 60,
+          matchThreshold: tenant?.settings?.matchThreshold || 75,
           fingerprintTtlHours: tenant?.settings?.fingerprintTtlHours || 6,
         },
       }),
