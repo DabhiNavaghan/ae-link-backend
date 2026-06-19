@@ -33,7 +33,7 @@ const SettingsPage: React.FC = () => {
     name: '',
     domain: '',
     fingerprintTtlHours: 6,
-    matchThreshold: 60,
+    matchThreshold: 75,
     enableDeferredDeepLink: true,
     android: {
       package: '',
@@ -191,7 +191,7 @@ const SettingsPage: React.FC = () => {
           storeUrl: '',
         },
         fingerprintTtlHours: (tenant as any).settings?.fingerprintTtlHours || 6,
-        matchThreshold: (tenant as any).settings?.matchThreshold || 60,
+        matchThreshold: (tenant as any).settings?.matchThreshold || 75,
         enableDeferredDeepLink: (tenant as any).settings?.enableDeferredDeepLink !== false,
       });
     } catch (err) {
@@ -1004,7 +1004,7 @@ const SettingsPage: React.FC = () => {
                 <span style={{ color: 'var(--color-text)' }} className="text-sm font-semibold">
                   {settings.matchThreshold} points
                 </span>
-                <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Recommended: 70</span>
+                <span style={{ color: 'var(--color-text-tertiary)' }} className="text-xs">Recommended: 75</span>
               </div>
               <div style={{ backgroundColor: 'var(--color-primary-light)', borderColor: 'var(--color-border)' }} className="mt-4 p-3 border">
                 <p style={{ color: 'var(--color-text)' }} className="text-sm">

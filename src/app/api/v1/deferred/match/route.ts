@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       return applyCors(request, response);
     }
 
-    const matchThreshold = tenant?.settings?.matchThreshold || 60;
+    const matchThreshold = tenant?.settings?.matchThreshold || 75;
 
     // Find matching deferred link
     const deferredLink = await DeferredService.matchDeferredLink(
