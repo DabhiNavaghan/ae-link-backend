@@ -6,6 +6,7 @@ import ClickModel from '@/lib/models/Click';
 import TenantModel from '@/lib/models/Tenant';
 import AppModel from '@/lib/models/App';
 import { DeviceDetector } from '@/lib/services/device-detector';
+import { lookupGeo } from '@/lib/services/geo.service';
 import { Logger } from '@/lib/logger';
 import RedirectPage from '@/components/RedirectPage';
 import { ClickChannel } from '@/types';
@@ -249,6 +250,9 @@ export default async function ResolvePage({
         clickMetadata.rawQuery = queryParams;
       }
 
+      // Geo lookup — fire and don't block redirect if it's slow
+      const geo = await lookupGeo(ip);
+
       const click = new ClickModel({
         linkId: link._id,
         tenantId: link.tenantId,
@@ -257,7 +261,7 @@ export default async function ResolvePage({
         referer: referer,
         channel,
         device: deviceInfo,
-        geo: {},
+        geo,
         isAppInstalled: false,
         actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
         ...(clickMetadata && { metadata: clickMetadata }),

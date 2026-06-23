@@ -478,6 +478,9 @@ export interface DashboardOverview {
   totalLinks: number;
   activeCampaigns: number;
   deferredLinksMatched: number;
+  // SDK install metrics
+  newInstalls: number;
+  totalDevices: number;
   topLinks: Array<{
     linkId: string;
     title?: string;
@@ -507,6 +510,7 @@ export interface DashboardOverview {
     clicks: number;
     conversions: number;
     opens: number;
+    installs: number;
   }>;
   channelBreakdown: Array<{
     channel: string;

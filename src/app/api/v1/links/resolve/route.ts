@@ -6,6 +6,7 @@ import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
 import { DeviceDetector } from '@/lib/services/device-detector';
+import { lookupGeo } from '@/lib/services/geo.service';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 
@@ -199,6 +200,8 @@ export async function GET(request: NextRequest) {
         const detector = new DeviceDetector(userAgent);
         const deviceInfo = detector.detect();
 
+        const geo = await lookupGeo(ip);
+
         const newClick = new ClickModel({
           linkId: link._id,
           tenantId: link.tenantId,
@@ -207,7 +210,7 @@ export async function GET(request: NextRequest) {
           referer: '',
           channel: 'direct',
           device: deviceInfo,
-          geo: {},
+          geo,
           isAppInstalled: true,
           actionTaken: 'app_opened',
           ...(resolveMetadata && { metadata: resolveMetadata }),
