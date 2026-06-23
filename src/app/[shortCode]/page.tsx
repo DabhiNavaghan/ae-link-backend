@@ -116,7 +116,7 @@ export default async function ResolvePage({
     // deepLink query param → becomes destinationUrl if link has none.
     // If the value is a relative path (starts with /), reconstruct the
     // full URL using the referer origin or the link's stored destination.
-    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link || queryParams.deeplink;
     if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
       // Try to get the origin from the referer header
       const earlyReferer = headers().get('referer') || '';
@@ -134,10 +134,9 @@ export default async function ResolvePage({
           : `${baseOrigin}/${deepLinkUrl}`;
       }
     }
-    const effectiveDestinationUrl =
-      deepLinkUrl && !linkData.destinationUrl
-        ? deepLinkUrl
-        : linkData.destinationUrl;
+    // deepLink param ALWAYS overrides stored destination when present —
+    // this is the core dynamic deep-linking feature.
+    const effectiveDestinationUrl = deepLinkUrl || linkData.destinationUrl;
 
     // Merge stored params with query params (query overrides stored)
     // Map both snake_case and camelCase to our camelCase keys
@@ -156,7 +155,7 @@ export default async function ResolvePage({
       ref: 'ref',
     };
 
-    const skipKeys = new Set(['deepLink', 'deep_link', ...Object.keys(paramMap)]);
+    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', ...Object.keys(paramMap)]);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     // Apply known param overrides from query
@@ -250,27 +249,42 @@ export default async function ResolvePage({
         clickMetadata.rawQuery = queryParams;
       }
 
-      // Geo lookup — fire and don't block redirect if it's slow
-      const geo = await lookupGeo(ip);
-
-      const click = new ClickModel({
+      // Deduplicate: skip if an identical click was recorded in the
+      // last 30 seconds (Next.js SSR can invoke the page component
+      // more than once for the same request).
+      const dedupeWindow = new Date(Date.now() - 30_000);
+      const existingClick = await ClickModel.findOne({
         linkId: link._id,
-        tenantId: link.tenantId,
         ipAddress: ip,
-        userAgent: userAgent,
-        referer: referer,
-        channel,
-        device: deviceInfo,
-        geo,
-        isAppInstalled: false,
-        actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
-        ...(clickMetadata && { metadata: clickMetadata }),
-      });
+        createdAt: { $gte: dedupeWindow },
+      }).select('_id').lean();
 
-      await click.save();
-      clickId = click._id.toString();
+      if (existingClick) {
+        clickId = existingClick._id.toString();
+        logger.debug({ clickId, shortCode }, 'Duplicate click suppressed');
+      } else {
+        // Geo lookup — fire and don't block redirect if it's slow
+        const geo = await lookupGeo(ip);
 
-      await LinkService.incrementClickCount(link._id.toString());
+        const click = new ClickModel({
+          linkId: link._id,
+          tenantId: link.tenantId,
+          ipAddress: ip,
+          userAgent: userAgent,
+          referer: referer,
+          channel,
+          device: deviceInfo,
+          geo,
+          isAppInstalled: false,
+          actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
+          ...(clickMetadata && { metadata: clickMetadata }),
+        });
+
+        await click.save();
+        clickId = click._id.toString();
+
+        await LinkService.incrementClickCount(link._id.toString());
+      }
 
       logger.info(
         {
