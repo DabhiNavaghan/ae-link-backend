@@ -785,7 +785,11 @@ export class AnalyticsService {
 
     // ── SDK Install metrics (from Install collection) ──
     const installMatch: Record<string, any> = { tenantId: tenantObjId };
-    const [newInstallCount, totalDeviceCount, installsTrend] = await Promise.all([
+    const installTrendDateFilter = filters?.startDate || filters?.endDate
+      ? clickMatch.createdAt
+      : { $gte: trendStart, $lte: trendEnd };
+
+    const [newInstallCount, totalDeviceCount, installsTrend, appLaunchesTrend] = await Promise.all([
       // New installs: genuine first app launches
       InstallModel.countDocuments({ ...installMatch, installType: 'first_install' }),
       // Total devices: all unique devices tracked by SDK
@@ -796,9 +800,7 @@ export class AnalyticsService {
           $match: {
             ...installMatch,
             installType: 'first_install',
-            createdAt: filters?.startDate || filters?.endDate
-              ? clickMatch.createdAt
-              : { $gte: trendStart, $lte: trendEnd },
+            createdAt: installTrendDateFilter,
           },
         },
         {
@@ -808,8 +810,24 @@ export class AnalyticsService {
           },
         },
       ]),
+      // App launches trend — ALL install types (every device that launched) by day
+      InstallModel.aggregate([
+        {
+          $match: {
+            ...installMatch,
+            createdAt: installTrendDateFilter,
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            launches: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
     const installsTrendMap = new Map(installsTrend.map((i: any) => [i._id, i.installs]));
+    const appLaunchesTrendMap = new Map(appLaunchesTrend.map((a: any) => [a._id, a.launches]));
 
     return {
       totalClicks: clickCount,
@@ -823,6 +841,7 @@ export class AnalyticsService {
       deferredLinksMatched: deferredMatched,
       newInstalls: newInstallCount,
       totalDevices: totalDeviceCount,
+      totalAppLaunches: totalDeviceCount,
       topLinks: topLinks.map((l) => ({
         linkId: l._id.toString(),
         title: l.title || undefined,
@@ -853,6 +872,7 @@ export class AnalyticsService {
         conversions: convTrendMap.get(ct._id) || 0,
         opens: opensTrendMap.get(ct._id) || 0,
         installs: installsTrendMap.get(ct._id) || 0,
+        appLaunches: appLaunchesTrendMap.get(ct._id) || 0,
       })),
       channelBreakdown: channelBreakdown.map((cb) => ({
         channel: cb._id,

@@ -80,14 +80,14 @@ function generateSparkPath(data: number[], w = 200, h = 36): { line: string; are
 }
 
 function generateChartPaths(
-  data: Array<{ clicks: number; conversions: number; opens?: number; installs?: number }>,
+  data: Array<{ clicks: number; conversions: number; opens?: number; installs?: number; appLaunches?: number }>,
   viewW = 650,
   viewH = 180,
   padL = 40
-): { clicksPath: string; clicksArea: string; conversionsPath: string; opensPath: string; installsPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }>; openPts: Array<{ x: number; y: number }>; installPts: Array<{ x: number; y: number }> } {
+): { clicksPath: string; clicksArea: string; conversionsPath: string; opensPath: string; installsPath: string; appLaunchesPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }>; openPts: Array<{ x: number; y: number }>; installPts: Array<{ x: number; y: number }>; appLaunchPts: Array<{ x: number; y: number }> } {
   const usableW = viewW - padL;
-  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', opensPath: '', installsPath: '', clickPts: [], convPts: [], openPts: [], installPts: [] };
-  const maxVal = Math.max(...data.map((d) => Math.max(d.clicks, d.opens || 0, d.installs || 0)), 1);
+  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', opensPath: '', installsPath: '', appLaunchesPath: '', clickPts: [], convPts: [], openPts: [], installPts: [], appLaunchPts: [] };
+  const maxVal = Math.max(...data.map((d) => Math.max(d.clicks, d.opens || 0, d.installs || 0, d.appLaunches || 0)), 1);
   const step = usableW / Math.max(data.length - 1, 1);
 
   const clickPts = data.map((d, i) => ({
@@ -106,14 +106,19 @@ function generateChartPaths(
     x: padL + i * step,
     y: viewH - ((d.installs || 0) / maxVal) * (viewH - 40) - 20,
   }));
+  const appLaunchPts = data.map((d, i) => ({
+    x: padL + i * step,
+    y: viewH - ((d.appLaunches || 0) / maxVal) * (viewH - 40) - 20,
+  }));
 
   const clicksPathStr = smoothPath(clickPts);
   const clicksArea = `${clicksPathStr} L ${padL + (data.length - 1) * step} ${viewH} L ${padL} ${viewH} Z`;
   const conversionsPath = smoothPath(convPts);
   const opensPath = smoothPath(openPts);
   const installsPath = smoothPath(installPts);
+  const appLaunchesPath = smoothPath(appLaunchPts);
 
-  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, opensPath, installsPath, clickPts, convPts, openPts, installPts };
+  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, opensPath, installsPath, appLaunchesPath, clickPts, convPts, openPts, installPts, appLaunchPts };
 }
 
 // ─── Copy Store Link Button ──────────────────────────────────────
@@ -259,7 +264,7 @@ export default function DashboardPage() {
 
   // Chart paths
   const chartData = overview?.clicksTrend || [];
-  const { clicksPath, clicksArea, conversionsPath, opensPath, installsPath, clickPts, convPts, openPts, installPts } = generateChartPaths(chartData);
+  const { clicksPath, clicksArea, conversionsPath, opensPath, installsPath, appLaunchesPath, clickPts, convPts, openPts, installPts, appLaunchPts } = generateChartPaths(chartData);
 
   // Date labels for chart
   const chartDates = chartData.length > 0
@@ -569,7 +574,7 @@ export default function DashboardPage() {
           >
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>02</span>
-              // clicks, opens, installs & conversions · 30d
+              // clicks, link_opens, installs, app_launch & conversions · 30d
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 14 }}>
               <span>
@@ -578,11 +583,15 @@ export default function DashboardPage() {
               </span>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-secondary)', marginRight: 6, verticalAlign: 'middle' }} />
-                opens
+                link_opens
               </span>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: '#22c55e', marginRight: 6, verticalAlign: 'middle' }} />
                 installs
+              </span>
+              <span>
+                <span style={{ display: 'inline-block', width: 8, height: 8, background: '#f59e0b', marginRight: 6, verticalAlign: 'middle' }} />
+                app_launch
               </span>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-accent)', marginRight: 6, verticalAlign: 'middle' }} />
@@ -609,10 +618,12 @@ export default function DashboardPage() {
                 {/* Clicks area + smooth line */}
                 <path d={clicksArea} fill="rgba(201, 255, 61, 0.08)" />
                 <path d={clicksPath} fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Opens smooth line */}
+                {/* Link opens smooth line */}
                 <path d={opensPath} fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 3" />
                 {/* Installs smooth line */}
                 <path d={installsPath} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* App launches smooth line */}
+                <path d={appLaunchesPath} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 2" />
                 {/* Conversions smooth line */}
                 <path d={conversionsPath} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Interactive hover zones */}
@@ -626,25 +637,34 @@ export default function DashboardPage() {
                         <line x1={pt.x} y1={20} x2={pt.x} y2={220} stroke="var(--color-border-hover)" strokeWidth="1" strokeDasharray="3 3" />
                         {/* Click dot */}
                         <circle cx={pt.x} cy={pt.y} r="4" fill="var(--color-primary)" stroke="var(--color-bg)" strokeWidth="2" />
-                        {/* Opens dot */}
+                        {/* Link opens dot */}
                         <circle cx={openPts[i].x} cy={openPts[i].y} r="4" fill="var(--color-secondary)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Installs dot */}
                         <circle cx={installPts[i].x} cy={installPts[i].y} r="4" fill="#22c55e" stroke="var(--color-bg)" strokeWidth="2" />
+                        {/* App launches dot */}
+                        <circle cx={appLaunchPts[i].x} cy={appLaunchPts[i].y} r="4" fill="#f59e0b" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Conversion dot */}
                         <circle cx={convPts[i].x} cy={convPts[i].y} r="4" fill="var(--color-accent)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Tooltip background */}
-                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={62} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
-                        {/* Tooltip text */}
-                        <text x={Math.min(pt.x - 50, 585)} y={16} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-primary)">
+                        <rect x={Math.min(pt.x - 60, 575)} y={2} width={120} height={88} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
+                        {/* Tooltip date */}
+                        <text x={Math.min(pt.x - 55, 580)} y={15} fontFamily="var(--font-mono)" fontSize="9" fontWeight="700" fill="var(--color-text)">
+                          {chartData[i]?.date ? new Date(chartData[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        </text>
+                        {/* Tooltip metrics */}
+                        <text x={Math.min(pt.x - 55, 580)} y={28} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-primary)">
                           clicks: {chartData[i]?.clicks}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={29} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-secondary)">
-                          opens: {chartData[i]?.opens || 0}
+                        <text x={Math.min(pt.x - 55, 580)} y={40} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-secondary)">
+                          link_opens: {chartData[i]?.opens || 0}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={42} fontFamily="var(--font-mono)" fontSize="9" fill="#22c55e">
+                        <text x={Math.min(pt.x - 55, 580)} y={52} fontFamily="var(--font-mono)" fontSize="9" fill="#22c55e">
                           installs: {chartData[i]?.installs || 0}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={55} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
+                        <text x={Math.min(pt.x - 55, 580)} y={64} fontFamily="var(--font-mono)" fontSize="9" fill="#f59e0b">
+                          app_launch: {chartData[i]?.appLaunches || 0}
+                        </text>
+                        <text x={Math.min(pt.x - 55, 580)} y={76} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
                           conv: {chartData[i]?.conversions}
                         </text>
                       </>

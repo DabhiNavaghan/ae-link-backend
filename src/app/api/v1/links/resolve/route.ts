@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // deepLink query param → becomes destinationUrl if link has none.
     // If the value is a relative path, reconstruct the full URL.
-    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link;
+    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link || queryParams.deeplink;
     if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
       // Try to get origin from referer header
       const refererHeader = request.headers.get('referer') || '';
@@ -100,10 +100,9 @@ export async function GET(request: NextRequest) {
           : `${baseOrigin}/${deepLinkUrl}`;
       }
     }
-    const effectiveDestinationUrl =
-      deepLinkUrl && !link.destinationUrl
-        ? deepLinkUrl
-        : link.destinationUrl;
+    // deepLink param ALWAYS overrides stored destination when present —
+    // this is the core dynamic deep-linking feature.
+    const effectiveDestinationUrl = deepLinkUrl || link.destinationUrl;
 
     // Merge stored params with query params (query overrides stored)
     const paramMap: Record<string, string> = {
@@ -121,7 +120,7 @@ export async function GET(request: NextRequest) {
       ref: 'ref',
     };
 
-    const skipKeys = new Set(['deepLink', 'deep_link', ...Object.keys(paramMap)]);
+    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', ...Object.keys(paramMap)]);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     for (const [qKey, qVal] of Object.entries(queryParams)) {
