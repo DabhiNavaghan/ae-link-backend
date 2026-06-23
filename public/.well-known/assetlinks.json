@@ -1,0 +1,40 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.amitech.allevents",
+      "sha256_cert_fingerprints": [
+        "23:C6:3D:23:1E:87:5F:3B:4B:70:EF:93:02:B5:9B:35:A3:E0:9F:53:40:6E:11:B0:0D:DB:8F:15:B4:B6:E3:66",
+        "64:0F:E9:7E:13:99:0F:FB:99:28:BF:56:35:11:6A:E9:00:B9:45:C4:99:8D:C5:60:39:66:72:DA:19:FC:3F:92"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.allevents.aeticket",
+      "sha256_cert_fingerprints": [
+        "23:C6:3D:23:1E:87:5F:3B:4B:70:EF:93:02:B5:9B:35:A3:E0:9F:53:40:6E:11:B0:0D:DB:8F:15:B4:B6:E3:66"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.amitech.alleventsorg",
+      "sha256_cert_fingerprints": [
+        "23:C6:3D:23:1E:87:5F:3B:4B:70:EF:93:02:B5:9B:35:A3:E0:9F:53:40:6E:11:B0:0D:DB:8F:15:B4:B6:E3:66"
+      ]
+    }
+  }
+]
