@@ -5,6 +5,7 @@ import LinkModel from '@/lib/models/Link';
 import CampaignModel from '@/lib/models/Campaign';
 import DeferredLinkModel from '@/lib/models/DeferredLink';
 import FingerprintModel from '@/lib/models/Fingerprint';
+import InstallModel from '@/lib/models/Install';
 import {
   LinkAnalytics,
   CampaignAnalytics,
@@ -782,6 +783,34 @@ export class AnalyticsService {
       },
     ]);
 
+    // ── SDK Install metrics (from Install collection) ──
+    const installMatch: Record<string, any> = { tenantId: tenantObjId };
+    const [newInstallCount, totalDeviceCount, installsTrend] = await Promise.all([
+      // New installs: genuine first app launches
+      InstallModel.countDocuments({ ...installMatch, installType: 'first_install' }),
+      // Total devices: all unique devices tracked by SDK
+      InstallModel.countDocuments(installMatch),
+      // Install trend — first_install records by day for the same time window
+      InstallModel.aggregate([
+        {
+          $match: {
+            ...installMatch,
+            installType: 'first_install',
+            createdAt: filters?.startDate || filters?.endDate
+              ? clickMatch.createdAt
+              : { $gte: trendStart, $lte: trendEnd },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            installs: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+    const installsTrendMap = new Map(installsTrend.map((i: any) => [i._id, i.installs]));
+
     return {
       totalClicks: clickCount,
       totalInstalls: installCount,
@@ -792,6 +821,8 @@ export class AnalyticsService {
       totalLinks: linkCount,
       activeCampaigns: campaignCount,
       deferredLinksMatched: deferredMatched,
+      newInstalls: newInstallCount,
+      totalDevices: totalDeviceCount,
       topLinks: topLinks.map((l) => ({
         linkId: l._id.toString(),
         title: l.title || undefined,
@@ -821,6 +852,7 @@ export class AnalyticsService {
         clicks: ct.clicks,
         conversions: convTrendMap.get(ct._id) || 0,
         opens: opensTrendMap.get(ct._id) || 0,
+        installs: installsTrendMap.get(ct._id) || 0,
       })),
       channelBreakdown: channelBreakdown.map((cb) => ({
         channel: cb._id,

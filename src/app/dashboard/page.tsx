@@ -80,14 +80,14 @@ function generateSparkPath(data: number[], w = 200, h = 36): { line: string; are
 }
 
 function generateChartPaths(
-  data: Array<{ clicks: number; conversions: number; opens?: number }>,
+  data: Array<{ clicks: number; conversions: number; opens?: number; installs?: number }>,
   viewW = 650,
   viewH = 180,
   padL = 40
-): { clicksPath: string; clicksArea: string; conversionsPath: string; opensPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }>; openPts: Array<{ x: number; y: number }> } {
+): { clicksPath: string; clicksArea: string; conversionsPath: string; opensPath: string; installsPath: string; clickPts: Array<{ x: number; y: number }>; convPts: Array<{ x: number; y: number }>; openPts: Array<{ x: number; y: number }>; installPts: Array<{ x: number; y: number }> } {
   const usableW = viewW - padL;
-  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', opensPath: '', clickPts: [], convPts: [], openPts: [] };
-  const maxVal = Math.max(...data.map((d) => Math.max(d.clicks, d.opens || 0)), 1);
+  if (data.length === 0) return { clicksPath: '', clicksArea: '', conversionsPath: '', opensPath: '', installsPath: '', clickPts: [], convPts: [], openPts: [], installPts: [] };
+  const maxVal = Math.max(...data.map((d) => Math.max(d.clicks, d.opens || 0, d.installs || 0)), 1);
   const step = usableW / Math.max(data.length - 1, 1);
 
   const clickPts = data.map((d, i) => ({
@@ -102,13 +102,18 @@ function generateChartPaths(
     x: padL + i * step,
     y: viewH - ((d.opens || 0) / maxVal) * (viewH - 40) - 20,
   }));
+  const installPts = data.map((d, i) => ({
+    x: padL + i * step,
+    y: viewH - ((d.installs || 0) / maxVal) * (viewH - 40) - 20,
+  }));
 
   const clicksPathStr = smoothPath(clickPts);
   const clicksArea = `${clicksPathStr} L ${padL + (data.length - 1) * step} ${viewH} L ${padL} ${viewH} Z`;
   const conversionsPath = smoothPath(convPts);
   const opensPath = smoothPath(openPts);
+  const installsPath = smoothPath(installPts);
 
-  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, opensPath, clickPts, convPts, openPts };
+  return { clicksPath: clicksPathStr, clicksArea, conversionsPath, opensPath, installsPath, clickPts, convPts, openPts, installPts };
 }
 
 // ─── Copy Store Link Button ──────────────────────────────────────
@@ -240,17 +245,21 @@ export default function DashboardPage() {
   const convRate = overview?.conversionRate?.toFixed(1) || '0.0';
   const opensFmt = formatNum(overview?.totalOpens || 0);
   const linksFmt = formatNum(overview?.totalLinks || 0);
+  const newInstFmt = formatNum(overview?.newInstalls || 0);
+  const devicesFmt = formatNum(overview?.totalDevices || 0);
   const secAgo = Math.round((Date.now() - lastUpdated.getTime()) / 1000);
 
   // Sparkline data from trend
   const trendClicks = overview?.clicksTrend?.map((t) => t.clicks) || [];
   const trendConv = overview?.clicksTrend?.map((t) => t.conversions) || [];
+  const trendInstalls = overview?.clicksTrend?.map((t) => t.installs) || [];
   const clicksSpark = generateSparkPath(trendClicks);
   const convSpark = generateSparkPath(trendConv);
+  const installsSpark = generateSparkPath(trendInstalls);
 
   // Chart paths
   const chartData = overview?.clicksTrend || [];
-  const { clicksPath, clicksArea, conversionsPath, opensPath, clickPts, convPts, openPts } = generateChartPaths(chartData);
+  const { clicksPath, clicksArea, conversionsPath, opensPath, installsPath, clickPts, convPts, openPts, installPts } = generateChartPaths(chartData);
 
   // Date labels for chart
   const chartDates = chartData.length > 0
@@ -408,8 +417,27 @@ export default function DashboardPage() {
           value={linksFmt.value}
           unit={linksFmt.unit}
           loading={loading}
-          isLast
           tooltip="Links currently active"
+        />
+        {/* New Installs */}
+        <StatCell
+          label="New installs"
+          id="#06"
+          value={newInstFmt.value}
+          unit={newInstFmt.unit}
+          loading={loading}
+          sparkPath={installsSpark}
+          tooltip="First app launches tracked by SDK"
+        />
+        {/* Total Devices */}
+        <StatCell
+          label="Devices"
+          id="#07"
+          value={devicesFmt.value}
+          unit={devicesFmt.unit}
+          loading={loading}
+          isLast
+          tooltip="Unique devices tracked by SDK"
         />
       </div>
 
@@ -541,7 +569,7 @@ export default function DashboardPage() {
           >
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)' }}>
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>02</span>
-              // clicks, opens & conversions · 30d
+              // clicks, opens, installs & conversions · 30d
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 14 }}>
               <span>
@@ -551,6 +579,10 @@ export default function DashboardPage() {
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-secondary)', marginRight: 6, verticalAlign: 'middle' }} />
                 opens
+              </span>
+              <span>
+                <span style={{ display: 'inline-block', width: 8, height: 8, background: '#22c55e', marginRight: 6, verticalAlign: 'middle' }} />
+                installs
               </span>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-accent)', marginRight: 6, verticalAlign: 'middle' }} />
@@ -579,6 +611,8 @@ export default function DashboardPage() {
                 <path d={clicksPath} fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Opens smooth line */}
                 <path d={opensPath} fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 3" />
+                {/* Installs smooth line */}
+                <path d={installsPath} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Conversions smooth line */}
                 <path d={conversionsPath} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Interactive hover zones */}
@@ -594,18 +628,23 @@ export default function DashboardPage() {
                         <circle cx={pt.x} cy={pt.y} r="4" fill="var(--color-primary)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Opens dot */}
                         <circle cx={openPts[i].x} cy={openPts[i].y} r="4" fill="var(--color-secondary)" stroke="var(--color-bg)" strokeWidth="2" />
+                        {/* Installs dot */}
+                        <circle cx={installPts[i].x} cy={installPts[i].y} r="4" fill="#22c55e" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Conversion dot */}
                         <circle cx={convPts[i].x} cy={convPts[i].y} r="4" fill="var(--color-accent)" stroke="var(--color-bg)" strokeWidth="2" />
                         {/* Tooltip background */}
-                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={50} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
+                        <rect x={Math.min(pt.x - 55, 580)} y={2} width={110} height={62} rx={0} fill="var(--color-bg-card)" stroke="var(--color-border)" strokeWidth="1" />
                         {/* Tooltip text */}
                         <text x={Math.min(pt.x - 50, 585)} y={16} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-primary)">
                           clicks: {chartData[i]?.clicks}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={30} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-secondary)">
+                        <text x={Math.min(pt.x - 50, 585)} y={29} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-secondary)">
                           opens: {chartData[i]?.opens || 0}
                         </text>
-                        <text x={Math.min(pt.x - 50, 585)} y={44} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
+                        <text x={Math.min(pt.x - 50, 585)} y={42} fontFamily="var(--font-mono)" fontSize="9" fill="#22c55e">
+                          installs: {chartData[i]?.installs || 0}
+                        </text>
+                        <text x={Math.min(pt.x - 50, 585)} y={55} fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-accent)">
                           conv: {chartData[i]?.conversions}
                         </text>
                       </>
