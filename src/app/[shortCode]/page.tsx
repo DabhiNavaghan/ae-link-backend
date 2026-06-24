@@ -219,7 +219,18 @@ export default async function ResolvePage({
 
     // Record click — include query params as metadata for analytics
     let clickId: string | undefined = undefined;
-    try {
+
+    // Skip recording for bots and link-preview crawlers (e.g. WhatsApp,
+    // Telegram, Facebook preview agents). These hit the URL when a user
+    // *pastes* a link, before any human click has occurred, and would
+    // pollute analytics with fake WEB_FALLBACK entries.
+    const isBot = detector.isBot();
+
+    if (isBot) {
+      logger.debug({ shortCode, userAgent }, 'Bot/crawler — skip click recording');
+    }
+
+    if (!isBot) try {
       const channel = detectChannel(
         referer,
         mergedParams.utmSource,

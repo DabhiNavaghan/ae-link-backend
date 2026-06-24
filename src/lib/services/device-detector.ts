@@ -3,6 +3,11 @@ import { UAParser } from 'ua-parser-js';
 import { IDeviceInfo, DeviceOS, DeviceType } from '@/types';
 import crypto from 'crypto';
 
+// Social preview bots, crawlers, and link-unfurl agents that must not be
+// counted as real user clicks.
+const BOT_UA_PATTERN =
+  /bot|crawler|spider|scraper|crawl|preview|fetch|checker|headless|puppeteer|phantom|selenium|webdriver|lighthouse|pagespeed|wget|curl|python-requests|axios|node-fetch|go-http-client|java\/|ruby|perl|php\/|whatsapp|telegram|facebookexternalhit|twitterbot|slackbot|linkedinbot|discordbot|applebot|googlebot|bingbot|yandex|baidu|duckduck|ia_archiver|semrushbot|ahrefsbot|mj12bot|dotbot|screaming frog/i;
+
 export class DeviceDetector {
   private parser: UAParser;
 
@@ -63,6 +68,17 @@ export class DeviceDetector {
   isAppTargetable(): boolean {
     const os = this.getOS();
     return os === 'android' || os === 'ios';
+  }
+
+  /**
+   * Check if the request is from a bot, crawler, or social media link preview agent.
+   * These requests must not be counted as real clicks.
+   */
+  isBot(): boolean {
+    const ua = this.parser.getUA();
+    if (!ua || ua.trim() === '') return true;
+
+    return BOT_UA_PATTERN.test(ua);
   }
 
   /**

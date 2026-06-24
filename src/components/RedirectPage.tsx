@@ -152,11 +152,18 @@ export default function RedirectPage({
     }
 
     if (isAndroid) {
-      const appUrl = link.platformOverrides?.android?.url;
+      const overrideUrl = link.platformOverrides?.android?.url;
       const rawStoreUrl =
         link.platformOverrides?.android?.fallback ||
         storeUrls.android;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, false);
+
+      // Build the URL that attempts to open the app:
+      //   1. platformOverrides.android.url if set (explicit config wins)
+      //   2. destinationUrl as a fallback — lets Android App Links intercept
+      //      the URL and open the app directly, with the destination already
+      //      encoded in the URL the SDK receives.
+      const appUrl = overrideUrl || link.destinationUrl;
 
       if (appUrl) {
         tryOpenApp(appUrl, storeUrl);
@@ -165,11 +172,14 @@ export default function RedirectPage({
         setStatus('done');
       }
     } else if (isIOS) {
-      const appUrl = link.platformOverrides?.ios?.url;
+      const overrideUrl = link.platformOverrides?.ios?.url;
       const rawStoreUrl =
         link.platformOverrides?.ios?.fallback ||
         storeUrls.ios;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, true);
+
+      // Same fallback logic as Android above.
+      const appUrl = overrideUrl || link.destinationUrl;
 
       if (appUrl) {
         tryOpenApp(appUrl, storeUrl);
