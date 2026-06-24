@@ -152,36 +152,39 @@ export default function RedirectPage({
     }
 
     if (isAndroid) {
-      const overrideUrl = link.platformOverrides?.android?.url;
       const rawStoreUrl =
         link.platformOverrides?.android?.fallback ||
         storeUrls.android;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, false);
 
-      // Build the URL that attempts to open the app:
-      //   1. platformOverrides.android.url if set (explicit config wins)
-      //   2. destinationUrl as a fallback — lets Android App Links intercept
-      //      the URL and open the app directly, with the destination already
-      //      encoded in the URL the SDK receives.
-      const appUrl = overrideUrl || link.destinationUrl;
+      // Only attempt to open the app if we have an explicit app scheme URL
+      // (e.g. intent://, allevents://, myapp://).
+      // NEVER pass a regular https:// URL to tryOpenApp — the browser will
+      // navigate to it, blur fires, and we falsely think the app opened.
+      // The user then never reaches the Play Store.
+      const appUrl = link.platformOverrides?.android?.url;
+      const isAppScheme = appUrl && !appUrl.startsWith('http');
 
-      if (appUrl) {
+      if (isAppScheme) {
         tryOpenApp(appUrl, storeUrl);
       } else {
+        // No app scheme configured → go straight to store.
+        // The fingerprint + deferred link will handle deep linking
+        // after install via the Flutter SDK match flow.
         window.location.replace(storeUrl);
         setStatus('done');
       }
     } else if (isIOS) {
-      const overrideUrl = link.platformOverrides?.ios?.url;
       const rawStoreUrl =
         link.platformOverrides?.ios?.fallback ||
         storeUrls.ios;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, true);
 
-      // Same fallback logic as Android above.
-      const appUrl = overrideUrl || link.destinationUrl;
+      // Same logic: only try app scheme URLs, not https:// web URLs.
+      const appUrl = link.platformOverrides?.ios?.url;
+      const isAppScheme = appUrl && !appUrl.startsWith('http');
 
-      if (appUrl) {
+      if (isAppScheme) {
         tryOpenApp(appUrl, storeUrl);
       } else {
         window.location.replace(storeUrl);
