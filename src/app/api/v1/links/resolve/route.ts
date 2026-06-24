@@ -171,19 +171,36 @@ export async function GET(request: NextRequest) {
         resolveMetadata.rawQuery = queryParams;
       }
 
+      // Use an aggregation-pipeline update so we can conditionally preserve
+      // the original actionTaken.  If the click was a genuine store_redirect
+      // (user went to the store, installed, then opened the app), we keep
+      // actionTaken as 'store_redirect' and only flip isAppInstalled.  This
+      // prevents the store-redirect count from shrinking after installs.
+      // If actionTaken is anything else (e.g. the redirect page already
+      // patched it to 'app_opened' because the app was already installed),
+      // we leave it as-is.
       const updatedClick = await ClickModel.findOneAndUpdate(
         {
           linkId: link._id,
           tenantId: auth.tenantId,
           createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
         },
-        {
-          $set: {
-            actionTaken: 'app_opened',
-            isAppInstalled: true,
-            ...(resolveMetadata && { metadata: resolveMetadata }),
+        [
+          {
+            $set: {
+              isAppInstalled: true,
+              // Keep store_redirect (genuine store visit); otherwise set app_opened
+              actionTaken: {
+                $cond: [
+                  { $eq: ['$actionTaken', 'store_redirect'] },
+                  'store_redirect',
+                  'app_opened',
+                ],
+              },
+              ...(resolveMetadata ? { metadata: resolveMetadata } : {}),
+            },
           },
-        },
+        ],
         { sort: { createdAt: -1 } }
       );
 
@@ -194,6 +211,8 @@ export async function GET(request: NextRequest) {
         const ip =
           request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
           request.headers.get('x-real-ip') ||
+          request.headers.get('cf-connecting-ip') ||
+          request.headers.get('x-client-ip') ||
           '127.0.0.1';
 
         const detector = new DeviceDetector(userAgent);

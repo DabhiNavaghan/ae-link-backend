@@ -7,6 +7,7 @@ import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slu
 import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import { setBreadcrumbTitle } from '@/components/ui/Breadcrumb';
 
 interface LinkData {
   _id: string;
@@ -31,6 +32,8 @@ interface Analytics {
   uniqueClicks: number;
   conversions: number;
   deferredMatches: number;
+  installs: { total: number; android: number; ios: number };
+  clicksByOS: { android: number; ios: number; web: number };
   actions: {
     appOpened: number;
     appInstalled: number;
@@ -66,8 +69,40 @@ export default function LinkDetailPage() {
   const [copied, setCopied] = useState(false);
   const [hoveredDeepLink, setHoveredDeepLink] = useState<string | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mapAnalytics(d: any): Analytics {
+    return {
+      totalClicks: d.totalClicks || 0,
+      uniqueClicks: d.clicks?.unique || 0,
+      conversions: d.conversions?.total || 0,
+      deferredMatches: d.deferredMatches || 0,
+      installs: d.installs || { total: 0, android: 0, ios: 0 },
+      clicksByOS: {
+        android: d.clicks?.android || 0,
+        ios: d.clicks?.ios || 0,
+        web: d.clicks?.web || 0,
+      },
+      actions: d.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
+      devices: d.devices || {},
+      channels: d.channels || [],
+      countries: d.topCountries || [],
+      browsers: d.topBrowsers || [],
+      referrers: d.topReferrers || [],
+      deepLinks: d.topDeepLinks || [],
+      refParams: d.topRefParams || [],
+      utmSources: d.topUtmSources || [],
+      utmMediums: d.topUtmMediums || [],
+      utmCampaigns: d.topUtmCampaigns || [],
+      customParams: d.customParams || [],
+    };
+  }
+
   useEffect(() => {
     fetchData();
+    return () => {
+      // Clean up breadcrumb title when leaving page
+      setBreadcrumbTitle(undefined);
+    };
   }, [linkId]);
 
   useEffect(() => {
@@ -84,31 +119,18 @@ export default function LinkDetailPage() {
         smartLinkApi.getLinkAnalytics(linkId),
       ]);
 
-      setLink(linkData as unknown as LinkData);
+      const ld = linkData as unknown as LinkData;
+      setLink(ld);
+
+      // Set breadcrumb title so it shows link name instead of ObjectId
+      setBreadcrumbTitle(ld.title || ld.shortCode);
 
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
       const deepLink = `${origin}/${(linkData as unknown as LinkData).shortCode}`;
       const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
-      setAnalytics({
-        totalClicks: analyticsData.totalClicks || 0,
-        uniqueClicks: analyticsData.clicks?.unique || 0,
-        conversions: analyticsData.conversions?.total || 0,
-        deferredMatches: analyticsData.deferredMatches || 0,
-        actions: analyticsData.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
-        devices: analyticsData.devices || {},
-        channels: analyticsData.channels || [],
-        countries: analyticsData.topCountries || [],
-        browsers: analyticsData.topBrowsers || [],
-        referrers: analyticsData.topReferrers || [],
-        deepLinks: analyticsData.topDeepLinks || [],
-        refParams: analyticsData.topRefParams || [],
-        utmSources: analyticsData.topUtmSources || [],
-        utmMediums: analyticsData.topUtmMediums || [],
-        utmCampaigns: analyticsData.topUtmCampaigns || [],
-        customParams: analyticsData.customParams || [],
-      });
+      setAnalytics(mapAnalytics(analyticsData));
     } catch (err: any) {
       setError(err.message || 'Failed to load link');
     } finally {
@@ -120,24 +142,7 @@ export default function LinkDetailPage() {
     try {
       setRefreshing(true);
       const analyticsData = await smartLinkApi.getLinkAnalytics(linkId);
-      setAnalytics({
-        totalClicks: analyticsData.totalClicks || 0,
-        uniqueClicks: analyticsData.clicks?.unique || 0,
-        conversions: analyticsData.conversions?.total || 0,
-        deferredMatches: analyticsData.deferredMatches || 0,
-        actions: analyticsData.actions || { appOpened: 0, appInstalled: 0, storeRedirect: 0, webFallback: 0 },
-        devices: analyticsData.devices || {},
-        channels: analyticsData.channels || [],
-        countries: analyticsData.topCountries || [],
-        browsers: analyticsData.topBrowsers || [],
-        referrers: analyticsData.topReferrers || [],
-        deepLinks: analyticsData.topDeepLinks || [],
-        refParams: analyticsData.topRefParams || [],
-        utmSources: analyticsData.topUtmSources || [],
-        utmMediums: analyticsData.topUtmMediums || [],
-        utmCampaigns: analyticsData.topUtmCampaigns || [],
-        customParams: analyticsData.customParams || [],
-      });
+      setAnalytics(mapAnalytics(analyticsData));
     } catch (err: any) {
       console.error('Refresh failed:', err);
     } finally {
@@ -242,8 +247,15 @@ export default function LinkDetailPage() {
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
         {/* Nav — sticky so refresh is always reachable */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: '1rem', paddingTop: 4, paddingBottom: 12, borderBottom: '1px solid var(--color-border)' }} className="md:flex-nowrap">
-          <button onClick={() => router.back()} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>← back</button>
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: '1rem', paddingTop: 4, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }} className="md:flex-nowrap">
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 10px',
+            border: '1px solid',
+            color: link.isActive ? 'var(--color-primary)' : 'var(--color-warning)',
+            borderColor: link.isActive ? 'var(--color-primary)' : 'var(--color-warning)',
+          }}>
+            {link.isActive ? 'active' : 'inactive'}
+          </span>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               onClick={refreshData}
@@ -263,82 +275,96 @@ export default function LinkDetailPage() {
           </div>
         </div>
 
-        {/* 01 Link Details */}
-        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {nextSection('link details')}
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 10px',
-              border: '1px solid',
-              color: link.isActive ? 'var(--color-primary)' : 'var(--color-warning)',
-              borderColor: link.isActive ? 'var(--color-primary)' : 'var(--color-warning)',
-            }}>
-              {link.isActive ? 'active' : 'inactive'}
-            </span>
+        {/* KPI Stats — 3 cols on mobile, 5 cols on desktop */}
+        <div className="grid grid-cols-3 md:grid-cols-5" style={{ gap: 12, marginBottom: 12 }}>
+          {/* Total Clicks */}
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>total clicks</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{analytics?.totalClicks || 0}</div>
           </div>
-          <div style={{ padding: 20 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4, letterSpacing: '-0.01em' }}>
-              {link.title || link.shortCode}
+          {/* Installs */}
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>installs</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--color-success, #22c55e)', letterSpacing: '-0.02em' }}>{analytics?.installs.total || 0}</div>
+          </div>
+          {/* App Opens */}
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>app opens</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{analytics?.actions.appOpened || 0}</div>
+          </div>
+          {/* Android — hidden on mobile, shown in desktop row */}
+          <div className="hidden md:block" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-primary)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-primary)', fontWeight: 700, marginBottom: 8 }}>android</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>CLICKS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>{analytics?.clicksByOS.android || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>INSTALLS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-success, #22c55e)' }}>{analytics?.installs.android || 0}</div>
+              </div>
             </div>
-            <div
-              onClick={async () => {
-                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
-                await copyToClipboard(`${origin}/${link.shortCode}`);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              title="Click to copy link"
-            >
-              {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{link.shortCode}
-              <span style={{ fontSize: 10, color: copied ? 'var(--color-primary)' : 'var(--color-text-tertiary)', transition: 'color 0.2s' }}>
-                {copied ? '✓ copied' : '⧉'}
-              </span>
-            </div>
-            <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', padding: '12px 16px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>destination</div>
-              <a href={link.destinationUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-secondary)', wordBreak: 'break-all', textDecoration: 'none' }}>
-                {link.destinationUrl || '(dynamic — set via deepLink query param)'}
-              </a>
-            </div>
-            <div style={{ display: 'flex', gap: 24, marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', flexWrap: 'wrap' }}>
-              <span>type: <span style={{ color: 'var(--color-text)' }}>{link.linkType}</span></span>
-              {link.campaignName && <span>campaign: <a href={`/dashboard/campaigns/${link.campaignId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{link.campaignName}</a></span>}
-              {link.expiresAt && <span>expires: <span style={{ color: 'var(--color-text)' }}>{formatDate(link.expiresAt)}</span></span>}
+          </div>
+          {/* iOS — hidden on mobile, shown in desktop row */}
+          <div className="hidden md:block" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-accent)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-accent)', fontWeight: 700, marginBottom: 8 }}>ios</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>CLICKS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>{analytics?.clicksByOS.ios || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>INSTALLS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-success, #22c55e)' }}>{analytics?.installs.ios || 0}</div>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* 02 KPI Stats */}
-        <div className="dashboard-grid-kpi" style={{ marginBottom: 24 }}>
-          {[
-            { label: 'total clicks', value: analytics?.totalClicks || 0, accent: true },
-            { label: 'store redirects', value: analytics?.actions.storeRedirect || 0 },
-            { label: 'installs', value: analytics?.deferredMatches || 0 },
-            { label: 'unique clicks', value: analytics?.uniqueClicks || 0 },
-            { label: 'app opens', value: analytics?.actions.appOpened || 0 },
-          ].map((s) => (
-            <div key={s.label} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: 20 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>{s.label}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: s.accent ? 'var(--color-primary)' : 'var(--color-text)', letterSpacing: '-0.02em' }}>{s.value}</div>
+        {/* Android / iOS — mobile only, shown as second row */}
+        <div className="grid grid-cols-2 md:hidden" style={{ gap: 12, marginBottom: 16 }}>
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-primary)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-primary)', fontWeight: 700, marginBottom: 8 }}>android</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>CLICKS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>{analytics?.clicksByOS.android || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>INSTALLS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-success, #22c55e)' }}>{analytics?.installs.android || 0}</div>
+              </div>
             </div>
-          ))}
+          </div>
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-accent)', padding: '16px 20px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-accent)', fontWeight: 700, marginBottom: 8 }}>ios</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>CLICKS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>{analytics?.clicksByOS.ios || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>INSTALLS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--color-success, #22c55e)' }}>{analytics?.installs.ios || 0}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Action Breakdown + Channels row — only show when there are clicks */}
         {analytics && analytics.totalClicks > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
           {/* Action Breakdown */}
           <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
               {nextSection('actions')}
             </div>
             <div style={{ padding: 20 }}>
-              {(analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.deferredMatches > 0) ? (
+              {(analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.installs.total > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
-                  {progressBar('installs', analytics.deferredMatches, analytics.totalClicks || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
+                  {progressBar('installs (from store)', analytics.installs.total, analytics.actions.storeRedirect || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
                 </>
               ) : emptyState('no action data yet')}
@@ -620,19 +646,24 @@ export default function LinkDetailPage() {
         )}
 
         {/* Countries + Browsers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }} className="md:grid-cols-1 lg:grid-cols-2">
-          {analytics && analytics.countries && analytics.countries.length > 0 && (
-            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
-                {nextSection('countries')}
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 24, marginBottom: 24 }}>
+          {(() => {
+            const knownCountries = analytics?.countries?.filter(
+              (c) => c.country && c.country !== 'Unknown' && c.country !== 'undefined'
+            ) || [];
+            return knownCountries.length > 0 ? (
+              <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                  {nextSection('countries')}
+                </div>
+                <div style={{ padding: 20 }}>
+                  {knownCountries.slice(0, 8).map((item) =>
+                    progressBar(item.country, item.clicks, knownCountries[0]?.clicks || 1, 'var(--color-secondary)')
+                  )}
+                </div>
               </div>
-              <div style={{ padding: 20 }}>
-                {analytics.countries.slice(0, 8).map((item) =>
-                  progressBar(item.country, item.clicks, analytics.countries[0]?.clicks || 1, 'var(--color-secondary)')
-                )}
-              </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {analytics && analytics.browsers && analytics.browsers.length > 0 && (
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
@@ -682,6 +713,44 @@ export default function LinkDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Link Details — at bottom */}
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+            {nextSection('link details')}
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+              {link.title || link.shortCode}
+            </div>
+            <div
+              onClick={async () => {
+                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+                await copyToClipboard(`${origin}/${link.shortCode}`);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Click to copy link"
+            >
+              {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{link.shortCode}
+              <span style={{ fontSize: 10, color: copied ? 'var(--color-primary)' : 'var(--color-text-tertiary)', transition: 'color 0.2s' }}>
+                {copied ? '✓ copied' : '⧉'}
+              </span>
+            </div>
+            <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', padding: '12px 16px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>destination</div>
+              <a href={link.destinationUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-secondary)', wordBreak: 'break-all', textDecoration: 'none' }}>
+                {link.destinationUrl || '(dynamic — set via deepLink query param)'}
+              </a>
+            </div>
+            <div style={{ display: 'flex', gap: 24, marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', flexWrap: 'wrap' }}>
+              <span>type: <span style={{ color: 'var(--color-text)' }}>{link.linkType}</span></span>
+              {link.campaignName && <span>campaign: <a href={`/dashboard/campaigns/${link.campaignId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{link.campaignName}</a></span>}
+              {link.expiresAt && <span>expires: <span style={{ color: 'var(--color-text)' }}>{formatDate(link.expiresAt)}</span></span>}
+            </div>
+          </div>
+        </div>
 
         {/* Footer */}
         {(() => {

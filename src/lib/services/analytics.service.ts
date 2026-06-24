@@ -4,7 +4,6 @@ import ConversionModel from '@/lib/models/Conversion';
 import LinkModel from '@/lib/models/Link';
 import CampaignModel from '@/lib/models/Campaign';
 import DeferredLinkModel from '@/lib/models/DeferredLink';
-import FingerprintModel from '@/lib/models/Fingerprint';
 import InstallModel from '@/lib/models/Install';
 import {
   LinkAnalytics,
@@ -26,22 +25,6 @@ export class AnalyticsService {
     const linkObjId = new Types.ObjectId(linkId);
     const matchStage = { $match: { linkId: linkObjId } };
 
-    // Resolve click IDs that resulted in confirmed installs.
-    // Chain: DeferredLink(matched/confirmed) → fingerprintId → Fingerprint.clickId
-    // This is the source of truth for installs; the click's actionTaken field
-    // may not be updated for historical data.
-    const matchedDeferred = await DeferredLinkModel.find(
-      { linkId: linkObjId, status: { $in: ['matched', 'confirmed'] } },
-      { fingerprintId: 1 }
-    ).lean();
-    const fpIds = matchedDeferred.map((d: any) => d.fingerprintId).filter(Boolean);
-    const fingerprints = fpIds.length > 0
-      ? await FingerprintModel.find({ _id: { $in: fpIds } }, { clickId: 1 }).lean()
-      : [];
-    const installClickObjIds = fingerprints
-      .map((fp: any) => fp.clickId)
-      .filter(Boolean);
-
     // Run all independent aggregations in parallel for performance
     const [
       clicks,
@@ -50,6 +33,7 @@ export class AnalyticsService {
       uniqueIps,
       conversions,
       deferredStats,
+      installsByOS,
       topCountries,
       topBrowsers,
       topReferrers,
@@ -81,10 +65,10 @@ export class AnalyticsService {
         { $group: { _id: '$actionTaken', count: { $sum: 1 } } },
       ]),
 
-      // Unique clicks by IP
+      // Unique clicks by device (IP + UserAgent combo = unique device)
       ClickModel.aggregate([
         matchStage,
-        { $group: { _id: '$ipAddress' } },
+        { $group: { _id: { ip: '$ipAddress', ua: '$userAgent' } } },
         { $count: 'unique' },
       ]),
 
@@ -98,6 +82,19 @@ export class AnalyticsService {
       DeferredLinkModel.aggregate([
         { $match: { linkId: linkObjId, status: { $in: ['matched', 'confirmed'] } } },
         { $count: 'matched' },
+      ]),
+
+      // Installs by OS — from ConversionModel via DeferredLink → Fingerprint → Click chain.
+      // Traces: Conversion.deferredLinkId → DeferredLink.fingerprintId → Fingerprint.clickId → Click.device.os
+      ConversionModel.aggregate([
+        { $match: { linkId: linkObjId, deferredLinkId: { $exists: true, $ne: null } } },
+        { $lookup: { from: 'deferredlinks', localField: 'deferredLinkId', foreignField: '_id', as: 'dl' } },
+        { $unwind: { path: '$dl', preserveNullAndEmptyArrays: true } },
+        { $lookup: { from: 'fingerprints', localField: 'dl.fingerprintId', foreignField: '_id', as: 'fp' } },
+        { $unwind: { path: '$fp', preserveNullAndEmptyArrays: true } },
+        { $lookup: { from: 'clicks', localField: 'fp.clickId', foreignField: '_id', as: 'click' } },
+        { $unwind: { path: '$click', preserveNullAndEmptyArrays: true } },
+        { $group: { _id: '$click.device.os', count: { $sum: 1 } } },
       ]),
 
       // Top countries
@@ -149,16 +146,15 @@ export class AnalyticsService {
       ]),
 
       // Top deepLink URLs from metadata (clicks + app opens + installs in one pass)
-      // Note: installs and app_opened are mutually exclusive — a click whose actionTaken
-      // was updated to 'app_opened' by the resolve route may still be the install click
-      // (its ID is in installClickObjIds), so we exclude install clicks from the app_opened count.
+      // installs = store_redirect + isAppInstalled (user went to store, installed, opened app)
+      // app_opened = direct app open (app was already installed)
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.deepLink': { $exists: true, $ne: null } } },
         { $group: {
           _id: '$metadata.deepLink',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 20 },
@@ -170,8 +166,8 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.ref',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 15 },
@@ -183,8 +179,8 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmSource',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -196,8 +192,8 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmMedium',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -209,8 +205,8 @@ export class AnalyticsService {
         { $group: {
           _id: '$metadata.utmCampaign',
           clicks: { $sum: 1 },
-          appOpened: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'app_opened'] }, { $not: [{ $in: ['$_id', installClickObjIds] }] }] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+          appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -219,14 +215,14 @@ export class AnalyticsService {
       // Custom params — flatten metadata.custom object keys and count values
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.custom': { $exists: true, $type: 'object' } } },
-        { $project: { customEntries: { $objectToArray: '$metadata.custom' }, actionTaken: 1 } },
+        { $project: { customEntries: { $objectToArray: '$metadata.custom' }, actionTaken: 1, isAppInstalled: 1 } },
         { $unwind: '$customEntries' },
         {
           $group: {
             _id: { key: '$customEntries.k', value: '$customEntries.v' },
             clicks: { $sum: 1 },
             appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-            installs: { $sum: { $cond: [{ $in: ['$_id', installClickObjIds] }, 1, 0] } },
+            installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
           },
         },
         { $sort: { clicks: -1 } },
@@ -244,6 +240,14 @@ export class AnalyticsService {
     const totalConversions = conversions.reduce((sum: number, c: any) => sum + c.count, 0);
     const totalClicks = link.clickCount || 0;
     const deferredMatches = deferredStats[0]?.matched || 0;
+
+    // Installs = ConversionModel deferred-link conversions (same source as conversions.total)
+    const totalInstalls = installsByOS.reduce((sum: number, i: any) => sum + i.count, 0);
+
+    // With the fixed resolve API (conditional $cond update), store_redirect
+    // actionTaken is preserved for genuine store visits. No correction needed.
+    const storeRedirectCount = actions.find((a: any) => a._id === 'store_redirect')?.count || 0;
+    const appOpenedCount = actions.find((a: any) => a._id === 'app_opened')?.count || 0;
 
     return {
       linkId,
@@ -263,10 +267,16 @@ export class AnalyticsService {
         tablet: devices.find((d: any) => d._id === 'tablet')?.count || 0,
         desktop: devices.find((d: any) => d._id === 'desktop')?.count || 0,
       },
+      // Installs broken down by OS (android / ios)
+      installs: {
+        total: totalInstalls,
+        android: installsByOS.find((i: any) => i._id === 'android')?.count || 0,
+        ios: installsByOS.find((i: any) => i._id === 'ios')?.count || 0,
+      },
       actions: {
-        appOpened: actions.find((a: any) => a._id === 'app_opened')?.count || 0,
+        appOpened: appOpenedCount,
         appInstalled: actions.find((a: any) => a._id === 'app_installed')?.count || 0,
-        storeRedirect: actions.find((a: any) => a._id === 'store_redirect')?.count || 0,
+        storeRedirect: storeRedirectCount,
         webFallback: actions.find((a: any) => a._id === 'web_fallback')?.count || 0,
       },
       conversions: {

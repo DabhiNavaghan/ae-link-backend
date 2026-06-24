@@ -105,30 +105,35 @@ export default function RedirectPage({
     const isIOS = deviceOS === 'ios';
     const isMobile = isAndroid || isIOS;
 
-    // Fire fingerprint in background — never block the redirect.
+    // Fire fingerprint in background — but ONLY for mobile users.
+    // Desktop users don't install apps, so creating deferred links for
+    // them causes false-positive matches when they later open the app
+    // on the same network (shared IP → inflated install count).
     // sendBeacon guarantees delivery even during page unload.
-    try {
-      const fingerprint = collectFingerprint();
-      const payload = JSON.stringify({
-        linkId,
-        tenantId,
-        clickId,
-        fingerprint,
-        mergedDestinationUrl: link.destinationUrl || undefined,
-        mergedParams: link.params || undefined,
-      });
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/v1/fingerprint', new Blob([payload], { type: 'application/json' }));
-      } else {
-        fetch('/api/v1/fingerprint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payload,
-          keepalive: true,
-        }).catch(() => {});
+    if (isMobile) {
+      try {
+        const fingerprint = collectFingerprint();
+        const payload = JSON.stringify({
+          linkId,
+          tenantId,
+          clickId,
+          fingerprint,
+          mergedDestinationUrl: link.destinationUrl || undefined,
+          mergedParams: link.params || undefined,
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/v1/fingerprint', new Blob([payload], { type: 'application/json' }));
+        } else {
+          fetch('/api/v1/fingerprint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.error('[SmartLink] Fingerprint collection error:', err);
       }
-    } catch (err) {
-      console.error('[SmartLink] Fingerprint collection error:', err);
     }
 
     // Redirect immediately — no waiting

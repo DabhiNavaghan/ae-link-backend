@@ -181,10 +181,14 @@ export default async function ResolvePage({
     const headersList = headers();
     const userAgent = headersList.get('user-agent') || '';
     const referer = headersList.get('referer') || '';
+    // Try all common reverse-proxy IP headers (OVH FaaS, Nginx, Cloudflare, etc.)
     const ip =
       headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       headersList.get('x-real-ip') ||
+      headersList.get('cf-connecting-ip') ||
+      headersList.get('x-client-ip') ||
       '127.0.0.1';
+    logger.debug({ ip, fwd: headersList.get('x-forwarded-for'), realIp: headersList.get('x-real-ip') }, 'Resolved client IP');
 
     // Detect device
     const detector = new DeviceDetector(userAgent);
@@ -263,7 +267,6 @@ export default async function ResolvePage({
         clickId = existingClick._id.toString();
         logger.debug({ clickId, shortCode }, 'Duplicate click suppressed');
       } else {
-        // Geo lookup — fire and don't block redirect if it's slow
         const geo = await lookupGeo(ip);
 
         const click = new ClickModel({

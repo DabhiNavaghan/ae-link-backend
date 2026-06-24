@@ -434,6 +434,11 @@ export interface LinkAnalytics {
     purchase?: number;
     view?: number;
   };
+  installs: {
+    total: number;
+    android: number;
+    ios: number;
+  };
   deferredMatches: number;
   deferredMatchRate: number;
   channels: Array<{ channel: string; clicks: number }>;
