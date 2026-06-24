@@ -79,7 +79,18 @@ export class DeviceDetector {
    * Map OS name to standard enum
    */
   private mapOS(osName?: string): DeviceOS {
-    if (!osName) return 'other';
+    if (!osName) {
+      // ua-parser-js couldn't detect the OS — check the raw UA string
+      // for SDK patterns (e.g. "Dart/3.x (dart:io)" from Flutter apps)
+      const raw = this.parser.getUA().toLowerCase();
+      if (raw.includes('dart') || raw.includes('flutter')) {
+        // Flutter SDK call — can't determine exact platform from UA alone.
+        // Return 'android' as the most common case; iOS universal links
+        // typically don't hit the resolve API the same way.
+        return 'android';
+      }
+      return 'other';
+    }
 
     const normalized = osName.toLowerCase();
 
@@ -96,7 +107,14 @@ export class DeviceDetector {
    * Map device type to standard enum
    */
   private mapDeviceType(deviceType?: string): DeviceType {
-    if (!deviceType) return 'desktop';
+    if (!deviceType) {
+      // ua-parser-js couldn't detect device type — check for SDK patterns
+      const raw = this.parser.getUA().toLowerCase();
+      if (raw.includes('dart') || raw.includes('flutter')) {
+        return 'mobile';
+      }
+      return 'desktop';
+    }
 
     const normalized = deviceType.toLowerCase();
 

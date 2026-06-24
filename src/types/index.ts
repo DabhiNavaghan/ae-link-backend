@@ -187,7 +187,7 @@ export interface ILink extends Document {
 export type DeviceOS = 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'other';
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
 export type ActionTaken = 'app_opened' | 'app_installed' | 'store_redirect' | 'web_fallback';
-export type ClickChannel = 'whatsapp' | 'email' | 'qr' | 'instagram' | 'sms' | 'push' | 'web' | 'direct' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'other';
+export type ClickChannel = 'whatsapp' | 'email' | 'qr' | 'instagram' | 'sms' | 'push' | 'web' | 'direct' | 'app_link' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'other';
 
 export interface IDeviceInfo {
   os: DeviceOS;

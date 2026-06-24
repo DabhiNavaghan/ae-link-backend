@@ -54,7 +54,7 @@ const clickSchema = new Schema<IClick>(
     referer: String,
     channel: {
       type: String,
-      enum: ['whatsapp', 'email', 'qr', 'instagram', 'sms', 'push', 'web', 'direct', 'facebook', 'twitter', 'tiktok', 'youtube', 'other'],
+      enum: ['whatsapp', 'email', 'qr', 'instagram', 'sms', 'push', 'web', 'direct', 'app_link', 'facebook', 'twitter', 'tiktok', 'youtube', 'other'],
       default: 'direct',
       index: true,
     },

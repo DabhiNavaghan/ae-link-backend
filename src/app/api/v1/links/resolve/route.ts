@@ -199,6 +199,13 @@ export async function GET(request: NextRequest) {
         const detector = new DeviceDetector(userAgent);
         const deviceInfo = detector.detect();
 
+        // Set browser to 'app-sdk' for SDK-originated clicks so they're
+        // identifiable in analytics (vs normal browser clicks).
+        const isSDK = /dart|flutter/i.test(userAgent);
+        if (isSDK) {
+          deviceInfo.browser = 'app-sdk';
+        }
+
         const geo = await lookupGeo(ip);
 
         const newClick = new ClickModel({
@@ -207,7 +214,7 @@ export async function GET(request: NextRequest) {
           ipAddress: ip,
           userAgent,
           referer: '',
-          channel: 'direct',
+          channel: isSDK ? 'app_link' : 'direct',
           device: deviceInfo,
           geo,
           isAppInstalled: true,
@@ -216,7 +223,7 @@ export async function GET(request: NextRequest) {
         });
         await newClick.save();
         await LinkService.incrementClickCount(link._id.toString());
-        logger.info({ clickId: newClick._id, linkId: link._id }, 'Created app_opened click (universal link bypass)');
+        logger.info({ clickId: newClick._id, linkId: link._id, isSDK }, 'Created app_opened click (universal link bypass)');
       }
     } catch (updateErr) {
       logger.debug({ error: String(updateErr) }, 'Click action update failed');
