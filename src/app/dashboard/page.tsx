@@ -278,15 +278,11 @@ export default function DashboardPage() {
 
       {/* ─── Page Head ─────────────────────────────────────── */}
       <div
+        className="dashboard-header-flex"
         style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 30,
           marginBottom: 36,
           paddingBottom: 24,
           borderBottom: '1px solid var(--color-border)',
-          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -343,7 +339,7 @@ export default function DashboardPage() {
             ) : null}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="dashboard-button-group" style={{ alignItems: 'center' }}>
           {/* Smart store link for the selected app */}
           {(() => {
             const currentApp = apps.find((a) => a.id === selectedAppId);
@@ -576,7 +572,7 @@ export default function DashboardPage() {
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, marginRight: 10 }}>02</span>
               // clicks, link_opens, installs, app_launch & conversions · 30d
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span className="dashboard-chart-legend" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               <span>
                 <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--color-primary)', marginRight: 6, verticalAlign: 'middle' }} />
                 clicks

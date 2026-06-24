@@ -259,7 +259,8 @@ const Header: React.FC<HeaderProps> = ({
               aria-label="Profile menu"
               aria-expanded={menuOpen}
             >
-              <div className="flex flex-col items-end">
+              {/* Name + role: hidden on small screens to save header space */}
+              <div className="hidden sm:flex flex-col items-end">
                 <p className="text-sm font-medium" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}>
                   {tenantName || 'Tenant'}
                 </p>
@@ -268,13 +269,13 @@ const Header: React.FC<HeaderProps> = ({
                 </p>
               </div>
               <div
-                className="w-8 h-8 flex items-center justify-center font-semibold text-sm"
+                className="w-8 h-8 flex items-center justify-center font-semibold text-sm flex-shrink-0"
                 style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
               >
                 {tenantName?.charAt(0).toUpperCase() || 'A'}
               </div>
               <svg
-                className="w-3.5 h-3.5 transition-transform duration-200"
+                className="hidden sm:block w-3.5 h-3.5 transition-transform duration-200"
                 style={{
                   color: 'var(--color-text-tertiary)',
                   transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -295,6 +296,7 @@ const Header: React.FC<HeaderProps> = ({
                   right: 0,
                   top: 'calc(100% + 8px)',
                   width: 280,
+                  maxWidth: 'calc(100vw - 16px)',
                   backgroundColor: 'var(--color-bg-card)',
                   border: '1px solid var(--color-border)',
                   boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--color-border)',
