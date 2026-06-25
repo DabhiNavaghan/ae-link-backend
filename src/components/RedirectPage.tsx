@@ -64,6 +64,7 @@ interface RedirectPageProps {
     android: string;
     ios: string;
   };
+  androidPackage?: string;
 }
 
 interface BrowserFingerprint {
@@ -92,6 +93,7 @@ export default function RedirectPage({
   tenantId,
   clickId,
   storeUrls,
+  androidPackage,
 }: RedirectPageProps) {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'done'>('loading');
 
@@ -157,18 +159,28 @@ export default function RedirectPage({
         storeUrls.android;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, false);
 
-      // Only attempt to open the app if we have an explicit app scheme URL
-      // (e.g. intent://, allevents://, myapp://).
-      // NEVER pass a regular https:// URL to tryOpenApp — the browser will
-      // navigate to it, blur fires, and we falsely think the app opened.
-      // The user then never reaches the Play Store.
-      const appUrl = link.platformOverrides?.android?.url;
-      const isAppScheme = appUrl && !appUrl.startsWith('http');
+      // Check for explicit app scheme URL (e.g. allevents://, myapp://)
+      const overrideUrl = link.platformOverrides?.android?.url;
+      const isAppScheme = overrideUrl && !overrideUrl.startsWith('http');
 
       if (isAppScheme) {
-        tryOpenApp(appUrl, storeUrl);
+        // Explicit custom scheme → use tryOpenApp with blur detection
+        tryOpenApp(overrideUrl, storeUrl);
+      } else if (androidPackage) {
+        // No custom scheme, but we know the Android package name →
+        // Use Chrome's intent:// URL. Chrome handles this natively:
+        //   - App installed → opens the app with the SmartLink URL
+        //   - App NOT installed → redirects to S.browser_fallback_url (Play Store)
+        // This is reliable and doesn't depend on the blur hack.
+        const smartLinkUrl = `${window.location.origin}/${shortCode}${window.location.search}`;
+        const intentUrl =
+          `intent://${smartLinkUrl.replace(/^https?:\/\//, '')}` +
+          `#Intent;scheme=https;package=${androidPackage}` +
+          `;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
+        window.location.replace(intentUrl);
+        setStatus('done');
       } else {
-        // No app scheme configured → go straight to store.
+        // No app scheme and no package name → go straight to store.
         // The fingerprint + deferred link will handle deep linking
         // after install via the Flutter SDK match flow.
         window.location.replace(storeUrl);
@@ -180,13 +192,18 @@ export default function RedirectPage({
         storeUrls.ios;
       const storeUrl = appendStoreParams(rawStoreUrl, link.params, true);
 
-      // Same logic: only try app scheme URLs, not https:// web URLs.
-      const appUrl = link.platformOverrides?.ios?.url;
-      const isAppScheme = appUrl && !appUrl.startsWith('http');
+      // Check for explicit app scheme URL (e.g. allevents://, myapp://)
+      const overrideUrl = link.platformOverrides?.ios?.url;
+      const isAppScheme = overrideUrl && !overrideUrl.startsWith('http');
 
       if (isAppScheme) {
-        tryOpenApp(appUrl, storeUrl);
+        // Custom URL scheme → use tryOpenApp with timer fallback
+        tryOpenApp(overrideUrl, storeUrl);
       } else {
+        // iOS doesn't support intent:// — rely on Universal Links.
+        // If Universal Links didn't intercept (app not installed, or
+        // user opened in Safari manually), go straight to App Store.
+        // Deferred deep linking handles post-install navigation.
         window.location.replace(storeUrl);
         setStatus('done');
       }

@@ -201,6 +201,8 @@ export default async function ResolvePage({
       android: 'https://play.google.com/store/apps/details?id=com.amitech.allevents',
       ios: 'https://apps.apple.com/app/id488116646',
     };
+    // Android package name — needed for intent:// URLs
+    let androidPackage: string | undefined = 'com.amitech.allevents'; // default
 
     if (linkData.appId) {
       const app = await AppModel.findById(linkData.appId).lean();
@@ -209,6 +211,9 @@ export default async function ResolvePage({
           android: app.android?.storeUrl || storeUrls.android,
           ios: app.ios?.storeUrl || storeUrls.ios,
         };
+        if (app.android?.package) {
+          androidPackage = app.android.package;
+        }
       }
     } else if (tenant?.app) {
       storeUrls = {
@@ -327,6 +332,7 @@ export default async function ResolvePage({
         tenantId={link.tenantId.toString()}
         clickId={clickId}
         storeUrls={storeUrls}
+        androidPackage={androidPackage}
       />
     );
   } catch (error) {
