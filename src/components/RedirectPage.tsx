@@ -167,14 +167,14 @@ export default function RedirectPage({
         // Explicit custom scheme → use tryOpenApp with blur detection
         tryOpenApp(overrideUrl, storeUrl);
       } else if (androidPackage) {
-        // No custom scheme, but we know the Android package name →
-        // Use Chrome's intent:// URL. Chrome handles this natively:
-        //   - App installed → opens the app with the SmartLink URL
-        //   - App NOT installed → redirects to S.browser_fallback_url (Play Store)
-        // This is reliable and doesn't depend on the blur hack.
-        const smartLinkUrl = `${window.location.origin}/${shortCode}${window.location.search}`;
+        // Use destination URL in intent so the app's own domain (e.g. allevents.in)
+        // resolves via its existing App Links intent filter.
+        const destUrl = link.destinationUrl;
+        const intentTarget = destUrl && destUrl.startsWith('http')
+          ? destUrl
+          : `${window.location.origin}/${shortCode}${window.location.search}`;
         const intentUrl =
-          `intent://${smartLinkUrl.replace(/^https?:\/\//, '')}` +
+          `intent://${intentTarget.replace(/^https?:\/\//, '')}` +
           `#Intent;scheme=https;package=${androidPackage}` +
           `;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
         window.location.replace(intentUrl);
