@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import { applyCors } from '@/lib/middleware/cors';
 import ClickModel from '@/lib/models/Click';
 import { Logger } from '@/lib/logger';
+import { liveEvents } from '@/lib/services/live-events';
 
 const logger = Logger.child({ route: 'clicks' });
 
@@ -35,6 +36,20 @@ async function handleAppOpenedUpdate(request: NextRequest) {
       { _id: clickId },
       { $set: { actionTaken: 'app_opened', isAppInstalled: true } }
     );
+
+    // Emit live event
+    const click = await ClickModel.findById(clickId).lean();
+    liveEvents.emit({
+      type: 'app_opened',
+      linkId: click?.linkId?.toString(),
+      tenantId: click?.tenantId?.toString(),
+      device: {
+        os: (click as any)?.device?.os,
+        browser: (click as any)?.device?.browser,
+        type: (click as any)?.device?.type,
+      },
+      metadata: { clickId },
+    });
 
     logger.info({ clickId }, 'Click action updated to app_opened');
 

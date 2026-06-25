@@ -14,6 +14,7 @@ import FingerprintModel from '@/lib/models/Fingerprint';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { liveEvents } from '@/lib/services/live-events';
 
 const logger = Logger.child({ route: 'deferred-match' });
 
@@ -248,6 +249,20 @@ export async function POST(request: NextRequest) {
           source: 'deferred_match',
         },
       });
+      // Emit live event for install
+      liveEvents.emit({
+        type: 'deferred_match',
+        linkId: deferredLink.linkId?.toString(),
+        tenantId: auth.tenantId,
+        metadata: {
+          deferredLinkId: deferredLink._id.toString(),
+          matchScore: deferredLink.matchScore,
+          matchDetails: deferredLink.matchDetails,
+          deviceId: deviceId || undefined,
+          destinationUrl: deferredLink.destinationUrl,
+        },
+      });
+
       logger.info(
         { linkId: deferredLink.linkId, deferredLinkId: deferredLink._id },
         'Conversion recorded for deferred match'

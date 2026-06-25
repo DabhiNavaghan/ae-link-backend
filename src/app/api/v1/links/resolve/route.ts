@@ -9,6 +9,7 @@ import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { liveEvents } from '@/lib/services/live-events';
 
 const logger = Logger.child({ route: 'links-resolve' });
 
@@ -247,6 +248,19 @@ export async function GET(request: NextRequest) {
     } catch (updateErr) {
       logger.debug({ error: String(updateErr) }, 'Click action update failed');
     }
+
+    // Emit live event — this IS an app open (SDK resolved the link inside the app)
+    liveEvents.emit({
+      type: 'app_opened',
+      linkId: link._id.toString(),
+      shortCode: link.shortCode,
+      tenantId: auth.tenantId,
+      metadata: {
+        destinationUrl: effectiveDestinationUrl,
+        deepLink: deepLinkUrl || undefined,
+        campaignName: campaign?.name,
+      },
+    });
 
     const response = NextResponse.json(
       successResponse({

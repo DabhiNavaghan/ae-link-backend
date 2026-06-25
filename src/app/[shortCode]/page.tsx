@@ -8,6 +8,7 @@ import AppModel from '@/lib/models/App';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { Logger } from '@/lib/logger';
+import { emitLiveEvent } from '@/lib/services/emit-live-event';
 import RedirectPage from '@/components/RedirectPage';
 import { ClickChannel } from '@/types';
 
@@ -279,12 +280,13 @@ export default async function ResolvePage({
         createdAt: { $gte: dedupeWindow },
       }).select('_id').lean();
 
+      // Lookup geo BEFORE dedup check so it's available for live events
+      const geo = await lookupGeo(ip);
+
       if (existingClick) {
         clickId = existingClick._id.toString();
         logger.debug({ clickId, shortCode }, 'Duplicate click suppressed');
       } else {
-        const geo = await lookupGeo(ip);
-
         const click = new ClickModel({
           linkId: link._id,
           tenantId: link.tenantId,
@@ -304,6 +306,36 @@ export default async function ResolvePage({
 
         await LinkService.incrementClickCount(link._id.toString());
       }
+
+      // Emit live events for real-time dashboard (file-based IPC → watcher fans out to SSE)
+      const eventBase = {
+        linkId: link._id.toString(),
+        linkTitle: linkData.title || shortCode,
+        shortCode,
+        tenantId: link.tenantId.toString(),
+        device: {
+          os: deviceInfo.os,
+          browser: deviceInfo.browser,
+          type: deviceInfo.type,
+        },
+        geo: {
+          country: geo?.country || undefined,
+          city: geo?.city || undefined,
+        },
+        metadata: {
+          clickId,
+          channel,
+          deepLink: deepLinkUrl || undefined,
+          destinationUrl: effectiveDestinationUrl,
+          ip,
+        },
+      };
+
+      // 1. Always emit a click event (total clicks)
+      // 2. Emit the outcome event (store_redirect on mobile, web_fallback on desktop)
+      // File-based IPC — synchronous write to temp file, picked up by file watcher
+      emitLiveEvent({ ...eventBase, type: 'click' });
+      emitLiveEvent({ ...eventBase, type: isMobile ? 'store_redirect' : 'web_fallback' });
 
       logger.info(
         {

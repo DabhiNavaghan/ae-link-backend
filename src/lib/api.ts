@@ -360,6 +360,7 @@ export class SmartLinkApi {
     return response.data as LinkAnalytics;
   }
 
+
   async getCampaignAnalytics(id: string): Promise<CampaignAnalytics> {
     const response = await this.request<ApiResponse<CampaignAnalytics>>(
       `/analytics/campaigns/${id}`,

@@ -11,6 +11,7 @@ import TenantModel from '@/lib/models/Tenant';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { liveEvents } from '@/lib/services/live-events';
 
 const logger = Logger.child({ route: 'fingerprint' });
 
@@ -113,6 +114,20 @@ export async function POST(request: NextRequest) {
         deferredDestination,
         ttlHours
       );
+
+      // Emit live event
+      liveEvents.emit({
+        type: 'fingerprint',
+        linkId,
+        tenantId,
+        metadata: {
+          fingerprintId: storedFingerprint._id.toString(),
+          clickId,
+          screen: fingerprint.screen,
+          platform: fingerprint.platform,
+          ip,
+        },
+      });
 
       logger.info(
         {
