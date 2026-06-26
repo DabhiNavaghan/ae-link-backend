@@ -10,6 +10,7 @@ import { lookupGeo } from '@/lib/services/geo.service';
 import { Logger } from '@/lib/logger';
 import { emitLiveEvent } from '@/lib/services/emit-live-event';
 import RedirectPage from '@/components/RedirectPage';
+import { fetchOgMeta } from '@/lib/services/og-fetch.service';
 import { ClickChannel } from '@/types';
 
 /**
@@ -378,23 +379,77 @@ export default async function ResolvePage({
 }
 
 /**
- * Generate metadata for the link (OG tags for sharing)
+ * Resolve the effective destination URL for a link given its stored data and
+ * the request's query params. Mirrors the deep-link logic in ResolvePage so
+ * the social preview points at the same page the user will actually land on.
  */
-export async function generateMetadata({ params }: { params: Params }) {
+function resolveDestinationUrl(
+  linkData: any,
+  searchParams: Record<string, string | string[] | undefined>
+): string | undefined {
+  const get = (k: string) => {
+    const v = searchParams[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  let deepLinkUrl = get('deepLink') || get('deep_link') || get('deeplink');
+  if (deepLinkUrl && !deepLinkUrl.startsWith('http') && linkData?.destinationUrl) {
+    try {
+      const origin = new URL(linkData.destinationUrl).origin;
+      deepLinkUrl = deepLinkUrl.startsWith('/')
+        ? `${origin}${deepLinkUrl}`
+        : `${origin}/${deepLinkUrl}`;
+    } catch {}
+  }
+  // Priority: deepLink/destination → web fallback URL → nothing.
+  return (
+    deepLinkUrl ||
+    linkData?.destinationUrl ||
+    linkData?.platformOverrides?.web?.url ||
+    undefined
+  );
+}
+
+/**
+ * Generate OG tags for sharing by mirroring the real destination page's
+ * Open Graph metadata (title, description, image) instead of a generic card.
+ */
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const fallback = {
+    title: 'AllEvents',
+    description: 'Opening link...',
+  };
+
   try {
     await connectDB();
 
     const link = await LinkService.getLinkByShortCode(params.shortCode);
+    if (!link) return fallback;
 
-    if (!link) {
-      return {
-        title: 'AllEvents',
-        description: 'Opening link...',
-      };
-    }
+    const linkData = link.toObject ? link.toObject() : (link as any);
+    const destinationUrl = resolveDestinationUrl(linkData, searchParams);
 
-    const title = `AllEvents - ${link.params?.eventId || 'Link'}`;
-    const description = link.params?.action || 'Opening link';
+    // Only crawlers render the social card and need the scrape; skip the
+    // network fetch for human clicks so the redirect's TTFB stays fast.
+    const userAgent = headers().get('user-agent') || '';
+    const isCrawler = new DeviceDetector(userAgent).isBot();
+
+    const og =
+      isCrawler && destinationUrl ? await fetchOgMeta(destinationUrl) : {};
+
+    const title =
+      og.title || linkData.title || 'AllEvents';
+    const description =
+      og.description ||
+      (linkData.params?.action ? `${linkData.params.action}` : '') ||
+      'Discover and book events on AllEvents';
+    const image = og.image;
+    const canonical = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smartlink.apps.allevents.app'}/${params.shortCode}`;
 
     return {
       title,
@@ -403,15 +458,19 @@ export async function generateMetadata({ params }: { params: Params }) {
         title,
         description,
         type: 'website',
-        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://smartlink.vercel.app'}/${params.shortCode}`,
+        url: canonical,
+        siteName: og.siteName || 'AllEvents',
+        ...(image && { images: [{ url: image }] }),
+      },
+      twitter: {
+        card: image ? 'summary_large_image' : 'summary',
+        title,
+        description,
+        ...(image && { images: [image] }),
       },
     };
   } catch (error) {
     logger.error({ error }, 'Generate metadata error');
-
-    return {
-      title: 'AllEvents',
-      description: 'Opening link...',
-    };
+    return fallback;
   }
 }
