@@ -243,9 +243,8 @@ export async function GET(request: NextRequest) {
       logger.debug({ error: String(updateErr) }, 'Click action update failed');
     }
 
-    // Emit live event — this IS an app open (SDK resolved the link inside the app)
-    liveEvents.emit({
-      type: 'app_opened',
+    // Emit click + app_opened live events so funnel shows CLICK → APP OPEN
+    const resolveEventBase = {
       linkId: link._id.toString(),
       linkTitle: (link as any).title || link.shortCode,
       shortCode: link.shortCode,
@@ -268,7 +267,9 @@ export async function GET(request: NextRequest) {
         ip,
         campaignName: campaign?.name,
       },
-    });
+    };
+    liveEvents.emit({ type: 'click', ...resolveEventBase });
+    liveEvents.emit({ type: 'app_opened', ...resolveEventBase });
 
     const response = NextResponse.json(
       successResponse({

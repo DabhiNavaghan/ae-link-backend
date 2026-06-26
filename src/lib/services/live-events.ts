@@ -97,6 +97,11 @@ class LiveEventEmitter {
     return [...this.buffer];
   }
 
+  /** Clear the ring buffer */
+  clearBuffer() {
+    this.buffer = [];
+  }
+
   /** How many SSE clients are connected right now */
   get clientCount(): number {
     return this.listeners.size;
