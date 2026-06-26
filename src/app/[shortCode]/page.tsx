@@ -326,7 +326,11 @@ export default async function ResolvePage({
           clickId,
           channel,
           deepLink: deepLinkUrl || undefined,
-          destinationUrl: effectiveDestinationUrl,
+          destinationUrl: effectiveDestinationUrl || linkData.destinationUrl || undefined,
+          redirectUrl: effectiveDestinationUrl
+            || linkData.destinationUrl
+            || (deviceInfo.os === 'ios' ? storeUrls.ios : storeUrls.android),
+          referer: referer || undefined,
           ip,
         },
       };

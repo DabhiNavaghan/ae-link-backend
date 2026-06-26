@@ -147,6 +147,20 @@ export async function GET(request: NextRequest) {
       } catch (_) {}
     }
 
+    // Extract request info for live event + potential new click
+    const userAgent = request.headers.get('user-agent') || '';
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-client-ip') ||
+      '127.0.0.1';
+    const detector = new DeviceDetector(userAgent);
+    const deviceInfo = detector.detect();
+    const isSDK = /dart|flutter/i.test(userAgent);
+    if (isSDK) deviceInfo.browser = 'app-sdk';
+    const resolveGeo = await lookupGeo(ip);
+
     // Mark the most recent click for this link as app_opened + store metadata.
     // If no recent click exists (e.g. universal link bypassed the redirect page),
     // create a new app_opened click so analytics count it.
@@ -208,26 +222,6 @@ export async function GET(request: NextRequest) {
       // No recent click found — universal link or app link bypassed the redirect
       // page entirely, so the click was never recorded. Create one now.
       if (!updatedClick) {
-        const userAgent = request.headers.get('user-agent') || '';
-        const ip =
-          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-          request.headers.get('x-real-ip') ||
-          request.headers.get('cf-connecting-ip') ||
-          request.headers.get('x-client-ip') ||
-          '127.0.0.1';
-
-        const detector = new DeviceDetector(userAgent);
-        const deviceInfo = detector.detect();
-
-        // Set browser to 'app-sdk' for SDK-originated clicks so they're
-        // identifiable in analytics (vs normal browser clicks).
-        const isSDK = /dart|flutter/i.test(userAgent);
-        if (isSDK) {
-          deviceInfo.browser = 'app-sdk';
-        }
-
-        const geo = await lookupGeo(ip);
-
         const newClick = new ClickModel({
           linkId: link._id,
           tenantId: link.tenantId,
@@ -236,7 +230,7 @@ export async function GET(request: NextRequest) {
           referer: '',
           channel: isSDK ? 'app_link' : 'direct',
           device: deviceInfo,
-          geo,
+          geo: resolveGeo,
           isAppInstalled: true,
           actionTaken: 'app_opened',
           ...(resolveMetadata && { metadata: resolveMetadata }),
@@ -253,11 +247,25 @@ export async function GET(request: NextRequest) {
     liveEvents.emit({
       type: 'app_opened',
       linkId: link._id.toString(),
+      linkTitle: (link as any).title || link.shortCode,
       shortCode: link.shortCode,
       tenantId: auth.tenantId,
+      device: {
+        os: deviceInfo.os,
+        browser: deviceInfo.browser,
+        type: deviceInfo.type,
+      },
+      geo: {
+        country: resolveGeo?.country || undefined,
+        city: resolveGeo?.city || undefined,
+      },
       metadata: {
-        destinationUrl: effectiveDestinationUrl,
+        channel: isSDK ? 'app_link' : 'direct',
         deepLink: deepLinkUrl || undefined,
+        destinationUrl: effectiveDestinationUrl,
+        redirectUrl: effectiveDestinationUrl,
+        referer: request.headers.get('referer') || undefined,
+        ip,
         campaignName: campaign?.name,
       },
     });

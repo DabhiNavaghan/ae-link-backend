@@ -11,6 +11,8 @@ import InstallModel from '@/lib/models/Install';
 import ConversionModel from '@/lib/models/Conversion';
 import ClickModel from '@/lib/models/Click';
 import FingerprintModel from '@/lib/models/Fingerprint';
+import LinkModel from '@/lib/models/Link';
+import { lookupGeo } from '@/lib/services/geo.service';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
@@ -221,9 +223,11 @@ export async function POST(request: NextRequest) {
 
     // Mark the original click as 'app_installed' (new install via deferred match).
     // Chain: deferredLink.fingerprintId → fingerprint.clickId → click
+    let fpClickId: string | undefined;
     try {
-      const fp = await FingerprintModel.findById(deferredLink.fingerprintId).lean();
+      const fp = await FingerprintModel.findById(deferredLink.fingerprintId).select('clickId').lean();
       if (fp?.clickId) {
+        fpClickId = fp.clickId.toString();
         await ClickModel.updateOne(
           { _id: fp.clickId },
           { $set: { actionTaken: 'app_installed', isAppInstalled: true } }
@@ -234,6 +238,18 @@ export async function POST(request: NextRequest) {
       // Non-blocking
       logger.debug({ error: String(clickErr) }, 'Failed to update click to app_installed');
     }
+
+    // Look up link for title/shortCode + geo for live event
+    let installLinkTitle: string | undefined;
+    let installShortCode: string | undefined;
+    try {
+      const installLink = await LinkModel.findById(deferredLink.linkId).select('title shortCode').lean();
+      if (installLink) {
+        installLinkTitle = (installLink as any).title || (installLink as any).shortCode;
+        installShortCode = (installLink as any).shortCode;
+      }
+    } catch {}
+    const matchGeo = await lookupGeo(ip);
 
     // Create a Conversion record for analytics tracking
     try {
@@ -249,17 +265,30 @@ export async function POST(request: NextRequest) {
           source: 'deferred_match',
         },
       });
-      // Emit live event for install
+
       liveEvents.emit({
         type: 'deferred_match',
         linkId: deferredLink.linkId?.toString(),
+        linkTitle: installLinkTitle,
+        shortCode: installShortCode,
         tenantId: auth.tenantId,
+        device: {
+          os: normalizedFingerprint.platform || undefined,
+          browser: undefined,
+          type: undefined,
+        },
+        geo: {
+          country: matchGeo?.country || undefined,
+          city: matchGeo?.city || undefined,
+        },
         metadata: {
-          deferredLinkId: deferredLink._id.toString(),
-          matchScore: deferredLink.matchScore,
-          matchDetails: deferredLink.matchDetails,
-          deviceId: deviceId || undefined,
+          clickId: fpClickId,
+          channel: 'app_install',
           destinationUrl: deferredLink.destinationUrl,
+          redirectUrl: deferredLink.destinationUrl,
+          matchScore: deferredLink.matchScore,
+          deviceId: deviceId || undefined,
+          ip,
         },
       });
 

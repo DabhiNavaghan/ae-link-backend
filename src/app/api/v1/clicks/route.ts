@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { applyCors } from '@/lib/middleware/cors';
 import ClickModel from '@/lib/models/Click';
+import LinkModel from '@/lib/models/Link';
 import { Logger } from '@/lib/logger';
 import { liveEvents } from '@/lib/services/live-events';
 
@@ -37,18 +38,44 @@ async function handleAppOpenedUpdate(request: NextRequest) {
       { $set: { actionTaken: 'app_opened', isAppInstalled: true } }
     );
 
-    // Emit live event
+    // Emit live event — enrich with link title/shortCode
     const click = await ClickModel.findById(clickId).lean();
+    let clickLinkTitle: string | undefined;
+    let clickShortCode: string | undefined;
+    if (click?.linkId) {
+      try {
+        const clickLink = await LinkModel.findById(click.linkId).select('title shortCode').lean();
+        if (clickLink) {
+          clickLinkTitle = (clickLink as any).title || (clickLink as any).shortCode;
+          clickShortCode = (clickLink as any).shortCode;
+        }
+      } catch {}
+    }
+    const clickDoc = click as any;
     liveEvents.emit({
       type: 'app_opened',
-      linkId: click?.linkId?.toString(),
-      tenantId: click?.tenantId?.toString(),
+      linkId: clickDoc?.linkId?.toString(),
+      linkTitle: clickLinkTitle,
+      shortCode: clickShortCode,
+      tenantId: clickDoc?.tenantId?.toString(),
       device: {
-        os: (click as any)?.device?.os,
-        browser: (click as any)?.device?.browser,
-        type: (click as any)?.device?.type,
+        os: clickDoc?.device?.os,
+        browser: clickDoc?.device?.browser,
+        type: clickDoc?.device?.type,
       },
-      metadata: { clickId },
+      geo: {
+        country: clickDoc?.geo?.country || undefined,
+        city: clickDoc?.geo?.city || undefined,
+      },
+      metadata: {
+        clickId,
+        channel: clickDoc?.channel || undefined,
+        deepLink: clickDoc?.metadata?.deepLink || undefined,
+        destinationUrl: clickDoc?.metadata?.destinationUrl || undefined,
+        redirectUrl: clickDoc?.metadata?.destinationUrl || undefined,
+        referer: clickDoc?.referer || undefined,
+        ip: clickDoc?.ipAddress || undefined,
+      },
     });
 
     logger.info({ clickId }, 'Click action updated to app_opened');

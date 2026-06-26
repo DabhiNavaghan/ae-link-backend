@@ -11,6 +11,7 @@ import TenantModel from '@/lib/models/Tenant';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { lookupGeo } from '@/lib/services/geo.service';
 import { liveEvents } from '@/lib/services/live-events';
 
 const logger = Logger.child({ route: 'fingerprint' });
@@ -116,15 +117,28 @@ export async function POST(request: NextRequest) {
       );
 
       // Emit live event
+      const fpGeo = await lookupGeo(ip);
       liveEvents.emit({
         type: 'fingerprint',
         linkId,
+        linkTitle: link.title || link.shortCode || undefined,
+        shortCode: link.shortCode,
         tenantId,
+        device: {
+          os: fingerprint.platform || undefined,
+          browser: fingerprint.userAgent ? undefined : undefined,
+          type: undefined,
+        },
+        geo: {
+          country: fpGeo?.country || undefined,
+          city: fpGeo?.city || undefined,
+        },
         metadata: {
-          fingerprintId: storedFingerprint._id.toString(),
           clickId,
+          fingerprintId: storedFingerprint._id.toString(),
+          destinationUrl: deferredDestination || undefined,
+          redirectUrl: deferredDestination || undefined,
           screen: fingerprint.screen,
-          platform: fingerprint.platform,
           ip,
         },
       });
