@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
+import InstallModel from '@/lib/models/Install';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { successResponse, Errors } from '@/utils/response';
@@ -159,6 +160,22 @@ export async function GET(request: NextRequest) {
     const deviceInfo = detector.detect();
     const isSDK = /dart|flutter/i.test(userAgent);
     if (isSDK) deviceInfo.browser = 'app-sdk';
+
+    // Flutter SDK UA ("Dart/3.x") doesn't reveal iOS vs Android.
+    // Look up the real platform from the Install record.
+    if (isSDK && (deviceInfo.os === 'other' || !deviceInfo.os)) {
+      try {
+        const install = await InstallModel.findOne({ tenantId: auth.tenantId })
+          .sort({ createdAt: -1 })
+          .select('platform')
+          .lean();
+        if (install?.platform) {
+          const p = install.platform.toLowerCase();
+          if (p === 'ios' || p === 'android') deviceInfo.os = p;
+        }
+      } catch {}
+    }
+
     const resolveGeo = await lookupGeo(ip);
 
     // Mark the most recent click for this link as app_opened + store metadata.
