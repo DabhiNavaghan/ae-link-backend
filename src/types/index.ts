@@ -452,6 +452,7 @@ export interface LinkAnalytics {
   topUtmCampaigns: Array<{ campaign: string; clicks: number; appOpened: number; installs: number }>;
   customParams: Array<{ key: string; value: string; clicks: number; appOpened: number; installs: number }>;
   clicksTrend?: Array<{ date: string; clicks: number }>;
+  installsTrend?: Array<{ date: string; installs: number }>;
   createdAt?: Date;
   lastClicked?: Date;
 }

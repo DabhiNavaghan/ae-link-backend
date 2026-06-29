@@ -51,6 +51,8 @@ interface Analytics {
   utmMediums: Array<{ medium: string; clicks: number; appOpened: number; installs: number }>;
   utmCampaigns: Array<{ campaign: string; clicks: number; appOpened: number; installs: number }>;
   customParams: Array<{ key: string; value: string; clicks: number; appOpened: number; installs: number }>;
+  clicksTrend: Array<{ date: string; clicks: number }>;
+  installsTrend: Array<{ date: string; installs: number }>;
 }
 
 export default function LinkDetailPage() {
@@ -68,6 +70,7 @@ export default function LinkDetailPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [hoveredDeepLink, setHoveredDeepLink] = useState<string | null>(null);
+  const [hoveredBar, setHoveredBar] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function mapAnalytics(d: any): Analytics {
@@ -94,6 +97,8 @@ export default function LinkDetailPage() {
       utmMediums: d.topUtmMediums || [],
       utmCampaigns: d.topUtmCampaigns || [],
       customParams: d.customParams || [],
+      clicksTrend: d.clicksTrend || [],
+      installsTrend: d.installsTrend || [],
     };
   }
 
@@ -350,6 +355,66 @@ export default function LinkDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Installs Trend Chart */}
+        {analytics && analytics.installsTrend.length > 0 && (() => {
+          const sortedDates = [...analytics.installsTrend].sort((a, b) => a.date.localeCompare(b.date));
+          const maxVal = Math.max(...sortedDates.map((t) => t.installs), 1);
+
+          return (
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {nextSection('installs — last 30 days')}
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-success, #22c55e)', fontWeight: 700 }}>
+                  {analytics.installs.total} total
+                </div>
+              </div>
+              <div style={{ padding: '20px 20px 12px', overflowX: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120, minWidth: sortedDates.length * 20 }}>
+                  {sortedDates.map((t) => {
+                    const barH = maxVal > 0 ? (t.installs / maxVal) * 100 : 0;
+                    const day = t.date.split('-')[2];
+                    const isHovered = hoveredBar === t.date;
+                    return (
+                      <div
+                        key={t.date}
+                        onMouseEnter={() => setHoveredBar(t.date)}
+                        onMouseLeave={() => setHoveredBar(null)}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 16, position: 'relative', cursor: 'default' }}
+                      >
+                        {isHovered && (
+                          <div style={{
+                            position: 'absolute', bottom: '100%', marginBottom: 4,
+                            background: 'var(--color-text)', color: 'var(--color-bg)',
+                            padding: '4px 8px', borderRadius: 4, fontSize: 11,
+                            fontFamily: 'var(--font-mono)', fontWeight: 700,
+                            whiteSpace: 'nowrap', pointerEvents: 'none',
+                            zIndex: 10,
+                          }}>
+                            {t.installs}
+                          </div>
+                        )}
+                        <div style={{ width: '100%', height: 100, display: 'flex', alignItems: 'flex-end' }}>
+                          <div style={{
+                            width: '100%',
+                            background: 'var(--color-success, #22c55e)',
+                            height: `${Math.max(barH, 3)}%`,
+                            opacity: isHovered ? 1 : 0.7,
+                            transition: 'height 0.4s ease, opacity 0.15s',
+                            borderRadius: '2px 2px 0 0',
+                          }} />
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: isHovered ? 'var(--color-text)' : 'var(--color-text-tertiary)', marginTop: 4 }}>
+                          {day}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Action Breakdown + Channels row — only show when there are clicks */}
         {analytics && analytics.totalClicks > 0 && (

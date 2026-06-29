@@ -45,6 +45,7 @@ export class AnalyticsService {
       topUtmMediums,
       topUtmCampaigns,
       customParams,
+      installsTrend,
       latestClicks,
     ] = await Promise.all([
       // OS breakdown
@@ -146,7 +147,7 @@ export class AnalyticsService {
       ]),
 
       // Top deepLink URLs from metadata (clicks + app opens + installs in one pass)
-      // installs = store_redirect + isAppInstalled (user went to store, installed, opened app)
+      // installs = app_installed (deferred match confirmed install)
       // app_opened = direct app open (app was already installed)
       ClickModel.aggregate([
         { $match: { linkId: linkObjId, 'metadata.deepLink': { $exists: true, $ne: null } } },
@@ -154,7 +155,7 @@ export class AnalyticsService {
           _id: '$metadata.deepLink',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 20 },
@@ -167,7 +168,7 @@ export class AnalyticsService {
           _id: '$metadata.ref',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 15 },
@@ -180,7 +181,7 @@ export class AnalyticsService {
           _id: '$metadata.utmSource',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -193,7 +194,7 @@ export class AnalyticsService {
           _id: '$metadata.utmMedium',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -206,7 +207,7 @@ export class AnalyticsService {
           _id: '$metadata.utmCampaign',
           clicks: { $sum: 1 },
           appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-          installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+          installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
         } },
         { $sort: { clicks: -1 } },
         { $limit: 10 },
@@ -222,11 +223,29 @@ export class AnalyticsService {
             _id: { key: '$customEntries.k', value: '$customEntries.v' },
             clicks: { $sum: 1 },
             appOpened: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_opened'] }, 1, 0] } },
-            installs: { $sum: { $cond: [{ $and: [{ $eq: ['$actionTaken', 'store_redirect'] }, { $eq: ['$isAppInstalled', true] }] }, 1, 0] } },
+            installs: { $sum: { $cond: [{ $eq: ['$actionTaken', 'app_installed'] }, 1, 0] } },
           },
         },
         { $sort: { clicks: -1 } },
         { $limit: 30 },
+      ]),
+
+      // Installs trend — last 30 days grouped by date (from ConversionModel)
+      ConversionModel.aggregate([
+        {
+          $match: {
+            linkId: linkObjId,
+            deferredLinkId: { $exists: true, $ne: null },
+            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            installs: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
       ]),
 
       // Latest click
@@ -346,6 +365,10 @@ export class AnalyticsService {
       clicksTrend: clicksTrend.map((t: any) => ({
         date: t._id,
         clicks: t.clicks,
+      })),
+      installsTrend: installsTrend.map((t: any) => ({
+        date: t._id,
+        installs: t.installs,
       })),
       createdAt: (link as any).createdAt,
       lastClicked: latestClicks?.createdAt || (link as any).createdAt,

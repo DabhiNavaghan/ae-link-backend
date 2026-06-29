@@ -221,11 +221,12 @@ export async function GET(request: NextRequest) {
           {
             $set: {
               isAppInstalled: true,
-              // Keep store_redirect (genuine store visit); otherwise set app_opened
+              // Keep store_redirect and app_installed (genuine store visit / deferred match);
+              // otherwise set app_opened
               actionTaken: {
                 $cond: [
-                  { $eq: ['$actionTaken', 'store_redirect'] },
-                  'store_redirect',
+                  { $in: ['$actionTaken', ['store_redirect', 'app_installed']] },
+                  '$actionTaken',
                   'app_opened',
                 ],
               },
