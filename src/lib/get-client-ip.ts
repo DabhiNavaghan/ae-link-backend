@@ -34,7 +34,19 @@ export interface ClientIpInfo {
 }
 
 function resolveHeaders(source: IpSource): HeaderGetter {
-  return 'headers' in source ? source.headers : source;
+  // A bare headers object (Web `Headers`, or Next's `ReadonlyHeaders` from
+  // `headers()`) exposes `get` directly — use it as-is. Only a
+  // `Request`/`NextRequest` carries the headers under `.headers`.
+  //
+  // Do NOT branch on `'headers' in source`: Next's `ReadonlyHeaders` also has
+  // an internal `headers` member, so that check unwraps it to a non-Headers
+  // value whose `.get` is undefined — which threw `h.get is not a function`
+  // and 404'd every short-link resolve.
+  const s = source as { get?: unknown; headers?: HeaderGetter };
+  if (typeof s.get === 'function') return source as HeaderGetter;
+  if (s.headers && typeof s.headers.get === 'function') return s.headers;
+  // Defensive fallback: never throw from IP extraction.
+  return { get: () => null };
 }
 
 /** 10.x, 172.16-31.x, 192.168.x, 127.x, ::1, fc00::/7 (incl. IPv4-mapped IPv6). */
