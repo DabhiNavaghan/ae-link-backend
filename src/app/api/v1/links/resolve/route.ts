@@ -11,6 +11,7 @@ import { lookupGeo } from '@/lib/services/geo.service';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { liveEvents } from '@/lib/services/live-events';
+import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ route: 'links-resolve' });
 
@@ -150,12 +151,7 @@ export async function GET(request: NextRequest) {
 
     // Extract request info for live event + potential new click
     const userAgent = request.headers.get('user-agent') || '';
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      request.headers.get('cf-connecting-ip') ||
-      request.headers.get('x-client-ip') ||
-      '127.0.0.1';
+    const ip = getClientIp(request) || '127.0.0.1';
     const detector = new DeviceDetector(userAgent);
     const deviceInfo = detector.detect();
     const isSDK = /dart|flutter/i.test(userAgent);

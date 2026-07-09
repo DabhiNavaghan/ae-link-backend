@@ -4,6 +4,7 @@ export const maxDuration = 30;
 import { UAParser } from 'ua-parser-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { applyCors } from '@/lib/middleware/cors';
+import { getClientIpInfo } from '@/lib/get-client-ip';
 
 interface GeoResponse {
   error?: boolean;
@@ -33,29 +34,19 @@ interface GeoResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1';
+  const ipInfo = getClientIpInfo(request);
+  const ip = ipInfo.ip || '127.0.0.1';
 
   const userAgent = request.headers.get('user-agent') || '';
   const referer = request.headers.get('referer') || '';
   const acceptLanguage = request.headers.get('accept-language') || '';
   const host = request.headers.get('host') || '';
   const origin = request.headers.get('origin') || '';
-  const cfCountry = request.headers.get('cf-ipcountry') || '';
-  const cfConnectingIp = request.headers.get('cf-connecting-ip') || '';
 
   const parser = new UAParser(userAgent);
   const uaResult = parser.getResult();
 
-  const isPrivateIp =
-    ip === '127.0.0.1' ||
-    ip === '::1' ||
-    ip === 'localhost' ||
-    /^192\.168\./.test(ip) ||
-    /^10\./.test(ip) ||
-    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(ip);
+  const isPrivateIp = ipInfo.ip === null || ipInfo.isPrivate;
 
   let geo: GeoResponse | null = null;
   if (!isPrivateIp) {
@@ -82,8 +73,8 @@ export async function GET(request: NextRequest) {
       origin,
       referer,
       acceptLanguage,
-      cfCountry: cfCountry || null,
-      cfConnectingIp: cfConnectingIp || null,
+      cfCountry: ipInfo.country,
+      cfConnectingIp: request.headers.get('cf-connecting-ip'),
       isPrivateIp,
     },
     geo,

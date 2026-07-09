@@ -9,6 +9,7 @@ import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { Logger } from '@/lib/logger';
 import { emitLiveEvent } from '@/lib/services/emit-live-event';
+import { getClientIp } from '@/lib/get-client-ip';
 import RedirectPage from '@/components/RedirectPage';
 import { fetchOgMeta } from '@/lib/services/og-fetch.service';
 import { ClickChannel } from '@/types';
@@ -183,14 +184,8 @@ export default async function ResolvePage({
     const headersList = headers();
     const userAgent = headersList.get('user-agent') || '';
     const referer = headersList.get('referer') || '';
-    // Try all common reverse-proxy IP headers (OVH FaaS, Nginx, Cloudflare, etc.)
-    const ip =
-      headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      headersList.get('x-real-ip') ||
-      headersList.get('cf-connecting-ip') ||
-      headersList.get('x-client-ip') ||
-      '127.0.0.1';
-    logger.debug({ ip, fwd: headersList.get('x-forwarded-for'), realIp: headersList.get('x-real-ip') }, 'Resolved client IP');
+    const ip = getClientIp(headersList) || '127.0.0.1';
+    logger.debug({ ip, cfIp: headersList.get('cf-connecting-ip'), fwd: headersList.get('x-forwarded-for'), realIp: headersList.get('x-real-ip') }, 'Resolved client IP');
 
     // Detect device
     const detector = new DeviceDetector(userAgent);

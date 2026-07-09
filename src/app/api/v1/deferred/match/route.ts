@@ -17,6 +17,7 @@ import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { liveEvents } from '@/lib/services/live-events';
+import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ route: 'deferred-match' });
 
@@ -74,10 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the app's IP from request headers
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1';
+    const ip = getClientIp(request) || '127.0.0.1';
 
     // Get user agent from the app
     const userAgent = request.headers.get('user-agent') || '';

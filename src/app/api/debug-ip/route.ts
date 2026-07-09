@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { getClientIp } from "@/lib/get-client-ip";
 
 export async function GET(req: NextRequest) {
   const headers = Object.fromEntries(req.headers.entries());
@@ -6,10 +7,7 @@ export async function GET(req: NextRequest) {
   return Response.json(
     {
       // The values that matter most
-      detectedIp:
-        req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-        req.headers.get("x-real-ip") ||
-        "not found",
+      detectedIp: getClientIp(req) ?? "not found",
 
       "x-forwarded-for": req.headers.get("x-forwarded-for"),
       "x-real-ip": req.headers.get("x-real-ip"),

@@ -11,6 +11,7 @@ import TenantModel from '@/lib/models/Tenant';
 import AppModel from '@/lib/models/App';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ route: 'sdk-init' });
 
@@ -95,10 +96,7 @@ export async function POST(request: NextRequest) {
       return applyCors(request, errorRes);
     }
 
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1';
+    const ip = getClientIp(request) || '127.0.0.1';
 
     // ── Resolve appId ──
     // If using an app-level key, auth.appId is already set.

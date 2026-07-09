@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { Logger } from '@/lib/logger';
+import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ module: 'rate-limit' });
 
@@ -30,10 +31,7 @@ function getRateLimitKey(request: NextRequest, tenantId?: string): string {
     return `auth:${tenantId}`;
   }
 
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1';
+  const ip = getClientIp(request) || '127.0.0.1';
 
   return `public:${ip}`;
 }

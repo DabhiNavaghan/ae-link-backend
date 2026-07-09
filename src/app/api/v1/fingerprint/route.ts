@@ -10,6 +10,7 @@ import LinkModel from '@/lib/models/Link';
 import TenantModel from '@/lib/models/Tenant';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
+import { getClientIp } from '@/lib/get-client-ip';
 import { Logger } from '@/lib/logger';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { liveEvents } from '@/lib/services/live-events';
@@ -59,10 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the visitor's real IP from request headers
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1';
+    const ip = getClientIp(request) || '127.0.0.1';
 
     // Get the visitor's user agent
     const userAgent = request.headers.get('user-agent') || '';
