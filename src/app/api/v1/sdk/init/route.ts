@@ -9,9 +9,12 @@ import { applyCors } from '@/lib/middleware/cors';
 import InstallModel from '@/lib/models/Install';
 import TenantModel from '@/lib/models/Tenant';
 import AppModel from '@/lib/models/App';
+import LinkModel from '@/lib/models/Link';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { getClientIp } from '@/lib/get-client-ip';
+import { liveEvents } from '@/lib/services/live-events';
+import { lookupGeo } from '@/lib/services/geo.service';
 
 const logger = Logger.child({ route: 'sdk-init' });
 
@@ -232,6 +235,61 @@ export async function POST(request: NextRequest) {
         { tenantId: auth.tenantId, deviceId, launchCount: existingInstall.launchCount, source: launchSource },
         'App open'
       );
+    }
+
+    // ── Emit live install event (genuine installs only, not app opens) ──
+    // Match result isn't known yet — the SDK calls /deferred/match right after,
+    // which emits a follow-up event the Install Log merges in by deviceId.
+    if (installType === 'first_install' || installType === 'reinstall') {
+      try {
+        const geo = await lookupGeo(ip);
+
+        let linkTitle: string | undefined;
+        let shortCode: string | undefined;
+        if (launchLinkId) {
+          try {
+            const link = await LinkModel.findById(launchLinkId).select('title shortCode').lean();
+            if (link) {
+              linkTitle = (link as any).title || (link as any).shortCode;
+              shortCode = (link as any).shortCode;
+            }
+          } catch {}
+        }
+
+        liveEvents.emit({
+          type: 'install',
+          linkId: launchLinkId || undefined,
+          linkTitle,
+          shortCode,
+          tenantId: auth.tenantId,
+          device: {
+            os: platform || undefined,
+            type: deviceModel || undefined,
+          },
+          geo: {
+            country: geo?.country || undefined,
+            city: geo?.city || undefined,
+          },
+          metadata: {
+            installType,
+            matchResult: 'pending',
+            deviceId,
+            ip,
+            source: launchSource || undefined,
+            medium: launchMedium || undefined,
+            campaign: launchCampaign || undefined,
+            packageName: packageName || undefined,
+            appVersion: appVersion || undefined,
+            osVersion: osVersion || undefined,
+            deviceModel: deviceModel || undefined,
+            deviceManufacturer: deviceManufacturer || undefined,
+            locale: locale || undefined,
+          },
+        });
+      } catch (emitErr) {
+        // Non-blocking — live feed must never break the install flow
+        logger.debug({ error: String(emitErr) }, 'Failed to emit live install event');
+      }
     }
 
     // ── Get tenant settings ──

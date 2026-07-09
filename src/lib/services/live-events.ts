@@ -19,6 +19,7 @@ export interface LiveEvent {
   type:
     | 'click'
     | 'fingerprint'
+    | 'install'
     | 'deferred_match'
     | 'app_opened'
     | 'store_redirect'

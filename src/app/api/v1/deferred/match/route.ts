@@ -185,6 +185,21 @@ export async function POST(request: NextRequest) {
         '❌ No deferred link matched — returning debug comparison'
       );
 
+      // Emit organic outcome so the Install Log can mark this install
+      // (matched by deviceId to the earlier `install` event) as organic.
+      liveEvents.emit({
+        type: 'deferred_match',
+        tenantId: auth.tenantId,
+        device: { os: normalizedFingerprint.platform || undefined },
+        metadata: {
+          matchResult: 'organic',
+          matchScore: 0,
+          channel: 'app_install',
+          deviceId: deviceId || undefined,
+          ip,
+        },
+      });
+
       const response = NextResponse.json(
         successResponse({
           matched: false,
@@ -282,6 +297,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           clickId: fpClickId,
           channel: 'app_install',
+          matchResult: 'matched',
           destinationUrl: deferredLink.destinationUrl,
           redirectUrl: deferredLink.destinationUrl,
           matchScore: deferredLink.matchScore,
