@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIpInfo, isPrivateIp } from '@/lib/get-client-ip';
+import { parseColoCode, lookupColo } from '@/lib/cf-colo';
 import { applyCors } from '@/lib/middleware/cors';
 import { Logger } from '@/lib/logger';
 
@@ -166,6 +167,12 @@ export async function GET(request: NextRequest) {
   }
   const cfPopulated = Object.values(cloudflare).filter(Boolean).length;
 
+  // Edge-datacenter fallback: `cf-ray` always ships, so this yields a coarse
+  // location even with the visitor-location Managed Transform switched off.
+  const cfRay = request.headers.get('cf-ray');
+  const coloCode = parseColoCode(cfRay);
+  const colo = lookupColo(coloCode);
+
   // ---- Source 4: client hints, derived from headers with no lookup at all ----
   const acceptLanguage = request.headers.get('accept-language');
   const clientHints = {
@@ -223,6 +230,17 @@ export async function GET(request: NextRequest) {
               ? 'Only cf-ipcountry is set. Enable "Add visitor location headers" (Cloudflare → Rules → Transform Rules → Managed Transforms) to get city, region, lat/long, timezone and postal code for free.'
               : 'Visitor location headers are enabled — prefer these over outbound lookups.',
         values: cloudflare,
+      },
+      cloudflareEdge: {
+        cfRay,
+        coloCode,
+        location: colo,
+        accuracy: 'approximate',
+        note: colo
+          ? `Nearest Cloudflare edge is ${colo.city}. This is where the request was served, NOT where the visitor is — treat as a coarse metro hint only, and prefer cf-ipcity or an IP lookup when either is available.`
+          : coloCode
+            ? `Edge datacenter ${coloCode} is not in our lookup table; add it to src/lib/cf-colo.ts if it shows up often.`
+            : 'No cf-ray header — this request did not come through Cloudflare.',
       },
       ipLookup: providers,
       clientHints,
