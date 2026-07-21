@@ -356,23 +356,43 @@ export default function LinkDetailPage() {
           </div>
         </div>
 
-        {/* Installs Trend Chart */}
-        {analytics && analytics.installsTrend.length > 0 && (() => {
-          const sortedDates = [...analytics.installsTrend].sort((a, b) => a.date.localeCompare(b.date));
-          const maxVal = Math.max(...sortedDates.map((t) => t.installs), 1);
+        {/* Clicks & Installs Trend Chart */}
+        {analytics && (analytics.installsTrend.length > 0 || analytics.clicksTrend.length > 0) && (() => {
+          // Merge clicks + installs into a single per-date series
+          const byDate = new Map<string, { date: string; clicks: number; installs: number }>();
+          for (const c of analytics.clicksTrend) {
+            const entry = byDate.get(c.date) || { date: c.date, clicks: 0, installs: 0 };
+            entry.clicks = c.clicks;
+            byDate.set(c.date, entry);
+          }
+          for (const i of analytics.installsTrend) {
+            const entry = byDate.get(i.date) || { date: i.date, clicks: 0, installs: 0 };
+            entry.installs = i.installs;
+            byDate.set(i.date, entry);
+          }
+          const sortedDates = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+          const maxVal = Math.max(...sortedDates.map((t) => Math.max(t.clicks, t.installs)), 1);
 
           return (
             <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {nextSection('installs — last 30 days')}
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-success, #22c55e)', fontWeight: 700 }}>
-                  {analytics.installs.total} total
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                {nextSection('clicks & installs — last 30 days')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, background: 'var(--color-primary)', borderRadius: 2, display: 'inline-block' }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-primary)', fontWeight: 700 }}>{analytics.totalClicks} clicks</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, background: 'var(--color-success, #22c55e)', borderRadius: 2, display: 'inline-block' }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-success, #22c55e)', fontWeight: 700 }}>{analytics.installs.total} installs</span>
+                  </div>
                 </div>
               </div>
               <div style={{ padding: '20px 20px 12px', overflowX: 'auto' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120, minWidth: sortedDates.length * 20 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120, minWidth: sortedDates.length * 24 }}>
                   {sortedDates.map((t) => {
-                    const barH = maxVal > 0 ? (t.installs / maxVal) * 100 : 0;
+                    const clicksH = maxVal > 0 ? (t.clicks / maxVal) * 100 : 0;
+                    const installsH = maxVal > 0 ? (t.installs / maxVal) * 100 : 0;
                     const day = t.date.split('-')[2];
                     const isHovered = hoveredBar === t.date;
                     return (
@@ -380,7 +400,7 @@ export default function LinkDetailPage() {
                         key={t.date}
                         onMouseEnter={() => setHoveredBar(t.date)}
                         onMouseLeave={() => setHoveredBar(null)}
-                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 16, position: 'relative', cursor: 'default' }}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 20, position: 'relative', cursor: 'default' }}
                       >
                         {isHovered && (
                           <div style={{
@@ -389,16 +409,25 @@ export default function LinkDetailPage() {
                             padding: '4px 8px', borderRadius: 4, fontSize: 11,
                             fontFamily: 'var(--font-mono)', fontWeight: 700,
                             whiteSpace: 'nowrap', pointerEvents: 'none',
-                            zIndex: 10,
+                            zIndex: 10, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
                           }}>
-                            {t.installs}
+                            <span style={{ color: 'var(--color-primary)' }}>{t.clicks} clicks</span>
+                            <span style={{ color: 'var(--color-success, #22c55e)' }}>{t.installs} installs</span>
                           </div>
                         )}
-                        <div style={{ width: '100%', height: 100, display: 'flex', alignItems: 'flex-end' }}>
+                        <div style={{ width: '100%', height: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
                           <div style={{
-                            width: '100%',
+                            width: '50%',
+                            background: 'var(--color-primary)',
+                            height: `${t.clicks > 0 ? Math.max(clicksH, 3) : 0}%`,
+                            opacity: isHovered ? 1 : 0.7,
+                            transition: 'height 0.4s ease, opacity 0.15s',
+                            borderRadius: '2px 2px 0 0',
+                          }} />
+                          <div style={{
+                            width: '50%',
                             background: 'var(--color-success, #22c55e)',
-                            height: `${Math.max(barH, 3)}%`,
+                            height: `${t.installs > 0 ? Math.max(installsH, 3) : 0}%`,
                             opacity: isHovered ? 1 : 0.7,
                             transition: 'height 0.4s ease, opacity 0.15s',
                             borderRadius: '2px 2px 0 0',
