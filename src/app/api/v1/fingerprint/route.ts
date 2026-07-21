@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       );
 
       // Emit live event
-      const fpGeo = await lookupGeo(ip);
+      const fpGeo = await lookupGeo(ip, request);
       liveEvents.emit({
         type: 'fingerprint',
         linkId,

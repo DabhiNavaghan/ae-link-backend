@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
         installShortCode = (installLink as any).shortCode;
       }
     } catch {}
-    const matchGeo = await lookupGeo(ip);
+    const matchGeo = await lookupGeo(ip, request);
 
     // Create a Conversion record for analytics tracking
     try {

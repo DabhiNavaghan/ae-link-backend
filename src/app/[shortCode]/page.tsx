@@ -277,7 +277,7 @@ export default async function ResolvePage({
       }).select('_id').lean();
 
       // Lookup geo BEFORE dedup check so it's available for live events
-      const geo = await lookupGeo(ip);
+      const geo = await lookupGeo(ip, headersList);
 
       if (existingClick) {
         clickId = existingClick._id.toString();

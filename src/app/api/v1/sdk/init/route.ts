@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
     // which emits a follow-up event the Install Log merges in by deviceId.
     if (installType === 'first_install' || installType === 'reinstall') {
       try {
-        const geo = await lookupGeo(ip);
+        const geo = await lookupGeo(ip, request);
 
         let linkTitle: string | undefined;
         let shortCode: string | undefined;

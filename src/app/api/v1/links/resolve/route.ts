@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    const resolveGeo = await lookupGeo(ip);
+    const resolveGeo = await lookupGeo(ip, request);
 
     // Mark the most recent click for this link as app_opened + store metadata.
     // If no recent click exists (e.g. universal link bypassed the redirect page),

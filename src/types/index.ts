@@ -197,9 +197,23 @@ export interface IDeviceInfo {
 }
 
 export interface IGeoInfo {
+  /** Full English country name, e.g. "India" — analytics groups on this. */
   country?: string;
+  /** ISO 3166-1 alpha-2, e.g. "IN". */
+  countryCode?: string;
   city?: string;
   region?: string;
+  /** ISO 3166-2 subdivision, e.g. "GJ". */
+  regionCode?: string;
+  postalCode?: string;
+  latitude?: number;
+  longitude?: number;
+  /** IANA zone, e.g. "Asia/Kolkata". */
+  timezone?: string;
+  /** Two-letter continent, e.g. "AS". */
+  continent?: string;
+  /** Which source produced this row — for auditing data quality. */
+  source?: 'cloudflare' | 'ipapi' | 'none';
 }
 
 export interface IClick extends Document {

@@ -22,8 +22,16 @@ const deviceInfoSchema = new Schema<IDeviceInfo>(
 const geoInfoSchema = new Schema<IGeoInfo>(
   {
     country: String,
+    countryCode: String,
     city: String,
     region: String,
+    regionCode: String,
+    postalCode: String,
+    latitude: Number,
+    longitude: Number,
+    timezone: String,
+    continent: String,
+    source: { type: String, enum: ['cloudflare', 'ipapi', 'none'] },
   },
   { _id: false }
 );

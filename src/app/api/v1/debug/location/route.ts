@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIpInfo, isPrivateIp } from '@/lib/get-client-ip';
 import { parseColoCode, lookupColo } from '@/lib/cf-colo';
+import { geoFromCloudflare } from '@/lib/services/geo.service';
 import { applyCors } from '@/lib/middleware/cors';
 import { Logger } from '@/lib/logger';
 
@@ -212,6 +213,11 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.json({
     resolvedIp: targetIp,
+    // Exactly the subdocument a click would persist for this request — the
+    // point of comparison for everything reported under `sources` below.
+    wouldStore: geoFromCloudflare(request) ?? {
+      note: 'No Cloudflare country header — would fall back to the IP provider.',
+    },
     // Describes the IP actually being looked up, which is not the caller's when
     // `?ip=` is set — reporting the caller's flag there would be misleading.
     ipIsPrivate: targetIp ? isPrivateIp(targetIp) : false,
