@@ -42,7 +42,7 @@ function resolveHeaders(source: IpSource): HeaderGetter {
 }
 
 /** 10.x, 172.16-31.x, 192.168.x, 127.x, ::1, fc00::/7 (incl. IPv4-mapped IPv6). */
-function isPrivateIp(ip: string): boolean {
+export function isPrivateIp(ip: string): boolean {
   const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
   return (
     /^10\./.test(v4) ||
