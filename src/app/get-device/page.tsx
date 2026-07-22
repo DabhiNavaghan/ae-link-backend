@@ -41,6 +41,7 @@ interface DeviceInfoResponse {
     isPrivateIp: boolean;
   };
   geo: GeoData | null;
+  geoSource: 'cloudflare' | 'ipapi' | null;
   ua: {
     raw: string;
     browser: { name: string | null; version: string | null; major: string | null };
@@ -524,7 +525,7 @@ export default function GetDevicePage() {
       timestamp: new Date().toISOString(),
       publicIp: clientGeo?.ip ?? apiData?.server.ip,
       serverIp: apiData?.server.ip,
-      geo: clientGeo ?? apiData?.geo,
+      geo: apiData?.geo ?? clientGeo,
       userAgent: apiData?.ua,
       server: apiData?.server,
       browser,
@@ -604,10 +605,10 @@ export default function GetDevicePage() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span style={{ color: 'var(--color-text-tertiary)' }}>Location</span>
-            {clientGeoLoading ? <SkeletonRow /> : (
+            {apiLoading && clientGeoLoading ? <SkeletonRow /> : (
               <span style={{ color: 'var(--color-text)' }} className="font-mono font-semibold">
-                {(clientGeo ?? apiData?.geo)?.city ?? '—'}
-                {(clientGeo ?? apiData?.geo)?.country_code ? `, ${(clientGeo ?? apiData?.geo)?.country_code}` : ''}
+                {(apiData?.geo ?? clientGeo)?.city ?? '—'}
+                {(apiData?.geo ?? clientGeo)?.country_code ? `, ${(apiData?.geo ?? clientGeo)?.country_code}` : ''}
               </span>
             )}
           </div>
@@ -671,10 +672,13 @@ export default function GetDevicePage() {
 
         {/* 🌍 Network & Location */}
         {(() => {
-          // clientGeo is authoritative for IP (browser makes the request, ipapi.co sees real public IP).
-          // apiData?.geo is authoritative in production; falls back to clientGeo on localhost.
-          const geo = clientGeo ?? apiData?.geo;
-          const geoLoading = clientGeoLoading;
+          // Cloudflare geo (apiData.geo, served from the edge headers) is
+          // authoritative in production; clientGeo (browser → ipapi.co) is the
+          // localhost fallback where no Cloudflare edge sits in front.
+          // Public IP still comes from clientGeo: the browser's own request is
+          // what reveals the real public address on a NAT'd dev machine.
+          const geo = apiData?.geo ?? clientGeo;
+          const geoLoading = apiLoading && clientGeoLoading;
           return (
             <Section title="Network & Location" icon="🌍" color="teal" loading={geoLoading}>
               <InfoRow label="Public IP" value={clientGeo?.ip ?? null} loading={clientGeoLoading} />
