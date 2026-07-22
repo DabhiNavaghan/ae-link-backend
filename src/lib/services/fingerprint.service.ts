@@ -277,6 +277,90 @@ export class FingerprintService {
     return null;
   }
 
+  /**
+   * Expand an IPv6 address to its full 8-hextet form (lowercase, zero-padded),
+   * handling `::` compression. Returns null if the string is not a parseable
+   * IPv6 address. Zone IDs (`%eth0`) are stripped.
+   */
+  private static expandIpv6(ip: string): string[] | null {
+    const bare = ip.split('%')[0];
+    if (!bare.includes(':')) return null;
+
+    const halves = bare.split('::');
+    if (halves.length > 2) return null; // more than one "::" is invalid
+
+    const head = halves[0] ? halves[0].split(':') : [];
+    const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+    const missing = 8 - (head.length + tail.length);
+
+    // Without "::" we need exactly 8 hextets; with "::" we need at least one gap.
+    if (halves.length === 1 && head.length !== 8) return null;
+    if (halves.length === 2 && missing < 1) return null;
+
+    const middle = new Array(halves.length === 2 ? missing : 0).fill('0');
+    const full = [...head, ...middle, ...tail];
+    if (full.length !== 8) return null;
+
+    return full.map((h) => h.padStart(4, '0').toLowerCase());
+  }
+
+  /**
+   * Compare two client IPs and return a match score + type.
+   *
+   * Version-aware: IPv4 uses octet prefixes (/24, /16), IPv6 uses hextet
+   * prefixes (/64, /48). IPv4-mapped IPv6 (`::ffff:1.2.3.4`) is normalized to
+   * plain IPv4 first. A v4-vs-v6 pair cannot be meaningfully compared (e.g.
+   * WiFi IPv4 web click vs cellular IPv6 install) and scores 0.
+   *
+   *   Exact:                       40
+   *   Same /24 (v4) or /64 (v6):   30  (same network block)
+   *   Same /16 (v4) or /48 (v6):   20  (same carrier region)
+   */
+  private static compareIpAddresses(
+    a: string,
+    b: string
+  ): { score: number; matchType: string } {
+    // Normalize IPv4-mapped IPv6 → plain IPv4
+    const na = a.startsWith('::ffff:') ? a.slice(7) : a;
+    const nb = b.startsWith('::ffff:') ? b.slice(7) : b;
+
+    if (na === nb) return { score: 40, matchType: 'exact' };
+
+    const aIsV6 = na.includes(':');
+    const bIsV6 = nb.includes(':');
+
+    // Different IP families — not comparable (no false-positive credit).
+    if (aIsV6 !== bIsV6) return { score: 0, matchType: 'version_mismatch' };
+
+    if (!aIsV6) {
+      // IPv4 octet-prefix matching
+      const ap = na.split('.');
+      const bp = nb.split('.');
+      if (ap.length === 4 && bp.length === 4) {
+        if (ap[0] === bp[0] && ap[1] === bp[1] && ap[2] === bp[2]) {
+          return { score: 30, matchType: 'subnet_24' };
+        }
+        if (ap[0] === bp[0] && ap[1] === bp[1]) {
+          return { score: 20, matchType: 'subnet_16' };
+        }
+      }
+      return { score: 0, matchType: 'none' };
+    }
+
+    // IPv6 hextet-prefix matching
+    const ae = this.expandIpv6(na);
+    const be = this.expandIpv6(nb);
+    if (!ae || !be) return { score: 0, matchType: 'none' };
+
+    if (ae.slice(0, 4).join(':') === be.slice(0, 4).join(':')) {
+      return { score: 30, matchType: 'prefix_64' };
+    }
+    if (ae.slice(0, 3).join(':') === be.slice(0, 3).join(':')) {
+      return { score: 20, matchType: 'prefix_48' };
+    }
+    return { score: 0, matchType: 'none' };
+  }
+
   private static calculateMatchScore(
     incoming: FingerprintData,
     candidate: any
@@ -311,41 +395,26 @@ export class FingerprintService {
 
     // ── IP match: up to 40 points ──
     // Mobile carriers use CGNAT with multiple exit IPs, so exact match
-    // is rare. Instead, use subnet/prefix matching:
-    //   Exact match (/32):     40 points — same IP, very strong
-    //   Same /24 subnet:       30 points — same network block (e.g., 152.59.34.x)
-    //   Same /16 subnet:       20 points — same carrier region (e.g., 152.59.x.x)
+    // is rare. Instead, use subnet/prefix matching (IPv4 AND IPv6):
+    //   Exact match:                40 points — same IP, very strong
+    //   Same /24 (v4) or /64 (v6):  30 points — same network block
+    //   Same /16 (v4) or /48 (v6):  20 points — same carrier region
+    //
+    // IMPORTANT: Cloudflare's cf-connecting-ip returns the device's real IP,
+    // which on mobile is frequently IPv6. IPv6 privacy/temporary addresses
+    // (RFC 4941) rotate the lower 64 bits, so exact match is rare even on the
+    // same device/network — the /64 prefix is the stable "same network" signal.
     if (incoming.ipAddress && candidate.ipAddress) {
-      const inParts = incoming.ipAddress.split('.');
-      const candParts = candidate.ipAddress.split('.');
+      const { score: ipScore, matchType } = this.compareIpAddresses(
+        incoming.ipAddress,
+        candidate.ipAddress
+      );
 
-      if (incoming.ipAddress === candidate.ipAddress) {
-        // Exact match
-        score += 40;
+      if (ipScore > 0) {
+        score += ipScore;
         details.ipMatch = true;
-        details.ipScore = 40;
-        details.ipMatchType = 'exact';
-      } else if (
-        inParts.length === 4 && candParts.length === 4 &&
-        inParts[0] === candParts[0] &&
-        inParts[1] === candParts[1] &&
-        inParts[2] === candParts[2]
-      ) {
-        // Same /24 subnet (first 3 octets match)
-        score += 30;
-        details.ipMatch = true;
-        details.ipScore = 30;
-        details.ipMatchType = 'subnet_24';
-      } else if (
-        inParts.length === 4 && candParts.length === 4 &&
-        inParts[0] === candParts[0] &&
-        inParts[1] === candParts[1]
-      ) {
-        // Same /16 subnet (first 2 octets match)
-        score += 20;
-        details.ipMatch = true;
-        details.ipScore = 20;
-        details.ipMatchType = 'subnet_16';
+        details.ipScore = ipScore;
+        details.ipMatchType = matchType;
       }
 
       logger.debug(
