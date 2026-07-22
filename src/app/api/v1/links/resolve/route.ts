@@ -5,7 +5,6 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
-import InstallModel from '@/lib/models/Install';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { successResponse, Errors } from '@/utils/response';
@@ -123,7 +122,7 @@ export async function GET(request: NextRequest) {
       ref: 'ref',
     };
 
-    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', ...Object.keys(paramMap)]);
+    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', 'platform', ...Object.keys(paramMap)]);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     for (const [qKey, qVal] of Object.entries(queryParams)) {
@@ -157,19 +156,14 @@ export async function GET(request: NextRequest) {
     const isSDK = /dart|flutter/i.test(userAgent);
     if (isSDK) deviceInfo.browser = 'app-sdk';
 
-    // Flutter SDK UA ("Dart/3.x") doesn't reveal iOS vs Android.
-    // Look up the real platform from the Install record.
+    // Flutter SDK UA ("Dart/3.x") doesn't reveal iOS vs Android, so the SDK
+    // sends its real platform explicitly via the `platform` query param.
+    // Trust that first — it's the only accurate signal for this specific device.
     if (isSDK && (deviceInfo.os === 'other' || !deviceInfo.os)) {
-      try {
-        const install = await InstallModel.findOne({ tenantId: auth.tenantId })
-          .sort({ createdAt: -1 })
-          .select('platform')
-          .lean();
-        if (install?.platform) {
-          const p = install.platform.toLowerCase();
-          if (p === 'ios' || p === 'android') deviceInfo.os = p;
-        }
-      } catch {}
+      const sdkPlatform = (searchParams.get('platform') || '').toLowerCase();
+      if (sdkPlatform === 'ios' || sdkPlatform === 'android') {
+        deviceInfo.os = sdkPlatform;
+      }
     }
 
     const resolveGeo = await lookupGeo(ip, request);
@@ -241,7 +235,11 @@ export async function GET(request: NextRequest) {
           tenantId: link.tenantId,
           ipAddress: ip,
           userAgent,
-          referer: '',
+          referer:
+            request.headers.get('referer') ||
+            (link as any).title ||
+            link.shortCode ||
+            '',
           channel: isSDK ? 'app_link' : 'direct',
           device: deviceInfo,
           geo: resolveGeo,
@@ -277,7 +275,13 @@ export async function GET(request: NextRequest) {
         deepLink: deepLinkUrl || undefined,
         destinationUrl: effectiveDestinationUrl,
         redirectUrl: effectiveDestinationUrl,
-        referer: request.headers.get('referer') || undefined,
+        // App-link/SDK opens carry no HTTP referer, so the effective referrer
+        // is the SmartLink itself — surface its name/short code instead of blank.
+        referer:
+          request.headers.get('referer') ||
+          (link as any).title ||
+          link.shortCode ||
+          undefined,
         ip,
         campaignName: campaign?.name,
       },
