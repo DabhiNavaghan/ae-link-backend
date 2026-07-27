@@ -65,6 +65,12 @@ interface RedirectPageProps {
     ios: string;
   };
   androidPackage?: string;
+  /**
+   * True when this load is a browser falling back from our own intent rather
+   * than a fresh click. Go straight to the store — retrying the intent is what
+   * causes the loop.
+   */
+  isStoreFallback?: boolean;
 }
 
 interface BrowserFingerprint {
@@ -87,6 +93,13 @@ interface BrowserFingerprint {
 const AE_RED = '#E8344E';
 const AE_BG = '#FFFFFF';
 
+/**
+ * Marks a page load that is a browser's mishandled fallback from our own
+ * Android intent, rather than a fresh user click. Kept in sync with the
+ * server-side check in app/[shortCode]/page.tsx.
+ */
+export const STORE_FALLBACK_PARAM = '_slfb';
+
 export default function RedirectPage({
   shortCode,
   linkId,
@@ -96,6 +109,7 @@ export default function RedirectPage({
   clickId,
   storeUrls,
   androidPackage,
+  isStoreFallback = false,
 }: RedirectPageProps) {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'done'>('loading');
 
@@ -114,7 +128,9 @@ export default function RedirectPage({
     // them causes false-positive matches when they later open the app
     // on the same network (shared IP → inflated install count).
     // sendBeacon guarantees delivery even during page unload.
-    if (isMobile) {
+    // Skipped on a store fallback: the fingerprint was already sent by the
+    // load that fired the intent, and this hop has no click of its own.
+    if (isMobile && !isStoreFallback) {
       try {
         const fingerprint = collectFingerprint();
         const payload = JSON.stringify({
@@ -165,16 +181,36 @@ export default function RedirectPage({
       const overrideUrl = link.platformOverrides?.android?.url;
       const isAppScheme = overrideUrl && !overrideUrl.startsWith('http');
 
-      if (isAppScheme) {
+      if (isStoreFallback) {
+        // The intent already ran and the app did not take it. Retrying it here
+        // is exactly what loops the redirect.
+        window.location.replace(storeUrl);
+        setStatus('done');
+      } else if (isAppScheme) {
         // Explicit custom scheme → use tryOpenApp with blur detection
         tryOpenApp(overrideUrl, storeUrl);
       } else if (androidPackage) {
         // Use destination URL in intent so the app's own domain (e.g. allevents.in)
-        // resolves via its existing App Links intent filter.
+        // resolves via its existing App Links intent filter. With no http
+        // destination we target this page's own URL, which the app also claims
+        // via /.well-known/assetlinks.json — that is what makes "open the app"
+        // links work when the app is installed.
+        //
+        // The catch: when the app is NOT installed, some browsers (Samsung
+        // Internet in particular) honour `scheme=https` + our host by simply
+        // navigating to that https URL instead of using browser_fallback_url.
+        // That reloads this page and re-fires the whole flow. The STORE_FALLBACK
+        // marker below makes that second load detectable, so the server skips
+        // recording it and we go straight to the store instead of looping.
         const destUrl = link.destinationUrl;
-        const intentTarget = destUrl && destUrl.startsWith('http')
-          ? destUrl
-          : `${window.location.origin}/${shortCode}${window.location.search}`;
+        let intentTarget: string;
+        if (destUrl && destUrl.startsWith('http')) {
+          intentTarget = destUrl;
+        } else {
+          const selfUrl = new URL(`${window.location.origin}/${shortCode}${window.location.search}`);
+          selfUrl.searchParams.set(STORE_FALLBACK_PARAM, '1');
+          intentTarget = selfUrl.toString();
+        }
         const intentUrl =
           `intent://${intentTarget.replace(/^https?:\/\//, '')}` +
           `#Intent;scheme=https;package=${androidPackage}` +

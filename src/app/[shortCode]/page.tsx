@@ -10,7 +10,7 @@ import { lookupGeo } from '@/lib/services/geo.service';
 import { Logger } from '@/lib/logger';
 import { emitLiveEvent } from '@/lib/services/emit-live-event';
 import { getClientIp } from '@/lib/get-client-ip';
-import RedirectPage from '@/components/RedirectPage';
+import RedirectPage, { STORE_FALLBACK_PARAM } from '@/components/RedirectPage';
 import { fetchOgMeta } from '@/lib/services/og-fetch.service';
 import { ClickChannel } from '@/types';
 
@@ -113,6 +113,10 @@ export default async function ResolvePage({
       if (val) queryParams[key] = Array.isArray(val) ? val[0] : val;
     }
 
+    // A browser bouncing back off our own Android intent, not a new click.
+    // See STORE_FALLBACK_PARAM in RedirectPage for why this exists.
+    const isStoreFallback = queryParams[STORE_FALLBACK_PARAM] === '1';
+
     const linkData = link.toObject ? link.toObject() : (link as any);
     const storedParams = linkData.params || {};
 
@@ -158,7 +162,10 @@ export default async function ResolvePage({
       ref: 'ref',
     };
 
-    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', ...Object.keys(paramMap)]);
+    const skipKeys = new Set([
+      'deepLink', 'deep_link', 'deeplink', STORE_FALLBACK_PARAM,
+      ...Object.keys(paramMap),
+    ]);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     // Apply known param overrides from query
@@ -232,7 +239,11 @@ export default async function ResolvePage({
       logger.debug({ shortCode, userAgent }, 'Bot/crawler — skip click recording');
     }
 
-    if (!isBot) try {
+    if (isStoreFallback) {
+      logger.debug({ shortCode }, 'Intent store fallback — skip click recording');
+    }
+
+    if (!isBot && !isStoreFallback) try {
       const channel = detectChannel(
         referer,
         mergedParams.utmSource,
@@ -276,8 +287,12 @@ export default async function ResolvePage({
         createdAt: { $gte: dedupeWindow },
       }).select('_id').lean();
 
-      // Lookup geo BEFORE dedup check so it's available for live events
-      const geo = await lookupGeo(ip, headersList);
+      const isDuplicate = Boolean(existingClick);
+
+      // Only the non-duplicate path consumes geo (the click document and the
+      // live events). Skipping it here avoids an ipapi.co round trip — and a
+      // slice of that provider's rate limit — on every suppressed hit.
+      const geo = isDuplicate ? undefined : await lookupGeo(ip, headersList);
 
       if (existingClick) {
         clickId = existingClick._id.toString();
@@ -331,11 +346,18 @@ export default async function ResolvePage({
         },
       };
 
-      // 1. Always emit a click event (total clicks)
+      // 1. Emit a click event (total clicks)
       // 2. Emit the outcome event (store_redirect on mobile, web_fallback on desktop)
       // File-based IPC — synchronous write to temp file, picked up by file watcher
-      emitLiveEvent({ ...eventBase, type: 'click' });
-      emitLiveEvent({ ...eventBase, type: isMobile ? 'store_redirect' : 'web_fallback' });
+      //
+      // Skipped for deduplicated hits: the click was never persisted and
+      // clickCount was never incremented, so emitting here would make the
+      // live feed (and its counters) show several clicks + store redirects
+      // for a single recorded click.
+      if (!isDuplicate) {
+        emitLiveEvent({ ...eventBase, type: 'click' });
+        emitLiveEvent({ ...eventBase, type: isMobile ? 'store_redirect' : 'web_fallback' });
+      }
 
       logger.info(
         {
@@ -345,7 +367,7 @@ export default async function ResolvePage({
           deviceOS: deviceInfo.os,
           deepLink: deepLinkUrl || undefined,
         },
-        'Click recorded'
+        isDuplicate ? 'Click deduplicated' : 'Click recorded'
       );
     } catch (err) {
       logger.error({ error: err }, 'Click recording failed');
@@ -365,6 +387,7 @@ export default async function ResolvePage({
         clickId={clickId}
         storeUrls={storeUrls}
         androidPackage={androidPackage}
+        isStoreFallback={isStoreFallback}
       />
     );
   } catch (error) {
