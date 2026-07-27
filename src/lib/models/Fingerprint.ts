@@ -49,6 +49,13 @@ const fingerprintSchema = new Schema<IFingerprint>(
       type: screenInfoSchema,
       required: true,
     },
+    // Physical device pixels. The browser's CSS pixels and Flutter's logical
+    // pixels are measured with different scale factors, so only this figure
+    // is directly comparable across the click → install boundary.
+    physicalScreen: {
+      type: screenInfoSchema,
+      required: false,
+    },
     language: String,
     timezone: String,
     timezoneOffset: String,

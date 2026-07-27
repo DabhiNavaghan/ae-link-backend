@@ -12,6 +12,8 @@ import ConversionModel from '@/lib/models/Conversion';
 import ClickModel from '@/lib/models/Click';
 import FingerprintModel from '@/lib/models/Fingerprint';
 import LinkModel from '@/lib/models/Link';
+import MatchAttemptModel, { IEvaluatedCandidate } from '@/lib/models/MatchAttempt';
+import type { ScoredCandidate } from '@/lib/services/fingerprint.service';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
@@ -20,6 +22,77 @@ import { liveEvents } from '@/lib/services/live-events';
 import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ route: 'deferred-match' });
+
+/** How many scored candidates to persist per attempt. */
+const MAX_PERSISTED_CANDIDATES = 10;
+
+/**
+ * Persist the full decision so the admin match-analysis view can explain any
+ * install. Never throws — attribution debugging must not break attribution.
+ */
+async function recordMatchAttempt(input: {
+  tenantId: string;
+  deviceId?: string;
+  platform?: string;
+  outcome: 'matched' | 'organic' | 'disabled';
+  reason: string;
+  threshold: number;
+  candidates: ScoredCandidate[];
+  selectedIndex: number;
+  appFingerprint: Record<string, any>;
+  matchedLinkId?: any;
+  matchedDeferredLinkId?: any;
+  matchedFingerprintId?: any;
+  matchedClickId?: string;
+  ipAddress?: string;
+  country?: string;
+  city?: string;
+  startedAt: number;
+}): Promise<void> {
+  try {
+    const best = input.candidates[0];
+
+    const persisted: IEvaluatedCandidate[] = input.candidates
+      .slice(0, MAX_PERSISTED_CANDIDATES)
+      .map((c, i) => ({
+        fingerprintId: c.fingerprint._id as any,
+        linkId: c.fingerprint.linkId as any,
+        clickId: c.fingerprint.clickId as any,
+        score: c.score,
+        possible: c.possible,
+        confidence: c.confidence,
+        signals: c.details.signals || [],
+        rejectedReason: c.details.rejectedReason,
+        selected: i === input.selectedIndex,
+        clickedAt: c.fingerprint.createdAt,
+      }));
+
+    await MatchAttemptModel.create({
+      tenantId: input.tenantId,
+      deviceId: input.deviceId,
+      platform: input.platform,
+      outcome: input.outcome,
+      reason: input.reason,
+      threshold: input.threshold,
+      bestConfidence: best?.confidence || 0,
+      bestScore: best?.score || 0,
+      bestPossible: best?.possible || 0,
+      candidateCount: input.candidates.length,
+      appFingerprint: input.appFingerprint,
+      candidates: persisted,
+      matchedLinkId: input.matchedLinkId,
+      matchedDeferredLinkId: input.matchedDeferredLinkId,
+      matchedFingerprintId: input.matchedFingerprintId,
+      matchedClickId: input.matchedClickId,
+      ipAddress: input.ipAddress,
+      country: input.country,
+      city: input.city,
+      durationMs: Date.now() - input.startedAt,
+    });
+  } catch (err) {
+    logger.warn({ error: String(err) }, 'Failed to record match attempt');
+  }
+}
 
 /**
  * POST /api/v1/deferred/match
@@ -60,6 +133,8 @@ export async function POST(request: NextRequest) {
     return applyCors(request, errorRes);
   }
 
+  const startedAt = Date.now();
+
   try {
     const body = await request.json();
     const { fingerprint } = body;
@@ -95,6 +170,15 @@ export async function POST(request: NextRequest) {
         width: fingerprint.screen_width ? Math.round(fingerprint.screen_width) : 0,
         height: fingerprint.screen_height ? Math.round(fingerprint.screen_height) : 0,
       },
+      // Physical pixels are the DPR-invariant screen signal — the SDK sends
+      // them explicitly, and until now the server dropped them on the floor.
+      physicalScreen:
+        fingerprint.physical_width && fingerprint.physical_height
+          ? {
+              width: Math.round(fingerprint.physical_width),
+              height: Math.round(fingerprint.physical_height),
+            }
+          : undefined,
       language: fingerprint.locale || fingerprint.language || '',
       timezone: fingerprint.timezone || '',
       platform: fingerprint.platform || fingerprint.os_name || '',
@@ -125,6 +209,27 @@ export async function POST(request: NextRequest) {
       '📱 NORMALIZED fingerprint for matching'
     );
 
+    const deviceId = fingerprint.device_id || fingerprint.deviceId;
+
+    // Snapshot of what the app sent, stored on the attempt record so the
+    // admin view can diff it against the click side later.
+    const appFingerprintSnapshot = {
+      ipAddress: normalizedFingerprint.ipAddress,
+      screen: normalizedFingerprint.screen,
+      physicalScreen: normalizedFingerprint.physicalScreen,
+      language: normalizedFingerprint.language,
+      timezone: normalizedFingerprint.timezone,
+      timezoneOffset: normalizedFingerprint.timezoneOffset,
+      platform: normalizedFingerprint.platform,
+      pixelRatio: normalizedFingerprint.pixelRatio,
+      vendor: normalizedFingerprint.vendor,
+      connectionType: normalizedFingerprint.connectionType,
+      deviceModel: fingerprint.device_model || fingerprint.deviceModel,
+      osVersion: fingerprint.os_version || fingerprint.osVersion,
+      appVersion: fingerprint.app_version || fingerprint.appVersion,
+      userAgent: normalizedFingerprint.userAgent,
+    };
+
     // Get tenant settings for match threshold and deferred link toggle
     const tenant = await TenantModel.findById(auth.tenantId);
 
@@ -132,6 +237,21 @@ export async function POST(request: NextRequest) {
     const deferredEnabled = tenant?.settings?.enableDeferredDeepLink !== false;
     if (!deferredEnabled) {
       logger.info({ tenantId: auth.tenantId }, 'Deferred deep linking disabled for tenant');
+
+      await recordMatchAttempt({
+        tenantId: auth.tenantId,
+        deviceId,
+        platform: normalizedFingerprint.platform,
+        outcome: 'disabled',
+        reason: 'deferred_disabled',
+        threshold: tenant?.settings?.matchThreshold || 68,
+        candidates: [],
+        selectedIndex: -1,
+        appFingerprint: appFingerprintSnapshot,
+        ipAddress: ip,
+        startedAt,
+      });
+
       const response = NextResponse.json(
         successResponse({
           matched: false,
@@ -143,17 +263,21 @@ export async function POST(request: NextRequest) {
       return applyCors(request, response);
     }
 
-    const matchThreshold = tenant?.settings?.matchThreshold || 75;
+    const matchThreshold = tenant?.settings?.matchThreshold || 68;
 
     // Find matching deferred link
-    const deferredLink = await DeferredService.matchDeferredLink(
+    const {
+      deferredLink,
+      candidates,
+      selectedIndex,
+      reason,
+    } = await DeferredService.matchDeferredLink(
       auth.tenantId,
       normalizedFingerprint,
       matchThreshold
     );
 
     // Update install record with match result
-    const deviceId = fingerprint.device_id || fingerprint.deviceId;
     if (deviceId) {
       try {
         await InstallModel.updateOne(
@@ -171,12 +295,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (!deferredLink) {
+      const best = candidates[0];
+
       logger.info(
         {
           tenantId: auth.tenantId,
+          reason,
+          candidateCount: candidates.length,
+          bestConfidence: best?.confidence || 0,
+          matchThreshold,
           appFingerprint: {
             ip: normalizedFingerprint.ipAddress,
             screen: normalizedFingerprint.screen,
+            physicalScreen: normalizedFingerprint.physicalScreen,
             language: normalizedFingerprint.language,
             timezone: normalizedFingerprint.timezone,
             timezoneOffset: normalizedFingerprint.timezoneOffset,
@@ -184,6 +315,20 @@ export async function POST(request: NextRequest) {
         },
         '❌ No deferred link matched — returning debug comparison'
       );
+
+      await recordMatchAttempt({
+        tenantId: auth.tenantId,
+        deviceId,
+        platform: normalizedFingerprint.platform,
+        outcome: 'organic',
+        reason,
+        threshold: matchThreshold,
+        candidates,
+        selectedIndex: -1,
+        appFingerprint: appFingerprintSnapshot,
+        ipAddress: ip,
+        startedAt,
+      });
 
       // Emit organic outcome so the Install Log can mark this install
       // (matched by deviceId to the earlier `install` event) as organic.
@@ -204,19 +349,17 @@ export async function POST(request: NextRequest) {
         successResponse({
           matched: false,
           deferredLinkId: null,
-          // Debug info: what the app sent so you can compare with browser
+          // Debug info: what the app sent, plus why the closest click lost —
+          // the same breakdown the admin match-analysis page renders.
           debug: {
-            appFingerprint: {
-              ipAddress: normalizedFingerprint.ipAddress,
-              screen: normalizedFingerprint.screen,
-              language: normalizedFingerprint.language,
-              timezone: normalizedFingerprint.timezone,
-              timezoneOffset: normalizedFingerprint.timezoneOffset,
-              platform: normalizedFingerprint.platform,
-              pixelRatio: normalizedFingerprint.pixelRatio,
-            },
+            appFingerprint: appFingerprintSnapshot,
             matchThreshold,
-            message: 'No matching fingerprint found. Check server logs for candidate comparisons.',
+            reason,
+            candidateCount: candidates.length,
+            bestConfidence: best?.confidence || 0,
+            bestSignals: best?.details.signals || [],
+            message:
+              'No matching fingerprint found. See /admin/match-analysis for the full breakdown.',
           },
         }),
         { status: 200 }
@@ -263,6 +406,26 @@ export async function POST(request: NextRequest) {
       }
     } catch {}
     const matchGeo = await lookupGeo(ip, request);
+
+    await recordMatchAttempt({
+      tenantId: auth.tenantId,
+      deviceId,
+      platform: normalizedFingerprint.platform,
+      outcome: 'matched',
+      reason,
+      threshold: matchThreshold,
+      candidates,
+      selectedIndex,
+      appFingerprint: appFingerprintSnapshot,
+      matchedLinkId: deferredLink.linkId,
+      matchedDeferredLinkId: deferredLink._id,
+      matchedFingerprintId: deferredLink.fingerprintId,
+      matchedClickId: fpClickId,
+      ipAddress: ip,
+      country: matchGeo?.country || undefined,
+      city: matchGeo?.city || undefined,
+      startedAt,
+    });
 
     // Create a Conversion record for analytics tracking
     try {

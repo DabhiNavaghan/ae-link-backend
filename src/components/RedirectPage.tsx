@@ -69,6 +69,8 @@ interface RedirectPageProps {
 
 interface BrowserFingerprint {
   screen: { width: number; height: number };
+  /** Screen size in physical device pixels — the cross-context screen signal. */
+  physicalScreen: { width: number; height: number };
   language: string;
   timezone: string;
   timezoneOffset: string;
@@ -280,8 +282,18 @@ export default function RedirectPage({
     const tzMins = String(Math.abs(tzOffsetMin) % 60).padStart(2, '0');
     const timezoneOffset = `${tzSign}${tzHours}:${tzMins}`;
 
+    // window.screen reports CSS pixels at the browser's own device-scale-
+    // factor, which differs from Flutter's devicePixelRatio on most Android
+    // devices. Multiplying back out by devicePixelRatio gives the panel's
+    // real resolution, which both sides agree on.
+    const dpr = window.devicePixelRatio || 1;
+
     return {
       screen: { width: window.screen.width, height: window.screen.height },
+      physicalScreen: {
+        width: Math.round(window.screen.width * dpr),
+        height: Math.round(window.screen.height * dpr),
+      },
       language: navigator.language,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       timezoneOffset,

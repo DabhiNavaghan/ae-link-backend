@@ -248,6 +248,12 @@ export interface IFingerprint extends Document {
   userAgent?: string;
   userAgentHash: string;
   screen: IScreenInfo;
+  /**
+   * Screen size in PHYSICAL device pixels. Unlike CSS/logical pixels this is
+   * invariant across the browser's device-scale-factor and Flutter's
+   * devicePixelRatio, so it is the reliable cross-context screen signal.
+   */
+  physicalScreen?: IScreenInfo;
   language?: string;
   timezone?: string;
   timezoneOffset?: string;
@@ -271,6 +277,8 @@ export interface FingerprintData {
   ipAddress: string;
   userAgent: string;
   screen: { width: number; height: number };
+  /** Screen size in physical device pixels (logical × pixelRatio). */
+  physicalScreen?: { width: number; height: number };
   language?: string;
   timezone?: string;
   timezoneOffset?: string;
@@ -295,18 +303,52 @@ export type DeferredLinkStatus =
   | 'expired'
   | 'failed';
 
+/**
+ * Per-signal result of a fingerprint comparison.
+ *
+ * `possible` is 0 when the signal could not be evaluated because one side
+ * didn't report it — those signals are excluded from the confidence
+ * denominator so a missing value never counts as a mismatch.
+ */
+export interface IMatchSignal {
+  /** Signal key: 'ip' | 'screen' | 'timezone' | 'language' | 'proximity' */
+  key: string;
+  /** Points earned. */
+  earned: number;
+  /** Points that were available for this signal (0 = not evaluable). */
+  possible: number;
+  /** How the two values compared, e.g. 'exact' | 'subnet_24' | 'none'. */
+  matchType: string;
+  /** Raw value seen on the app (install) side. */
+  appValue?: string | number | null;
+  /** Raw value seen on the web (click) side. */
+  webValue?: string | number | null;
+}
+
 export interface IMatchDetails {
   ipMatch?: boolean;
   ipScore?: number;
+  ipMatchType?: string;
   uaHashMatch?: boolean;
   uaHashScore?: number;
   screenMatch?: boolean;
   screenScore?: number;
+  screenMatchType?: string;
   languageMatch?: boolean;
   languageScore?: number;
   timezoneMatch?: boolean;
   timezoneScore?: number;
   proximityScore?: number;
+  /** Raw points earned across all signals. */
+  totalScore?: number;
+  /** Points that were available given which signals both sides reported. */
+  possibleScore?: number;
+  /** `totalScore / possibleScore * 100`, rounded — the headline percentage. */
+  confidence?: number;
+  /** Per-signal breakdown, for the admin match-analysis view. */
+  signals?: IMatchSignal[];
+  /** Set when the candidate was rejected outright (platform/no-evidence). */
+  rejectedReason?: string;
   [key: string]: any;
 }
 
