@@ -191,7 +191,7 @@ export default function EditLinkPage() {
   async function generateQRCode() {
     if (!formData.destinationUrl) { setQrCodeUrl(''); return; }
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
       const deepLink = formData.shortCode ? `${origin}/${formData.shortCode}` : formData.destinationUrl;
       const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);

@@ -263,7 +263,7 @@ export default function LinksPage() {
                         {link.title || link.shortCode}
                       </Link>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
-                        {(typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app')}/{link.shortCode}
+                        {(typeof window !== 'undefined' ? window.location.host : 'smartlink.apps.allevents.app')}/{link.shortCode}
                       </p>
                     </td>
                     <td className="px-6 py-4">

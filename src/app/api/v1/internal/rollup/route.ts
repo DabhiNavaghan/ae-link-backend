@@ -25,12 +25,13 @@ function secretMatches(provided: string, expected: string): boolean {
 /**
  * POST /api/v1/internal/rollup
  *
- * Recompute daily event aggregates. Intended for a scheduler (Vercel Cron or
- * equivalent), not for tenants — it runs across every tenant by default.
+ * Recompute daily event aggregates. Intended for a scheduler (a Coolify
+ * scheduled task or equivalent), not for tenants — it runs across every tenant
+ * by default.
  *
- * Auth is a shared secret in `x-cron-secret` (or a `Bearer` token, which is
- * what Vercel Cron sends), NOT an API key: no tenant should be able to trigger
- * a platform-wide aggregation.
+ * Auth is a shared secret in `x-cron-secret` (or a `Bearer` token, for
+ * schedulers that only send an Authorization header), NOT an API key: no
+ * tenant should be able to trigger a platform-wide aggregation.
  *
  * Body (all optional):
  *   { "days": 2, "date": "2026-07-27", "tenantId": "…" }

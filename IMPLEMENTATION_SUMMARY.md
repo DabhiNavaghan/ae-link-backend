@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-Complete, production-grade Next.js backend for a deferred deep linking platform called AE-LINK, hosted on allevents.app and deployed on Vercel.
+Complete, production-grade Next.js backend for a deferred deep linking platform called AE-LINK, self-hosted at https://smartlink.apps.allevents.app via Coolify on an OVH server.
 
 ## Technology Stack
 
 - **Framework**: Next.js 14+ with App Router
 - **Language**: TypeScript (strict mode)
 - **Database**: MongoDB + Mongoose
-- **Deployment**: Vercel
+- **Deployment**: Coolify (OVH server)
 - **Logging**: Pino
 - **Device Detection**: UA Parser
 - **Auth**: API Key + HMAC-SHA256 signatures
@@ -321,12 +321,12 @@ endpoint reference.
 
 ## Deployment
 
-### Vercel Integration
+### Coolify (OVH server)
 - ✅ Next.js 14 App Router compatible
-- ✅ Serverless functions
-- ✅ Automatic scaling
-- ✅ Edge caching support
-- ✅ Environment variables
+- ✅ Long-running Node process (`next start`) behind Coolify's proxy
+- ✅ Git-push deploys, rebuilt from `/backend`
+- ✅ Scheduled tasks for the daily event rollup
+- ✅ Environment variables managed per application
 
 ### MongoDB Atlas
 - ✅ Cloud-hosted MongoDB
@@ -348,7 +348,7 @@ The codebase is ready for:
 - Unit tests (each service)
 - Integration tests (API endpoints)
 - E2E tests (full redirect flow)
-- Load testing (Vercel auto-scaling)
+- Load testing (single container — scale by adding replicas in Coolify)
 
 ## Future Enhancements
 
@@ -380,10 +380,7 @@ Potential v2.0 features:
    npm run dev
    ```
 
-4. **Deploy**:
-   ```bash
-   vercel deploy --prod
-   ```
+4. **Deploy**: push to the deploy branch — Coolify rebuilds and restarts the app.
 
 ## Conclusion
 
@@ -395,6 +392,6 @@ AE-LINK is a complete, production-grade deferred deep linking platform with:
 - Analytics dashboard
 - Full TypeScript type safety
 - Comprehensive documentation
-- Vercel-optimized deployment
+- Self-hosted deployment via Coolify
 
 Ready to deploy and scale immediately.

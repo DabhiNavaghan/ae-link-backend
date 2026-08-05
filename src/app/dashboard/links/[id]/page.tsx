@@ -130,7 +130,7 @@ export default function LinkDetailPage() {
       // Set breadcrumb title so it shows link name instead of ObjectId
       setBreadcrumbTitle(ld.title || ld.shortCode);
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
       const deepLink = `${origin}/${(linkData as unknown as LinkData).shortCode}`;
       const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
@@ -157,7 +157,7 @@ export default function LinkDetailPage() {
 
   async function handleCopy() {
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
       await copyToClipboard(`${origin}/${link?.shortCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -819,7 +819,7 @@ export default function LinkDetailPage() {
             </div>
             <div
               onClick={async () => {
-                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
                 await copyToClipboard(`${origin}/${link.shortCode}`);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
@@ -827,7 +827,7 @@ export default function LinkDetailPage() {
               style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               title="Click to copy link"
             >
-              {typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app'}/{link.shortCode}
+              {typeof window !== 'undefined' ? window.location.host : 'smartlink.apps.allevents.app'}/{link.shortCode}
               <span style={{ fontSize: 10, color: copied ? 'var(--color-primary)' : 'var(--color-text-tertiary)', transition: 'color 0.2s' }}>
                 {copied ? '✓ copied' : '⧉'}
               </span>

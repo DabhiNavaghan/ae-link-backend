@@ -125,8 +125,8 @@ const navItems = [
 export default function DocsPage() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('overview');
-  const appHost = typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app';
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
+  const appHost = typeof window !== 'undefined' ? window.location.host : 'smartlink.apps.allevents.app';
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
 
   // While a click-triggered smooth scroll is in flight the spy would flicker
   // through every section it passes over, so it stands down until the scroll

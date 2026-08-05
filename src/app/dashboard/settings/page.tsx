@@ -1053,7 +1053,7 @@ void main() async {
               <div style={{ backgroundColor: 'var(--color-bg-secondary)' }} className="p-4 overflow-x-auto">
                 <p style={{ color: 'var(--color-text-secondary)' }} className="text-sm mb-2">Create a deep link:</p>
                 <pre style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }} className="text-xs whitespace-pre-wrap">
-{`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app'}/api/v1/links \\
+{`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app'}/api/v1/links \\
   -H "X-API-Key: ${settings.apiKey || 'YOUR_API_KEY'}" \\
   -H "Content-Type: application/json" \\
   -d '{

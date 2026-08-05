@@ -1,8 +1,8 @@
 # SmartLink Backend
 
-Deferred deep linking platform built with Next.js 14, TypeScript, MongoDB, and Mongoose. Deployed on Vercel.
+Deferred deep linking platform built with Next.js 14, TypeScript, MongoDB, and Mongoose. Self-hosted via Coolify on an OVH server.
 
-**Live:** Your deployment domain (e.g., `https://smartlink.vercel.app`)
+**Live:** https://smartlink.apps.allevents.app
 **Repos:** [Backend](https://github.com/DabhiNavaghan/ae-link-backend) · [Flutter SDK](https://github.com/DabhiNavaghan/ae-link)
 
 ## What It Does
@@ -12,7 +12,7 @@ SmartLink creates short links that intelligently route users based on their plat
 ## How the Flow Works
 
 ```
-Email/SMS/Social → User clicks smartlink.vercel.app/TG5hid0
+Email/SMS/Social → User clicks smartlink.apps.allevents.app/TG5hid0
                          ↓
               Redirect page (SSR + client JS)
               ├── Records click
@@ -53,7 +53,7 @@ The matching algorithm scores device signals that persist between browser and na
 - **TypeScript** strict mode
 - **MongoDB + Mongoose** with TTL indexes for auto-cleanup
 - **Pino** structured logging
-- **Vercel** serverless deployment
+- **Coolify** (OVH server) — long-running Node process, not serverless
 
 ## Quick Start
 
@@ -71,7 +71,7 @@ npm run dev
 |----------|----------|-------------|
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `NODE_ENV` | Yes | `development` or `production` |
-| `NEXT_PUBLIC_APP_URL` | Yes | Your deployment URL (e.g., `https://smartlink.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Yes | Deployment URL — `https://smartlink.apps.allevents.app` in production |
 | `ALLOWED_ORIGINS` | No | Comma-separated CORS origins |
 
 ## Project Structure
@@ -158,7 +158,7 @@ src/
 ### Example: Create a Link
 
 ```bash
-curl -X POST https://smartlink.vercel.app/api/v1/links \
+curl -X POST https://smartlink.apps.allevents.app/api/v1/links \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -189,13 +189,24 @@ curl -X POST https://smartlink.vercel.app/api/v1/links \
 
 ## Deployment
 
-```bash
-# Vercel (recommended)
-vercel deploy --prod
+Deployed with [Coolify](https://coolify.io) on an OVH server. Coolify watches the
+repo and rebuilds on push — there is no deploy command to run locally.
 
-# Set env vars in Vercel dashboard:
-# MONGODB_URI, NEXT_PUBLIC_APP_URL, ALLOWED_ORIGINS
 ```
+Application → Build pack: Nixpacks (auto-detects Next.js)
+              Base directory: /backend
+              Build command:  npm run build
+              Start command:  npm run start
+              Port:           3000
+```
+
+Set env vars in the Coolify application's **Environment Variables** tab (see
+`.env.example`); at minimum `MONGODB_URI`, `NEXT_PUBLIC_APP_URL`,
+`ALLOWED_ORIGINS`, the Clerk keys, and `CRON_SECRET`. `NEXT_PUBLIC_*` values are
+inlined at build time, so changing one requires a rebuild, not just a restart.
+
+The daily rollup runs as a Coolify **Scheduled Task** rather than a platform
+cron — see the event-tracking doc in the monorepo's `docs/`.
 
 The dashboard dynamically uses `window.location.host` for all link URLs, so it works on any domain without code changes.
 
