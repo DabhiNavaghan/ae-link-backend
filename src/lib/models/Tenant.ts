@@ -34,6 +34,22 @@ const tenantSettingsSchema = new Schema<ITenantSettings>(
       type: Boolean,
       default: true,
     },
+
+    // ── Event tracking policy ──
+    // Left undefined by default so the service layer owns the defaults in one
+    // place; a tenant document only carries the values it actually overrides.
+    attributionWindowDays: Number,
+    eventRetentionDays: Number,
+    allowedTraitKeys: [String],
+    storePlaintextEmail: {
+      type: Boolean,
+      default: false,
+    },
+    maxEventNames: Number,
+    requireSignedRevenue: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false }
 );

@@ -101,6 +101,24 @@ All responses follow this format:
 | INTERNAL_ERROR | 500 | Server error |
 | DATABASE_ERROR | 500 | Database error |
 | VALIDATION_ERROR | 400 | Request validation failed |
+| PAYLOAD_TOO_LARGE | 413 | Request body over 1 MB |
+| BATCH_TOO_LARGE | 400 | More than 50 events in one batch |
+| INVALID_SIGNATURE | 403 | `x-signature` did not verify |
+| MISSING_API_KEY | 401 | No `x-api-key` header |
+| INVALID_API_KEY | 401 | Key is unknown or inactive |
+
+Per-event codes returned inside `POST /events` results, not as an HTTP status:
+
+| Code | Meaning |
+|------|---------|
+| INVALID_NAME | Event name failed `^[a-z][a-z0-9_]{0,63}$` |
+| INVALID_TIMESTAMP | `occurredAt` is not a valid ISO-8601 date |
+| TIMESTAMP_OUT_OF_RANGE | `occurredAt` more than ±24 h from server time |
+| INVALID_VALUE / VALUE_OUT_OF_RANGE | `value` not finite, negative, or too large |
+| INVALID_CURRENCY | Not a 3-letter ISO-4217 code |
+| UNSIGNED_REVENUE | Monetary event sent at client trust while the tenant requires signing |
+| EVENT_NAME_LIMIT | Tenant is at its distinct-name ceiling |
+| WRITE_FAILED | Event could not be stored |
 
 ## Endpoints
 
@@ -626,6 +644,260 @@ Get authenticated tenant's information.
 
 ---
 
+## Event Tracking
+
+Deep linking records that a link was clicked and an app installed. Event tracking
+records what happened next, with the link and campaign that earned it resolved
+once on write and stored on the row.
+
+### Key types and trust
+
+Two kinds of API key reach these endpoints, and they are not equally trusted:
+
+| Key | Trust | Notes |
+|-----|-------|-------|
+| `app_…` | `client` | Ships inside your app binary — anyone who decompiles the app has it |
+| `app_…` + valid `x-signature` | `server` | HMAC-SHA256 over `${timestamp}.${rawBody}` using the tenant secret |
+| tenant key | `server` | Only ever lives on your backend |
+
+Endpoints that name or enumerate an individual **refuse app keys** entirely:
+
+| Endpoint | App key |
+|----------|---------|
+| `POST /events`, `/identify`, `/identify/logout` | allowed — this is the SDK's job |
+| `GET /analytics/events` | allowed — aggregates only |
+| `GET /analytics/users` | **403** — enumerates user ids and lifetime value |
+| `GET /identity/:userId` | **403** — traits, email hash, full timeline |
+| `DELETE /identity/:userId` | **403** — erasure |
+
+---
+
+#### Track Events (batch)
+```
+POST /events
+```
+
+**Request**
+```json
+{
+  "events": [{
+    "name": "ticket_purchase",
+    "deviceId": "a3f...",
+    "sessionId": "sess_...",
+    "occurredAt": "2026-07-28T09:14:02Z",
+    "value": 1250,
+    "currency": "INR",
+    "properties": { "event_id": "evt_991", "qty": 2 },
+    "idempotencyKey": "c1f2...",
+    "platform": "android",
+    "clickId": "..."
+  }]
+}
+```
+
+**Response — `207 Multi-Status`** (`200` when nothing was rejected)
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      { "index": 0, "accepted": true, "eventId": "...", "attribution": "install_match" }
+    ],
+    "accepted": 1,
+    "rejected": 0,
+    "duplicates": 0
+  }
+}
+```
+
+Results are **per event, in request order** — one malformed event never rejects the
+batch. A client should drop what was accepted *or permanently rejected* and retry
+only transient failures (`429`, `5xx`, timeout).
+
+A replayed `idempotencyKey` returns `{"accepted": true, "duplicate": true}` — a
+no-op, not an error. Accepted events may also carry `warnings` naming fields that
+were dropped or coerced.
+
+**Attribution values**: `explicit_click`, `install_match`, `last_touch`, `direct`,
+`none`. `none` means organic — data, not a failure.
+
+**Limits**
+
+| Limit | Value |
+|-------|-------|
+| Events per batch | 50 |
+| Request body | 1 MB |
+| `properties` | 8 KB, 50 keys, depth 3, 500-char strings, 20-item arrays |
+| `name` pattern | `^[a-z][a-z0-9_]{0,63}$` |
+| `occurredAt` skew | ±24 h — **rejected**, not clamped |
+| Distinct event names per tenant | 200 (configurable) |
+
+`properties` keys shaped like personal data (email, phone, name, card, password)
+are **dropped** and reported in `warnings`. Use `identify` traits instead.
+
+Events store `country` and `city`, never the IP address.
+
+---
+
+#### Identify a User
+```
+POST /identify
+```
+
+```json
+{
+  "userId": "u_88213",
+  "deviceId": "a3f...",
+  "traits": { "plan": "pro", "city": "Ahmedabad" },
+  "email": "user@example.com"
+}
+```
+
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "u_88213",
+    "epoch": 1,
+    "isNewIdentity": true,
+    "backfilledEvents": 12,
+    "acquisition": {
+      "linkId": "...", "campaignId": "...", "campaign": "diwali-2026",
+      "source": "whatsapp", "medium": "social", "shortCode": "xGJEQJR",
+      "model": "install_match"
+    },
+    "warnings": []
+  }
+}
+```
+
+Attaches a device to a person. Events tracked earlier on this device are
+backfilled onto them, **bounded by the device's identity epoch** so a backfill can
+never reach across a previous sign-out.
+
+The first identify sets `acquisition` — the link and campaign that acquired this
+person — permanently, across every device they later sign in on. Later sign-ins
+never overwrite it.
+
+Only trait keys on the tenant's allowlist are stored. `email` is stored as a
+SHA-256 hash unless `settings.storePlaintextEmail` is enabled.
+
+Identity resolution is server-side: the SDK sends a `userId` here and never
+asserts one on a plain event.
+
+---
+
+#### Log Out a Device
+```
+POST /identify/logout
+```
+
+```json
+{ "deviceId": "a3f..." }
+```
+
+Bumps the identity epoch and clears `userId`. It deliberately does **not** rotate
+`deviceId` — that would sever install attribution and re-count the install.
+
+---
+
+#### Get User Detail
+```
+GET /identity/:userId
+```
+
+**Tenant key only.** Returns acquisition (with resolved link and campaign),
+attached devices with their epochs, allowlisted traits, the email hash, and the
+100 most recent events. This is the endpoint that makes a data-subject access
+request answerable in minutes.
+
+---
+
+#### Erase a User
+```
+DELETE /identity/:userId
+```
+
+**Tenant key only.** Deletes the identity and anonymises their events in place —
+`userId` and `deviceId` are unset, the rows stay. Aggregate counts and historical
+reports do not change.
+
+```json
+{ "success": true, "data": { "userId": "u_88213", "identityDeleted": true, "eventsAnonymised": 412 } }
+```
+
+---
+
+#### Event Definitions
+```
+GET   /events/definitions
+PATCH /events/definitions
+```
+
+The tenant's event vocabulary. Names auto-register on first sight; this is for
+curation — `label`, `description`, `category`, `isConversion`, `expectsValue`,
+`status`.
+
+```json
+{ "name": "ticket_purchase", "label": "Ticket Purchase", "isConversion": true }
+```
+
+A conversion is a **label** over events, not a separate counter, so flipping
+`isConversion` reclassifies history immediately and nothing double-counts.
+
+`name` itself is not editable — it is the join key on every row ever recorded.
+
+---
+
+#### Event Analytics
+```
+GET /analytics/events?view=<view>&from=&to=
+```
+
+| `view` | Returns |
+|--------|---------|
+| `breakdown` | Per event name: count, unique devices, unique users, revenue |
+| `campaigns` | Per campaign: events, conversions, unique users, revenue |
+| `links` | Per link: same shape |
+| `timeseries` | Daily counts and value |
+| `funnel` | click → install → open → sign-in → conversion, with drop-off |
+| `health` | Unattributed rate, identified rate, clock skew, name-budget usage |
+
+Optional filters: `name`, `linkId`, `campaignId`, `userId`, `deviceId`,
+`platform`, `conversionsOnly`. Window defaults to the last 30 days and may span
+at most 400 days.
+
+---
+
+#### List Users
+```
+GET /analytics/users?campaignId=&linkId=&sort=recent|value|events&page=&limit=
+```
+
+**Tenant key only.** Users acquired by a campaign or link, with lifetime value.
+
+---
+
+#### Rollups (internal)
+```
+POST /internal/rollup
+x-cron-secret: $CRON_SECRET
+```
+
+```json
+{ "days": 2 }
+```
+or `{ "date": "2026-07-27" }` to recompute a single day.
+
+Recomputes daily aggregates. Authenticated with a **shared secret, not an API
+key** — no tenant should be able to trigger a platform-wide aggregation. An unset
+`CRON_SECRET` fails closed with `503`.
+
+Idempotent: a re-run recomputes a day rather than doubling it.
+
+---
+
 ## Rate Limiting
 
 - **Public endpoints**: 100 requests/minute per IP
@@ -704,6 +976,20 @@ print(f"Short link: https://ae-link.allevents.app/{data['data']['shortCode']}")
 Webhook support for conversion tracking and link events is planned for v2.0.
 
 ## Changelog
+
+### v1.1.0 (2026-07-30)
+
+- Event ingest: `POST /events` (batched, per-event results, idempotent)
+- Identity: `POST /identify`, `POST /identify/logout`
+- `GET` / `DELETE /identity/:userId` — user detail and erasure
+- `GET` / `PATCH /events/definitions` — per-tenant event vocabulary
+- `GET /analytics/events` — six reporting views including the completed funnel
+- `GET /analytics/users` — users acquired per campaign or link
+- `POST /internal/rollup` — daily pre-aggregation, cron-secret authenticated
+- Trust levels on ingest, with optional HMAC signing for billable revenue
+- Tenant settings: `attributionWindowDays`, `eventRetentionDays`,
+  `allowedTraitKeys`, `storePlaintextEmail`, `maxEventNames`,
+  `requireSignedRevenue`
 
 ### v1.0.0 (2024-04-21)
 

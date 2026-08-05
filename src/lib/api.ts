@@ -18,6 +18,173 @@ import {
   ApiResponse,
 } from '@/types';
 
+// ============================================================================
+// Event tracking — client-side shapes
+//
+// Deliberately plain, not the mongoose Document interfaces from types/events.ts:
+// these describe what the analytics endpoints actually return over the wire.
+// ============================================================================
+
+export type EventAnalyticsView =
+  | 'breakdown'
+  | 'campaigns'
+  | 'links'
+  | 'timeseries'
+  | 'funnel'
+  | 'health';
+
+export interface EventAnalyticsFilters {
+  from?: string;
+  to?: string;
+  name?: string;
+  linkId?: string;
+  campaignId?: string;
+  userId?: string;
+  deviceId?: string;
+  platform?: string;
+  conversionsOnly?: boolean;
+}
+
+export interface EventNameStat {
+  name: string;
+  label: string;
+  isConversion: boolean;
+  count: number;
+  uniqueDevices: number;
+  uniqueUsers: number;
+  totalValue: number;
+  lastOccurredAt: string;
+}
+
+export interface EventCampaignStat {
+  campaignId: string | null;
+  campaignName: string;
+  events: number;
+  conversions: number;
+  uniqueDevices: number;
+  uniqueUsers: number;
+  totalValue: number;
+}
+
+export interface EventLinkStat {
+  linkId: string | null;
+  title: string;
+  shortCode: string | null;
+  events: number;
+  conversions: number;
+  uniqueUsers: number;
+  totalValue: number;
+}
+
+export interface EventTimeseriesPoint {
+  date: string;
+  count: number;
+  value: number;
+}
+
+export interface EventFunnelStage {
+  stage: string;
+  label: string;
+  count: number;
+  conversionRate: number | null;
+}
+
+export interface EventIngestHealth {
+  totalEvents: number;
+  unattributedRate: number;
+  identifiedRate: number;
+  avgClockSkewMs: number;
+  maxClockSkewMs: number;
+  distinctEventNames: number;
+  nameBudgetUsed: number;
+}
+
+export interface TrackedUserAcquisition {
+  linkId: string | null;
+  campaignId: string | null;
+  campaign: string | null;
+  source: string | null;
+  shortCode: string | null;
+  model: string;
+}
+
+export interface TrackedUserRow {
+  userId: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  eventCount: number;
+  totalValue: number;
+  deviceCount: number;
+  acquisition: TrackedUserAcquisition | null;
+}
+
+export interface TrackedUsersResponse {
+  users: TrackedUserRow[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface TrackedUserDetail {
+  userId: string;
+  firstSeenAt: string;
+  identifiedAt: string;
+  lastSeenAt: string;
+  eventCount: number;
+  totalValue: number;
+  lastEventAt?: string;
+  traits: Record<string, unknown>;
+  emailHash: string | null;
+  devices: Array<{
+    deviceId: string;
+    platform?: string;
+    epoch: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
+  }>;
+  acquisition:
+    | (TrackedUserAcquisition & {
+        medium?: string | null;
+        at?: string;
+        deviceId?: string;
+        link: { id: string; title?: string; shortCode?: string } | null;
+        campaign: { id: string; name: string; slug: string } | null;
+      })
+    | null;
+  timeline: Array<{
+    _id: string;
+    name: string;
+    occurredAt: string;
+    value?: number;
+    currency?: string;
+    platform?: string;
+    sessionId?: string;
+    deviceId?: string;
+    properties?: Record<string, unknown>;
+    attribution?: {
+      model: string;
+      campaign?: string;
+      shortCode?: string;
+    };
+  }>;
+  timelineTruncated: boolean;
+}
+
+export interface EventDefinitionDto {
+  _id: string;
+  name: string;
+  label: string;
+  description?: string;
+  category?: string;
+  isConversion: boolean;
+  expectsValue: boolean;
+  status: 'active' | 'hidden';
+  isSystem: boolean;
+  eventCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
 export class SmartLinkApi {
   private baseUrl: string;
   private apiKey: string | null;
@@ -368,6 +535,113 @@ export class SmartLinkApi {
     );
     return response.data as CampaignAnalytics;
   }
+  // ============================================================================
+  // Event Tracking Methods
+  // ============================================================================
+
+  /**
+   * One endpoint, several views — they share a filter vocabulary, so a
+   * dashboard can hold a campaign filter while switching what it looks at.
+   */
+  async getEventAnalytics<T = any>(
+    view: EventAnalyticsView,
+    filters?: EventAnalyticsFilters
+  ): Promise<T> {
+    const qs = new URLSearchParams({ view });
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          qs.append(key, String(value));
+        }
+      });
+    }
+    const response = await this.request<ApiResponse<T>>(
+      `/analytics/events?${qs.toString()}`,
+      { method: 'GET' }
+    );
+    return response.data as T;
+  }
+
+  /** Users acquired by a campaign or link, with lifetime value. */
+  async listTrackedUsers(filters?: {
+    campaignId?: string;
+    linkId?: string;
+    from?: string;
+    to?: string;
+    sort?: 'recent' | 'value' | 'events';
+    page?: number;
+    limit?: number;
+  }): Promise<TrackedUsersResponse> {
+    const qs = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          qs.append(key, String(value));
+        }
+      });
+    }
+    const endpoint = `/analytics/users${qs.toString() ? '?' + qs.toString() : ''}`;
+    const response = await this.request<ApiResponse<TrackedUsersResponse>>(
+      endpoint,
+      { method: 'GET' }
+    );
+    return response.data as TrackedUsersResponse;
+  }
+
+  /** Acquisition, devices and event timeline for one person. */
+  async getTrackedUser(userId: string): Promise<TrackedUserDetail> {
+    const response = await this.request<ApiResponse<TrackedUserDetail>>(
+      `/identity/${encodeURIComponent(userId)}`,
+      { method: 'GET' }
+    );
+    return response.data as TrackedUserDetail;
+  }
+
+  /**
+   * Erase a person. Deletes the identity and anonymises their events in place,
+   * so aggregate counts stay intact. Requires a tenant key — app keys ship
+   * inside the mobile binary and the API rejects them here.
+   */
+  async eraseTrackedUser(userId: string): Promise<{
+    userId: string;
+    identityDeleted: boolean;
+    eventsAnonymised: number;
+  }> {
+    const response = await this.request<ApiResponse<any>>(
+      `/identity/${encodeURIComponent(userId)}`,
+      { method: 'DELETE' }
+    );
+    return response.data;
+  }
+
+  async listEventDefinitions(): Promise<{
+    definitions: EventDefinitionDto[];
+    count: number;
+    limit: number;
+  }> {
+    const response = await this.request<ApiResponse<any>>(
+      '/events/definitions',
+      { method: 'GET' }
+    );
+    return response.data;
+  }
+
+  async updateEventDefinition(data: {
+    name: string;
+    label?: string;
+    description?: string;
+    category?: string;
+    isConversion?: boolean;
+    expectsValue?: boolean;
+    status?: 'active' | 'hidden';
+  }): Promise<{ definition: EventDefinitionDto }> {
+    const response = await this.request<ApiResponse<any>>(
+      '/events/definitions',
+      { method: 'PATCH', body: JSON.stringify(data) }
+    );
+    return response.data;
+  }
+
   // ============================================================================
   // Team Methods
   // ============================================================================

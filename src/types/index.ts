@@ -37,6 +37,27 @@ export interface ITenantSettings {
   matchThreshold: number;
   defaultFallbackUrl?: string;
   enableDeferredDeepLink?: boolean;
+
+  // ── Event tracking policy (see lib/utils/event-validation.ts for defaults) ──
+  /** Last-touch lookback window for event attribution, in days. */
+  attributionWindowDays?: number;
+  /** How long raw events live before the TTL index removes them. Rollups are kept. */
+  eventRetentionDays?: number;
+  /** Trait keys this tenant is permitted to store. Unset falls back to a conservative default. */
+  allowedTraitKeys?: string[];
+  /**
+   * Store the plaintext email on Identity in addition to the hash.
+   * Off by default — turning it on needs a stated purpose and a retention limit.
+   */
+  storePlaintextEmail?: boolean;
+  /** Ceiling on distinct event names. Unbounded names make the dataset unqueryable. */
+  maxEventNames?: number;
+  /**
+   * Require an HMAC signature on every event carrying a monetary value.
+   * Turn this on when revenue drives billing or partner payouts — a client key
+   * lives inside a distributable app and cannot be trusted with money.
+   */
+  requireSignedRevenue?: boolean;
 }
 
 export interface ITenant extends Document {

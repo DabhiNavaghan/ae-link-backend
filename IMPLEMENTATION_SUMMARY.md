@@ -276,13 +276,39 @@ backend/
 - ✅ Daily trend graphs
 - ✅ Top performing links/campaigns
 
-### 5. Multi-Tenant Support
+### 5. Event & User Tracking
+- ✅ Batched event ingest (`POST /api/v1/events`) with per-event results
+- ✅ Attribution resolved once on write and denormalized onto the row
+- ✅ Identity layer — `identify()`, `logout()`, epoch-bounded backfill
+- ✅ First-touch acquisition per user, across every device they use
+- ✅ Per-tenant event vocabulary — no tenant's nouns hardcoded in an enum
+- ✅ Conversions as a *label* over events, never a parallel counter
+- ✅ Idempotency via a partial unique index — a replay is a no-op
+- ✅ Trust levels: client vs server, with optional HMAC signing for revenue
+- ✅ PII stripped from `properties`; traits allowlisted; email hashed
+- ✅ Erasure by `userId` as a single supported operation
+- ✅ Daily rollups + TTL on raw events
+- ✅ Completed funnel: click → install → open → sign-in → conversion
+
+**Services**: `event.service.ts` (ingest), `event-attribution.service.ts`,
+`identity.service.ts`, `event-definition.service.ts`,
+`event-analytics.service.ts`, `event-rollup.service.ts`
+
+**Collections**: `Event`, `EventDefinition`, `Identity`, `DeviceIdentity`,
+`EventRollup`
+
+See `docs/event-tracking.md` for the design rationale and `API.md` for the
+endpoint reference.
+
+### 6. Multi-Tenant Support
 - ✅ Tenant isolation
 - ✅ API key authentication
 - ✅ Custom app configuration
 - ✅ Configurable settings per tenant
+- ✅ Per-tenant event policy: attribution window, retention, trait allowlist,
+  name cardinality ceiling, signed-revenue requirement
 
-### 6. Production Ready
+### 7. Production Ready
 - ✅ TypeScript strict mode
 - ✅ Error handling on all endpoints
 - ✅ Structured logging

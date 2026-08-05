@@ -23,7 +23,11 @@ export interface LiveEvent {
     | 'deferred_match'
     | 'app_opened'
     | 'store_redirect'
-    | 'web_fallback';
+    | 'web_fallback'
+    // Tracked product events and sign-ins, so the admin Live Tracking view
+    // shows the whole funnel rather than stopping at install.
+    | 'event'
+    | 'identify';
   timestamp: string;
   linkId?: string;
   linkTitle?: string;

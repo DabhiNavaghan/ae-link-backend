@@ -2,7 +2,7 @@
 
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ─── Icons ─── */
 const ArrowLeftIcon = () => (
@@ -116,6 +116,7 @@ const navItems = [
   { id: 'deep-links', label: 'Deep Links' },
   { id: 'deferred-linking', label: 'Deferred Linking' },
   { id: 'campaigns', label: 'Campaigns' },
+  { id: 'event-tracking', label: 'Event Tracking' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'troubleshooting', label: 'Troubleshooting' },
 ];
@@ -127,10 +128,66 @@ export default function DocsPage() {
   const appHost = typeof window !== 'undefined' ? window.location.host : 'smartlink.vercel.app';
   const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.vercel.app';
 
+  // While a click-triggered smooth scroll is in flight the spy would flicker
+  // through every section it passes over, so it stands down until the scroll
+  // lands on the section that was clicked.
+  const pendingTarget = useRef<string | null>(null);
+
   const scrollTo = (id: string) => {
+    pendingTarget.current = id;
     setActiveSection(id);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    // Matches scroll-mt-24 on DocSection, so a clicked section lands exactly on
+    // the line the spy measures against.
+    const HEADER_OFFSET = 96;
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+
+      const doc = document.documentElement;
+      // The last sections are short enough that they never reach the offset
+      // line, so nothing below the fold would ever highlight without this.
+      const atBottom = window.innerHeight + window.scrollY >= doc.scrollHeight - 2;
+
+      let current = navItems[0].id;
+      if (atBottom) {
+        current = navItems[navItems.length - 1].id;
+      } else {
+        for (const item of navItems) {
+          const el = document.getElementById(item.id);
+          if (el && el.getBoundingClientRect().top <= HEADER_OFFSET + 1) {
+            current = item.id;
+          }
+        }
+      }
+
+      // Swallow every intermediate section a smooth scroll passes over, and
+      // hand control back once it arrives.
+      if (pendingTarget.current) {
+        if (pendingTarget.current !== current) return;
+        pendingTarget.current = null;
+      }
+      setActiveSection(current);
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
 
   return (
     <div style={{ backgroundColor: 'var(--color-bg)' }} className="min-h-screen">
@@ -711,6 +768,150 @@ class MyApp extends StatelessWidget {
     "description": "Links for the June email blast",
     "tags": ["email", "summer", "2026"]
   }'`} />
+          </DocSection>
+
+          {/* Event Tracking */}
+          <DocSection id="event-tracking" title="Event Tracking">
+            <p>
+              Deep linking tells you a link was clicked and an app was installed. Event tracking
+              tells you what happened <em>next</em> — and which link and campaign earned it.
+            </p>
+
+            <h3 className="font-semibold text-heading pt-2">Track an event</h3>
+            <CodeBlock language="dart" code={`await smartLink.track(
+  'ticket_purchase',
+  value: 1250,
+  currency: 'INR',
+  properties: {'event_id': 'evt_991', 'qty': 2},
+);`} />
+            <p>
+              Returns as soon as the event is written to an on-disk queue. The SDK batches and
+              sends in the background, survives a cold start, and flushes when connectivity
+              returns. It never throws for network reasons — a checkout must not fail because
+              analytics did.
+            </p>
+
+            <div style={{ borderColor: 'var(--color-warning)', backgroundColor: 'var(--color-bg-secondary)' }} className="border-l-2 p-3">
+              <p className="text-sm">
+                <strong className="text-heading">Event names are a small, fixed vocabulary.</strong>{' '}
+                They must match <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-hover)' }}>^[a-z][a-z0-9_]{'{0,63}'}$</code> —
+                lowercase letters, digits and underscores. Put ids, titles and other varying values
+                in <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-hover)' }}>properties</code>,
+                never in the name. You are capped at 200 distinct names; hitting that limit almost
+                always means a value is being sent as a name.
+              </p>
+            </div>
+
+            <div style={{ borderColor: 'var(--color-danger, var(--color-warning))', backgroundColor: 'var(--color-bg-secondary)' }} className="border-l-2 p-3">
+              <p className="text-sm">
+                <strong className="text-heading">Never put personal data in properties.</strong>{' '}
+                Keys that look like emails, phone numbers, names or card details are dropped at
+                ingest and reported back in the response so it surfaces during integration rather
+                than in an audit. Use <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-hover)' }}>identify()</code> traits
+                for anything about a person. Events store country and city, never the IP address.
+              </p>
+            </div>
+
+            <h3 className="font-semibold text-heading pt-2">Identify a user on sign-in</h3>
+            <CodeBlock language="dart" code={`await smartLink.identify('u_88213', traits: {'plan': 'pro'});`} />
+            <p>
+              Everything tracked after this carries the user. Events tracked <em>before</em> it on
+              this device are backfilled onto them — those were the same person browsing before
+              they signed in.
+            </p>
+            <p>
+              The first <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>identify()</code> also
+              fixes the user&rsquo;s <strong className="text-heading">acquisition source</strong>: the link and
+              campaign that brought them in, permanently, across every device they later sign in
+              on. Later sign-ins never overwrite it — first touch wins.
+            </p>
+            <p className="text-xs text-muted">
+              Only trait keys on your allowlist are stored. Email is kept as a SHA-256 hash —
+              still matchable, never readable — unless plaintext storage is explicitly enabled for
+              your account.
+            </p>
+
+            <h3 className="font-semibold text-heading pt-2">Sign out</h3>
+            <CodeBlock language="dart" code={`await smartLink.logout();`} />
+            <p>
+              Keeps the device id deliberately. Rotating it would sever install attribution and
+              make the next launch look like a fresh install, re-counting it. The server starts a
+              new identity epoch instead — which is what stops the next person signing in on a
+              shared device from inheriting the previous user&rsquo;s history.
+            </p>
+
+            <h3 className="font-semibold text-heading pt-2">Automatic events</h3>
+            <p>
+              These are emitted without you writing any tracking code, so the funnel works on day
+              one:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { title: 'app_install', desc: 'First launch after install' },
+                { title: 'app_open', desc: 'Every launch' },
+                { title: 'session_start', desc: 'New session — after 30 min backgrounded' },
+                { title: 'deep_link_opened', desc: 'A SmartLink URL opened the app' },
+                { title: 'user_identified', desc: 'identify() succeeded' },
+                { title: 'user_logged_out', desc: 'logout() was called' },
+              ].map((e) => (
+                <div key={e.title} className="bg-secondary p-3">
+                  <p className="font-medium text-heading text-sm" style={{ fontFamily: 'var(--font-mono)' }}>{e.title}</p>
+                  <p className="text-xs text-muted mt-0.5">{e.desc}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted">
+              Turn them off with <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>enableAutomaticEvents: false</code>.
+              Disable tracking entirely — to honour a user&rsquo;s analytics opt-out — with{' '}
+              <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>enableEventTracking: false</code>.
+              Deep linking keeps working either way.
+            </p>
+
+            <h3 className="font-semibold text-heading pt-2">Server-to-server</h3>
+            <p>
+              The same endpoint accepts events from your backend. Use your tenant API key rather
+              than an app key:
+            </p>
+            <CodeBlock code={`curl -X POST ${appUrl}/api/v1/events \\
+  -H "X-API-Key: YOUR_TENANT_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"events":[{
+        "name":"ticket_purchase",
+        "deviceId":"a3f...",
+        "value":1250,"currency":"INR",
+        "idempotencyKey":"order_991"
+      }]}'`} />
+            <p>
+              The response is <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>207 Multi-Status</code> with
+              one result per event, so a single malformed event never rejects a batch of fifty.
+              Replaying the same{' '}
+              <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>idempotencyKey</code> is
+              a no-op, not an error.
+            </p>
+
+            <div style={{ borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-bg-secondary)' }} className="border-l-2 p-3">
+              <p className="text-sm">
+                <strong className="text-heading">Revenue you can bill on.</strong> Your app key
+                ships inside your binary, so anyone who decompiles the app has it. Revenue sent
+                with it is fine for product analytics and <em>not</em> sufficient for billing or
+                partner payouts. For money that matters, send the event from your backend with
+                your tenant key, or HMAC-sign it. Ask support to enable{' '}
+                <code className="text-xs px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-hover)' }}>requireSignedRevenue</code> and
+                unsigned monetary events will be rejected rather than quietly recorded.
+              </p>
+            </div>
+
+            <h3 className="font-semibold text-heading pt-2">Where to see the data</h3>
+            <p>
+              <strong className="text-heading">Events</strong> shows the completed funnel, a
+              per-campaign breakdown and pipeline health.{' '}
+              <strong className="text-heading">Events → Definitions</strong> is where you give raw
+              names readable labels and mark which ones count as conversions.{' '}
+              <strong className="text-heading">Users</strong> lists who each campaign acquired and
+              what they have been worth since — and each user&rsquo;s detail page carries their
+              acquisition link, devices, event timeline and an erasure control for data-subject
+              requests.
+            </p>
           </DocSection>
 
           {/* Analytics */}
