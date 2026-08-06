@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import LinkService from '@/lib/services/link.service';
+import ResolverService, { isDeepLinkKey } from '@/lib/services/resolver.service';
 import ClickModel from '@/lib/models/Click';
 import { DeviceDetector } from '@/lib/services/device-detector';
 import { lookupGeo } from '@/lib/services/geo.service';
@@ -85,8 +86,9 @@ export async function GET(request: NextRequest) {
     const storedParams = (link as any).params || {};
 
     // deepLink query param → becomes destinationUrl if link has none.
+    // Any spelling is accepted (deepLink, deeplink, deep_link, deep-link…).
     // If the value is a relative path, reconstruct the full URL.
-    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link || queryParams.deeplink;
+    let deepLinkUrl = ResolverService.getDeepLinkParam(queryParams);
     if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
       // Try to get origin from referer header
       const refererHeader = request.headers.get('referer') || '';
@@ -122,7 +124,10 @@ export async function GET(request: NextRequest) {
       ref: 'ref',
     };
 
-    const skipKeys = new Set(['deepLink', 'deep_link', 'deeplink', 'platform', ...Object.keys(paramMap)]);
+    // The deep link is skipped under any spelling — it is the destination,
+    // not a tracking param, and it is returned on its own.
+    const skipKeys = new Set(['platform', ...Object.keys(paramMap)]);
+    const isSkippedKey = (key: string) => skipKeys.has(key) || isDeepLinkKey(key);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     for (const [qKey, qVal] of Object.entries(queryParams)) {
@@ -133,7 +138,7 @@ export async function GET(request: NextRequest) {
     // Unknown query params → custom
     const customFromUrl: Record<string, string> = {};
     for (const [qKey, qVal] of Object.entries(queryParams)) {
-      if (!skipKeys.has(qKey) && !paramMap[qKey] && qVal) customFromUrl[qKey] = qVal;
+      if (!isSkippedKey(qKey) && !paramMap[qKey] && qVal) customFromUrl[qKey] = qVal;
     }
     if (Object.keys(customFromUrl).length > 0) {
       mergedParams.custom = { ...(storedParams.custom || {}), ...customFromUrl };
@@ -322,6 +327,13 @@ export async function GET(request: NextRequest) {
           custom: mergedParams.custom || null,
         },
         platformOverrides: link.platformOverrides || {},
+        // False on a side = this link never sends that audience to the store;
+        // such a click stays on the web destination, or on the app info page
+        // when the link has no web destination at all.
+        storeRedirect: {
+          mobile: link.storeRedirect?.mobile !== false,
+          web: link.storeRedirect?.web !== false,
+        },
       }),
       { status: 200 }
     );

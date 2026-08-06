@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { sendFingerprint } from '@/lib/utils/fingerprint-beacon';
 
 /**
  * Append UTM params (and App Store ct/pt/mt) to a store URL.
@@ -71,23 +72,19 @@ interface RedirectPageProps {
    * causes the loop.
    */
   isStoreFallback?: boolean;
-}
-
-interface BrowserFingerprint {
-  screen: { width: number; height: number };
-  /** Screen size in physical device pixels — the cross-context screen signal. */
-  physicalScreen: { width: number; height: number };
-  language: string;
-  timezone: string;
-  timezoneOffset: string;
-  deviceMemory?: number;
-  connectionType?: string;
-  platform: string;
-  vendor: string;
-  hardwareConcurrency?: number;
-  touchSupport: boolean;
-  colorDepth: number;
-  pixelRatio: number;
+  /**
+   * False when this link (or this click) must never end at the app store.
+   * Every branch that would otherwise hand off to the store sends the user to
+   * `webFallbackUrl` instead. The app-open attempt still runs first, so a
+   * device with the app installed is unaffected.
+   */
+  storeRedirectEnabled?: boolean;
+  /**
+   * Where a device without the app lands when `storeRedirectEnabled` is false.
+   * Resolved server-side, preferring this click's dynamic deep link over the
+   * link's stored destination and over the static web override.
+   */
+  webFallbackUrl?: string;
 }
 
 const AE_RED = '#E8344E';
@@ -110,6 +107,8 @@ export default function RedirectPage({
   storeUrls,
   androidPackage,
   isStoreFallback = false,
+  storeRedirectEnabled = true,
+  webFallbackUrl,
 }: RedirectPageProps) {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'done'>('loading');
 
@@ -123,6 +122,12 @@ export default function RedirectPage({
     const isIOS = deviceOS === 'ios';
     const isMobile = isAndroid || isIOS;
 
+    // App-store navigation is off and we have somewhere on the web to send a
+    // device that turns out not to have the app. The server only ever clears
+    // the flag when it also resolved a URL, but a missing one here would mean
+    // a dead end — so the store stays the fallback of last resort.
+    const skipStore = !storeRedirectEnabled && Boolean(webFallbackUrl);
+
     // Fire fingerprint in background — but ONLY for mobile users.
     // Desktop users don't install apps, so creating deferred links for
     // them causes false-positive matches when they later open the app
@@ -131,36 +136,25 @@ export default function RedirectPage({
     // Skipped on a store fallback: the fingerprint was already sent by the
     // load that fired the intent, and this hop has no click of its own.
     if (isMobile && !isStoreFallback) {
-      try {
-        const fingerprint = collectFingerprint();
-        const payload = JSON.stringify({
-          linkId,
-          tenantId,
-          clickId,
-          fingerprint,
-          mergedDestinationUrl: link.destinationUrl || undefined,
-          mergedParams: link.params || undefined,
-        });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon('/api/v1/fingerprint', new Blob([payload], { type: 'application/json' }));
-        } else {
-          fetch('/api/v1/fingerprint', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: payload,
-            keepalive: true,
-          }).catch(() => {});
-        }
-      } catch (err) {
-        console.error('[SmartLink] Fingerprint collection error:', err);
-      }
+      sendFingerprint({
+        linkId,
+        tenantId,
+        clickId,
+        mergedDestinationUrl: link.destinationUrl || undefined,
+        mergedParams: link.params || undefined,
+      });
     }
 
     // Redirect immediately — no waiting
     setStatus('redirecting');
 
     if (!isMobile) {
-      const webUrl = link.platformOverrides?.web?.url || link.destinationUrl;
+      // With the store off, webFallbackUrl leads — it already put this click's
+      // dynamic deep link ahead of the link's static web override, which would
+      // otherwise send every click of a dynamic link to the same static page.
+      const webUrl = skipStore
+        ? webFallbackUrl
+        : link.platformOverrides?.web?.url || link.destinationUrl;
       if (webUrl) {
         window.location.replace(webUrl);
       } else {
@@ -175,7 +169,13 @@ export default function RedirectPage({
       const rawStoreUrl =
         link.platformOverrides?.android?.fallback ||
         storeUrls.android;
-      const storeUrl = appendStoreParams(rawStoreUrl, link.params, false);
+      // Where the user goes when the app does not take the link — the store,
+      // or the web destination when store navigation is off. Store params are
+      // only meaningful on a store URL, so the web fallback skips them; it
+      // already carries this click's own query string.
+      const noAppUrl = skipStore
+        ? webFallbackUrl!
+        : appendStoreParams(rawStoreUrl, link.params, false);
 
       // Check for explicit app scheme URL (e.g. allevents://, myapp://)
       const overrideUrl = link.platformOverrides?.android?.url;
@@ -184,11 +184,11 @@ export default function RedirectPage({
       if (isStoreFallback) {
         // The intent already ran and the app did not take it. Retrying it here
         // is exactly what loops the redirect.
-        window.location.replace(storeUrl);
+        window.location.replace(noAppUrl);
         setStatus('done');
       } else if (isAppScheme) {
         // Explicit custom scheme → use tryOpenApp with blur detection
-        tryOpenApp(overrideUrl, storeUrl);
+        tryOpenApp(overrideUrl, noAppUrl);
       } else if (androidPackage) {
         // Use destination URL in intent so the app's own domain (e.g. allevents.in)
         // resolves via its existing App Links intent filter. With no http
@@ -201,7 +201,7 @@ export default function RedirectPage({
         // navigating to that https URL instead of using browser_fallback_url.
         // That reloads this page and re-fires the whole flow. The STORE_FALLBACK
         // marker below makes that second load detectable, so the server skips
-        // recording it and we go straight to the store instead of looping.
+        // recording it and we go straight to noAppUrl instead of looping.
         const destUrl = link.destinationUrl;
         let intentTarget: string;
         if (destUrl && destUrl.startsWith('http')) {
@@ -214,21 +214,23 @@ export default function RedirectPage({
         const intentUrl =
           `intent://${intentTarget.replace(/^https?:\/\//, '')}` +
           `#Intent;scheme=https;package=${androidPackage}` +
-          `;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
+          `;S.browser_fallback_url=${encodeURIComponent(noAppUrl)};end`;
         window.location.replace(intentUrl);
         setStatus('done');
       } else {
-        // No app scheme and no package name → go straight to store.
-        // The fingerprint + deferred link will handle deep linking
-        // after install via the Flutter SDK match flow.
-        window.location.replace(storeUrl);
+        // No app scheme and no package name → nothing can open the app from
+        // here, so go straight to noAppUrl. The fingerprint + deferred link
+        // will handle deep linking after install via the Flutter SDK match flow.
+        window.location.replace(noAppUrl);
         setStatus('done');
       }
     } else if (isIOS) {
       const rawStoreUrl =
         link.platformOverrides?.ios?.fallback ||
         storeUrls.ios;
-      const storeUrl = appendStoreParams(rawStoreUrl, link.params, true);
+      const noAppUrl = skipStore
+        ? webFallbackUrl!
+        : appendStoreParams(rawStoreUrl, link.params, true);
 
       // Check for explicit app scheme URL (e.g. allevents://, myapp://)
       const overrideUrl = link.platformOverrides?.ios?.url;
@@ -236,19 +238,20 @@ export default function RedirectPage({
 
       if (isAppScheme) {
         // Custom URL scheme → use tryOpenApp with timer fallback
-        tryOpenApp(overrideUrl, storeUrl);
+        tryOpenApp(overrideUrl, noAppUrl);
       } else {
-        // iOS doesn't support intent:// — rely on Universal Links.
-        // If Universal Links didn't intercept (app not installed, or
-        // user opened in Safari manually), go straight to App Store.
+        // iOS doesn't support intent:// — rely on Universal Links. Reaching
+        // this line means they did not intercept (app not installed, or the
+        // user opened the link in Safari manually), so send them to noAppUrl:
+        // the App Store, or the web destination when the store is off.
         // Deferred deep linking handles post-install navigation.
-        window.location.replace(storeUrl);
+        window.location.replace(noAppUrl);
         setStatus('done');
       }
     }
   };
 
-  const tryOpenApp = (appUrl: string, storeUrl: string) => {
+  const tryOpenApp = (appUrl: string, fallbackUrl: string) => {
     let didLeave = false;
     let patchSent = false;
 
@@ -296,7 +299,8 @@ export default function RedirectPage({
     window.location.href = appUrl;
 
     // Fallback: if the app didn't open (no blur/visibility change after
-    // 1s), redirect to the store instead. Modern phones switch within
+    // 1s), redirect to fallbackUrl instead — the store, or the web
+    // destination when store navigation is off. Modern phones switch within
     // ~300ms if the app is installed, so 1s is a safe threshold.
     setTimeout(() => {
       window.removeEventListener('blur', onBlur);
@@ -304,44 +308,10 @@ export default function RedirectPage({
       window.removeEventListener('pagehide', onPageHide);
 
       if (!didLeave) {
-        window.location.replace(storeUrl);
+        window.location.replace(fallbackUrl);
       }
       setStatus('done');
     }, 1000);
-  };
-
-  const collectFingerprint = (): BrowserFingerprint => {
-    const nav = navigator as any;
-    const tzOffsetMin = new Date().getTimezoneOffset();
-    const tzSign = tzOffsetMin <= 0 ? '+' : '-';
-    const tzHours = String(Math.floor(Math.abs(tzOffsetMin) / 60)).padStart(2, '0');
-    const tzMins = String(Math.abs(tzOffsetMin) % 60).padStart(2, '0');
-    const timezoneOffset = `${tzSign}${tzHours}:${tzMins}`;
-
-    // window.screen reports CSS pixels at the browser's own device-scale-
-    // factor, which differs from Flutter's devicePixelRatio on most Android
-    // devices. Multiplying back out by devicePixelRatio gives the panel's
-    // real resolution, which both sides agree on.
-    const dpr = window.devicePixelRatio || 1;
-
-    return {
-      screen: { width: window.screen.width, height: window.screen.height },
-      physicalScreen: {
-        width: Math.round(window.screen.width * dpr),
-        height: Math.round(window.screen.height * dpr),
-      },
-      language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      timezoneOffset,
-      deviceMemory: nav.deviceMemory,
-      connectionType: (nav.connection || nav.mozConnection || nav.webkitConnection)?.effectiveType,
-      platform: navigator.platform,
-      vendor: navigator.vendor,
-      hardwareConcurrency: nav.hardwareConcurrency,
-      touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0 || nav.msMaxTouchPoints > 0,
-      colorDepth: window.screen.colorDepth,
-      pixelRatio: window.devicePixelRatio,
-    };
   };
 
   return (

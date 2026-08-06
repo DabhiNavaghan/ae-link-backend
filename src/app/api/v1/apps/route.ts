@@ -8,6 +8,7 @@ import { applyCors } from '@/lib/middleware/cors';
 import AppModel from '@/lib/models/App';
 import TenantModel from '@/lib/models/Tenant';
 import { CreateAppDto } from '@/types';
+import { sanitizeAppInfoUrls } from '@/lib/utils/url';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import crypto from 'crypto';
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
       slug,
       android: body.android || {},
       ios: body.ios || {},
+      info: body.info ? sanitizeAppInfoUrls(body.info) : {},
     });
 
     await app.save();

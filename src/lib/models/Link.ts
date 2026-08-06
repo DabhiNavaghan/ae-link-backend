@@ -84,6 +84,15 @@ const linkSchema = new Schema<ILink>(
       type: platformOverridesSchema,
       default: () => ({}),
     },
+    // Off = never send a click to the app store; fall back to the link's own
+    // web destination, or the app-info interstitial when it has none. Phones
+    // and desktop are switched independently. Both default on so existing
+    // links keep behaving exactly as before (documents written before this
+    // field are `undefined`, which the resolver reads as enabled).
+    storeRedirect: {
+      mobile: { type: Boolean, default: true },
+      web: { type: Boolean, default: true },
+    },
     isActive: {
       type: Boolean,
       default: true,

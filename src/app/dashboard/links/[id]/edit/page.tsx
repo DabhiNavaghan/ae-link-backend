@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import StoreRedirectToggles from '@/components/ui/StoreRedirectToggles';
 
 interface Campaign {
   _id: string;
@@ -43,6 +44,8 @@ interface FormData {
   iosUrl: string;
   iosFallback: string;
   webUrl: string;
+  storeRedirectMobile: boolean;
+  storeRedirectWeb: boolean;
   shortCode: string;
   expiryDate: string;
 }
@@ -108,6 +111,8 @@ export default function EditLinkPage() {
     iosUrl: '',
     iosFallback: '',
     webUrl: '',
+    storeRedirectMobile: true,
+    storeRedirectWeb: true,
     shortCode: '',
     expiryDate: '',
   });
@@ -156,6 +161,8 @@ export default function EditLinkPage() {
         iosUrl: po.ios?.url || '',
         iosFallback: po.ios?.fallback || '',
         webUrl: po.web?.url || '',
+        storeRedirectMobile: l.storeRedirect?.mobile !== false,
+        storeRedirectWeb: l.storeRedirect?.web !== false,
         shortCode: l.shortCode || '',
         expiryDate: l.expiresAt ? new Date(l.expiresAt).toISOString().split('T')[0] : '',
       });
@@ -165,6 +172,7 @@ export default function EditLinkPage() {
         params.utmTerm || params.utmContent || params.ct || params.pt || params.mt ||
         params.userEmail || params.userId || params.couponCode || params.referralCode ||
         po.android || po.ios || po.web ||
+        l.storeRedirect?.mobile === false || l.storeRedirect?.web === false ||
         (params.custom && Object.keys(params.custom).length > 0) ||
         l.expiresAt;
       if (hasAdvanced) setShowMore(true);
@@ -270,6 +278,10 @@ export default function EditLinkPage() {
           ...(formData.androidUrl && { android: { url: formData.androidUrl, ...(formData.androidFallback && { fallback: formData.androidFallback }) } }),
           ...(formData.iosUrl && { ios: { url: formData.iosUrl, ...(formData.iosFallback && { fallback: formData.iosFallback }) } }),
           ...(formData.webUrl && { web: { url: formData.webUrl } }),
+        },
+        storeRedirect: {
+          mobile: formData.storeRedirectMobile,
+          web: formData.storeRedirectWeb,
         },
         ...(formData.appId && { appId: formData.appId }),
         ...(formData.campaignId && { campaignId: formData.campaignId }),
@@ -556,6 +568,15 @@ export default function EditLinkPage() {
                   </span>
                 </div>
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <StoreRedirectToggles
+                    mobile={formData.storeRedirectMobile}
+                    web={formData.storeRedirectWeb}
+                    hasWebDestination={Boolean(formData.destinationUrl || formData.webUrl)}
+                    onChange={({ mobile, web }) =>
+                      setFormData((prev) => ({ ...prev, storeRedirectMobile: mobile, storeRedirectWeb: web }))
+                    }
+                  />
+
                   <div style={{ borderLeft: '3px solid var(--color-primary)', paddingLeft: 16 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-primary)', marginBottom: 8 }}>android</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

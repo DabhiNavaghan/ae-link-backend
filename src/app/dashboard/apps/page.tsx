@@ -285,6 +285,10 @@ function AppFormModal({
   const [iosTeamId, setIosTeamId] = useState('');
   const [iosAppId, setIosAppId] = useState('');
   const [iosStoreUrl, setIosStoreUrl] = useState('');
+  const [infoTagline, setInfoTagline] = useState('');
+  const [infoDescription, setInfoDescription] = useState('');
+  const [infoIconUrl, setInfoIconUrl] = useState('');
+  const [infoMarketingUrl, setInfoMarketingUrl] = useState('');
 
   // Populate fields when editing
   useEffect(() => {
@@ -297,6 +301,10 @@ function AppFormModal({
       setIosTeamId(editApp.ios?.teamId || '');
       setIosAppId(editApp.ios?.appId || '');
       setIosStoreUrl(editApp.ios?.storeUrl || '');
+      setInfoTagline(editApp.info?.tagline || '');
+      setInfoDescription(editApp.info?.description || '');
+      setInfoIconUrl(editApp.info?.iconUrl || '');
+      setInfoMarketingUrl(editApp.info?.marketingUrl || '');
     } else {
       setName('');
       setAndroidPackage('');
@@ -306,6 +314,10 @@ function AppFormModal({
       setIosTeamId('');
       setIosAppId('');
       setIosStoreUrl('');
+      setInfoTagline('');
+      setInfoDescription('');
+      setInfoIconUrl('');
+      setInfoMarketingUrl('');
     }
     setError(null);
   }, [editApp, isOpen]);
@@ -333,6 +345,12 @@ function AppFormModal({
           teamId: iosTeamId.trim(),
           appId: iosAppId.trim(),
           storeUrl: iosStoreUrl.trim(),
+        },
+        info: {
+          tagline: infoTagline.trim(),
+          description: infoDescription.trim(),
+          iconUrl: infoIconUrl.trim(),
+          marketingUrl: infoMarketingUrl.trim(),
         },
       };
 
@@ -463,6 +481,52 @@ function AppFormModal({
               onChange={(e) => setIosStoreUrl(e.target.value)}
               placeholder="https://apps.apple.com/app/id488116646"
               helperText="Users without your app will be sent here"
+            />
+          </div>
+
+          {/* App Info — powers the interstitial shown when a link has store
+              navigation switched off and no web destination to open. */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                App Info
+              </h3>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                Shown on the app info page — the screen a visitor lands on when a link has
+                app store navigation switched off and nothing on the web to open.
+              </p>
+            </div>
+            <Input
+              label="Tagline"
+              type="text"
+              value={infoTagline}
+              onChange={(e) => setInfoTagline(e.target.value)}
+              placeholder="Discover Events anywhere, anytime"
+              helperText="One line under the app name"
+            />
+            <Input
+              label="Description"
+              type="text"
+              value={infoDescription}
+              onChange={(e) => setInfoDescription(e.target.value)}
+              placeholder="Download the app to never miss out the best events near you!"
+              helperText="A sentence or two on why to install"
+            />
+            <Input
+              label="Icon URL"
+              type="text"
+              value={infoIconUrl}
+              onChange={(e) => setInfoIconUrl(e.target.value)}
+              placeholder="https://cdn.example.com/app-icon.png"
+              helperText="Square image. Falls back to the app's initial when blank"
+            />
+            <Input
+              label="Marketing Page URL"
+              type="text"
+              value={infoMarketingUrl}
+              onChange={(e) => setInfoMarketingUrl(e.target.value)}
+              placeholder="https://allevents.in/app"
+              helperText="Linked as 'learn more' — e.g. https://allevents.in/pages/event-manager-app"
             />
           </div>
 

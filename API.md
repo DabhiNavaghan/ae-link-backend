@@ -320,10 +320,57 @@ Create a new short link.
       "fallback": "https://apps.apple.com/app/allevents/id123456789"
     }
   },
+  "storeRedirect": { "mobile": true, "web": true },
   "shortCode": "custom_code",
   "expiresAt": "2024-12-31T23:59:59Z"
 }
 ```
+
+**`storeRedirect`** (object, both sides default `true`) — whether a click may end
+at the app store, switched separately for phones (`mobile`, covering Android and
+iOS) and desktop browsers (`web`). Set a side to `false` and a device *without
+the app installed* opens the link's own web destination instead of the store.
+The app is still tried first, so a device that has it installed opens natively
+as usual.
+
+Where the browser lands when the store is off, in priority order:
+
+1. the `deepLink` query param of the click being served — a dynamic link points
+   at a different page per click, so it wins over anything stored on the link;
+2. the link's stored `destinationUrl`;
+3. `platformOverrides.web.url` (the static web fallback).
+
+If the link has none of the three, the click lands on the **app info page**
+instead: the app's icon, tagline and description, its store badges, and — on
+desktop — a QR code of this same short link, so scanning it carries the click's
+deep link and UTMs across to the phone. Fill in `info` on the App
+(Dashboard → Apps) to control that copy; it falls back to the app name and
+store URLs when blank.
+
+The app is always tried first, so a device that has it installed opens
+natively even when the store is off — the app info page is only reached once
+no app-open attempt is left to make.
+
+A single click can override the stored setting without editing the link. The
+override applies to whichever side is serving that click — a phone reads it
+against `mobile`, a desktop browser against `web`:
+
+| Query param | Effect |
+| --- | --- |
+| `?no_app_redirect=1` | store off for this click |
+| `?storeRedirect=0` | store off for this click |
+| `?storeRedirect=1` | store on, even if the link has it switched off |
+
+### Query param spelling
+
+Control params are matched on their letters alone, so casing and separators
+never matter. `deepLink`, `deeplink`, `deep_link`, `deep-link` and `DEEP_LINK`
+are all the same param, and the same holds for `no_app_redirect` and
+`storeRedirect`. Only exact-word matches count — `deeplinks` or `mydeeplink`
+are treated as ordinary custom params, not as the destination.
+
+These params are also kept in `params.custom` so the bypass stays visible in
+click analytics.
 
 **Response**:
 ```json
