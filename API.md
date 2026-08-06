@@ -8,6 +8,26 @@ Complete API reference for the AllEvents deep linking platform.
 https://ae-link.allevents.app/api/v1
 ```
 
+## Multi-Tenant Architecture
+
+AE-LINK is a multi-tenant platform. A **Tenant** is one customer organization (account/workspace) — the top-level isolation boundary. Every record hangs off it:
+
+```
+Tenant  (AllEvents)                    ← the company/account, owns the tenant key pair
+  └─ App  (AllEvents, Manager App)     ← one per mobile app, ships an app_… key
+       └─ Link  (/feefe73)             ← belongs to a tenant AND an app
+            └─ Click / Install / Conversion / Event / Identity
+```
+
+Fifteen models carry `tenantId` and every index is tenant-prefixed — one tenant can never see another's data. Two key types operate at different trust levels:
+
+| Key | Trust | Where it lives |
+|-----|-------|----------------|
+| Tenant key | `server` | Only on the customer's backend — full power |
+| `app_…` key | `client` | Ships inside the mobile binary — deliberately limited |
+
+Endpoints that name or enumerate individuals refuse `app_…` keys outright (see [Event Tracking → Key types](#key-types-and-trust)).
+
 ## Authentication
 
 ### API Key Authentication

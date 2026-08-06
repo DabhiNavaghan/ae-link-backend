@@ -34,6 +34,33 @@ Email/SMS/Social → User clicks smartlink.apps.allevents.app/TG5hid0
               → POST /api/v1/deferred/confirm
 ```
 
+## Multi-Tenant Architecture
+
+SmartLink is a multi-tenant platform. A **Tenant** is one customer organization (account/workspace) — it is the top-level isolation boundary and every other record hangs off it.
+
+```
+Tenant  (AllEvents)                    ← the company/account
+  └─ App  (AllEvents, Manager App)     ← one per mobile app, owns an app_… key
+       └─ Link  (/feefe73)             ← belongs to a tenant AND an app
+            └─ Click / Install / Conversion / Event / Identity
+```
+
+**What a tenant owns:**
+- `name`, `domain`, `clerkUserId` — the dashboard login that owns the account
+- `apiKey` / `apiSecret` — the server-side key, the full-power one
+- `settings` — `fingerprintTtlHours`, `matchThreshold`, `attriKeys`, `requireSignedRevenue`, etc. Attribution behaviour is tuned per tenant
+- `featureFlags`, `isActive`
+
+**Data isolation:** 15 models carry `tenantId` (App, Campaign, Click, Conversion, DeferredLink, Identity, Install, Link, Event, Fingerprint, MatchAttempt, TeamMember…), and every index is tenant-prefixed. One tenant can never see another's clicks or users.
+
+**Auth tiering:** A tenant key lives only on the customer's backend and can do the sensitive things — enumerate or name individual end users, erase an identity, sign revenue events. An `app_…` key ships inside the mobile binary and is deliberately weaker. `TeamMember` is the people inside a tenant.
+
+**Two dashboards:**
+- `backend/` — the tenant-facing dashboard. A customer sees only their own data.
+- `admin/` — your internal staff view, deliberately cross-tenant. `/admin/links`, `/admin/tenants`, `/admin/end-users` span every customer.
+
+A tenant is created by `POST /api/v1/tenants` with a name + domain, which mints the key pair.
+
 ## Fingerprint Matching Algorithm
 
 The matching algorithm scores device signals that persist between browser and native app. User-Agent is intentionally excluded since browser UA (Chrome/Safari) never matches the app UA (Dart HTTP client).
@@ -176,16 +203,20 @@ curl -X POST https://smartlink.apps.allevents.app/api/v1/links \
 
 ## Database Models
 
-| Model | Purpose | TTL |
-|-------|---------|-----|
-| **Tenant** | Organization/account with API key | — |
-| **App** | Per-app Android/iOS store URLs and config | — |
-| **Campaign** | Groups links for organized tracking | — |
-| **Link** | Short link with destination, params, optional appId | Optional expiry |
-| **Click** | Each link click with device/geo data | — |
-| **Fingerprint** | Browser fingerprint from redirect page | 72h (configurable) |
-| **DeferredLink** | Links fingerprint → link data, awaiting app match | 72h (configurable) |
-| **Conversion** | App-side conversion events | — |
+Every model below `Tenant` carries `tenantId` — data isolation is enforced at the database level.
+
+| Model | Parent | Purpose | TTL |
+|-------|--------|---------|-----|
+| **Tenant** | — | Top-level organization/account with API key pair | — |
+| **App** | Tenant | Per-app Android/iOS store URLs and config; ships an `app_…` key | — |
+| **Campaign** | Tenant | Groups links for organized tracking | — |
+| **Link** | Tenant, App | Short link with destination, params, optional appId | Optional expiry |
+| **Click** | Tenant, Link | Each link click with device/geo data | — |
+| **Fingerprint** | Tenant, Link | Browser fingerprint from redirect page | 72h (configurable) |
+| **DeferredLink** | Tenant, Fingerprint | Links fingerprint → link data, awaiting app match | 72h (configurable) |
+| **Conversion** | Tenant | App-side conversion events | — |
+| **Event** | Tenant | Tracked user events with denormalized attribution | 90d (configurable) |
+| **Identity** | Tenant | One row per person; devices, traits, acquisition | — |
 
 ## Deployment
 
@@ -213,6 +244,8 @@ The dashboard dynamically uses `window.location.host` for all link URLs, so it w
 ## Security
 
 - API key authentication for all management endpoints
+- **Tenant-scoped data isolation** — every model carries `tenantId`, every index is tenant-prefixed
+- **Auth tiering** — tenant key (server-side, full power) vs `app_…` key (mobile binary, limited scope)
 - CORS middleware with configurable allowed origins
 - Rate limiting (100 req/min public, 1000 req/min authenticated)
 - Mongoose schema validation on all inputs

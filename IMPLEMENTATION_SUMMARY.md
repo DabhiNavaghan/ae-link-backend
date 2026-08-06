@@ -53,14 +53,21 @@ Complete, production-grade Next.js backend for a deferred deep linking platform 
   7. App confirms receipt
 
 #### 4. MongoDB Models
-Seven comprehensive Mongoose schemas:
-- **Tenant**: Organization/account management
-- **Campaign**: Link grouping and organization
-- **Link**: Short link definition with params
+All models carry `tenantId` at the top of every index — one tenant can never see another's data.
+
+- **Tenant**: Top-level organization/account — owns API key pair, settings, feature flags
+- **App**: Per-tenant mobile app config (Android/iOS) — ships an `app_…` key
+- **Campaign**: Links grouped for tracking
+- **Link**: Short link with destination and params; belongs to a Tenant and optionally an App
 - **Click**: Click event tracking
-- **Fingerprint**: Device fingerprint storage with TTL
-- **DeferredLink**: Pending/matched deep links with TTL
-- **Conversion**: Conversion tracking
+- **Fingerprint**: Device fingerprint from redirect page with configurable TTL
+- **DeferredLink**: Pending/matched deep links bridging Fingerprint → Click with configurable TTL
+- **Conversion**: App-side conversion tracking
+- **Event**: User-tracked events with denormalized attribution (90d TTL)
+- **Identity**: One row per person — devices, traits, acquisition source
+- **DeviceIdentity**: Device-to-user mapping with identity epoch
+- **EventDefinition**: Per-tenant event vocabulary
+- **EventRollup**: Daily pre-aggregated event counts
 
 #### 5. API Services
 - **LinkService**: CRUD operations for links
@@ -301,12 +308,13 @@ See `docs/event-tracking.md` for the design rationale and `API.md` for the
 endpoint reference.
 
 ### 6. Multi-Tenant Support
-- ✅ Tenant isolation
-- ✅ API key authentication
-- ✅ Custom app configuration
-- ✅ Configurable settings per tenant
-- ✅ Per-tenant event policy: attribution window, retention, trait allowlist,
-  name cardinality ceiling, signed-revenue requirement
+- ✅ Tenant-scoped data isolation — every model carries `tenantId`, every index is tenant-prefixed
+- ✅ Hierarchy: Tenant → App → Link → Click/Install/Conversion/Event/Identity
+- ✅ Auth tiering — tenant key (server-side, full power) vs `app_…` key (mobile binary, limited scope)
+- ✅ Custom app configuration per tenant (Android/iOS store URLs, package names, SHA-256)
+- ✅ Configurable settings per tenant: `fingerprintTtlHours`, `matchThreshold`, `attributionWindowDays`, `requireSignedRevenue`
+- ✅ Per-tenant event policy: retention, trait allowlist, name cardinality ceiling
+- ✅ Two dashboards: `backend/` (tenant-facing, scoped to own data) and `admin/` (staff, cross-tenant)
 
 ### 7. Production Ready
 - ✅ TypeScript strict mode
@@ -386,9 +394,9 @@ Potential v2.0 features:
 
 AE-LINK is a complete, production-grade deferred deep linking platform with:
 - 40+ API endpoints
-- 7 MongoDB models with proper indexes
+- 13 MongoDB models with proper indexes and tenant-prefixed isolation
 - Intelligent fingerprint matching
-- Multi-tenant support
+- Multi-tenant data isolation with tiered auth (tenant key vs app key)
 - Analytics dashboard
 - Full TypeScript type safety
 - Comprehensive documentation
