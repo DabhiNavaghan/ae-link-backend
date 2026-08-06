@@ -35,6 +35,14 @@ const appSchema = new Schema<IApp>(
       appId: { type: String, default: '' },
       storeUrl: { type: String, default: '' },
     },
+    // Marketing copy for the app-info interstitial. All optional — the page
+    // falls back to the app name and store URLs when these are blank.
+    info: {
+      tagline: { type: String, default: '' },
+      description: { type: String, default: '' },
+      iconUrl: { type: String, default: '' },
+      marketingUrl: { type: String, default: '' },
+    },
     isActive: {
       type: Boolean,
       default: true,

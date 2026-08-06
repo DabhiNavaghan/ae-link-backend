@@ -7,6 +7,7 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors } from '@/lib/middleware/cors';
 import AppModel from '@/lib/models/App';
 import { UpdateAppDto } from '@/types';
+import { sanitizeAppInfoUrls } from '@/lib/utils/url';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { Types } from 'mongoose';
@@ -156,6 +157,14 @@ export async function PUT(
         ...existingApp.ios,
         ...body.ios,
       };
+    }
+    if (body.info !== undefined) {
+      // Merge with existing app info so a partial payload cannot blank fields.
+      // URLs are held to http(s) — these render as href/src on a public page.
+      updateData.info = sanitizeAppInfoUrls({
+        ...existingApp.info,
+        ...body.info,
+      });
     }
 
     const updated = await AppModel.findByIdAndUpdate(

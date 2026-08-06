@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import StoreRedirectToggles from '@/components/ui/StoreRedirectToggles';
 
 interface Campaign {
   _id: string;
@@ -44,6 +45,8 @@ interface FormData {
   iosUrl: string;
   iosFallback: string;
   webUrl: string;
+  storeRedirectMobile: boolean;
+  storeRedirectWeb: boolean;
   shortCode: string;
   expiryDate: string;
 }
@@ -150,6 +153,8 @@ export default function CreateLinkPage() {
     iosUrl: '',
     iosFallback: '',
     webUrl: '',
+    storeRedirectMobile: true,
+    storeRedirectWeb: true,
     shortCode: '',
     expiryDate: '',
   });
@@ -207,6 +212,8 @@ export default function CreateLinkPage() {
           iosUrl: platformOverrides.ios?.url || '',
           iosFallback: platformOverrides.ios?.fallback || '',
           webUrl: platformOverrides.web?.url || '',
+          storeRedirectMobile: (source as any).storeRedirect?.mobile !== false,
+          storeRedirectWeb: (source as any).storeRedirect?.web !== false,
           shortCode: '',
           expiryDate: (source as any).expiresAt ? new Date((source as any).expiresAt).toISOString().split('T')[0] : '',
         });
@@ -215,6 +222,8 @@ export default function CreateLinkPage() {
         const hasAdvanced = params.utmSource || params.utmMedium || params.utmCampaign ||
           params.userEmail || params.userId || params.couponCode || params.referralCode ||
           platformOverrides.android || platformOverrides.ios || platformOverrides.web ||
+          (source as any).storeRedirect?.mobile === false ||
+          (source as any).storeRedirect?.web === false ||
           (params.custom && Object.keys(params.custom).length > 0);
         if (hasAdvanced) setShowMore(true);
       } catch {
@@ -320,6 +329,10 @@ export default function CreateLinkPage() {
           ...(formData.androidUrl && { android: { url: formData.androidUrl, ...(formData.androidFallback && { fallback: formData.androidFallback }) } }),
           ...(formData.iosUrl && { ios: { url: formData.iosUrl, ...(formData.iosFallback && { fallback: formData.iosFallback }) } }),
           ...(formData.webUrl && { web: { url: formData.webUrl } }),
+        },
+        storeRedirect: {
+          mobile: formData.storeRedirectMobile,
+          web: formData.storeRedirectWeb,
         },
         appId: formData.appId,
         ...(formData.campaignId && { campaignId: formData.campaignId }),
@@ -697,6 +710,15 @@ export default function CreateLinkPage() {
                   </span>
                 </div>
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <StoreRedirectToggles
+                    mobile={formData.storeRedirectMobile}
+                    web={formData.storeRedirectWeb}
+                    hasWebDestination={Boolean(formData.destinationUrl || formData.webUrl)}
+                    onChange={({ mobile, web }) =>
+                      setFormData((prev) => ({ ...prev, storeRedirectMobile: mobile, storeRedirectWeb: web }))
+                    }
+                  />
+
                   <div style={{ borderLeft: '3px solid var(--color-primary)', paddingLeft: 16 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-primary)', marginBottom: 8 }}>android</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

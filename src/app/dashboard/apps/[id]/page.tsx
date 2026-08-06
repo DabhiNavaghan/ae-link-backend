@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { smartLinkApi } from '@/lib/api';
 import { IApp } from '@/types';
+import { safeHttpUrl } from '@/lib/utils/url';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Link from 'next/link';
@@ -156,6 +157,58 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* App Info — the copy shown on the app info interstitial */}
+      <div className="card p-6">
+        <h2 className="text-xl font-semibold mb-1" style={{ color: 'var(--color-text)' }}>App Info</h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+          Shown when a link has app store navigation switched off and no web destination to open.
+        </p>
+        {app.info?.tagline || app.info?.description || app.info?.iconUrl || app.info?.marketingUrl ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              {safeHttpUrl(app.info?.iconUrl) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={safeHttpUrl(app.info?.iconUrl)} alt="" width={48} height={48}
+                  className="rounded-xl object-cover" style={{ flexShrink: 0 }} />
+              )}
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{app.name}</p>
+                {app.info?.tagline && (
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{app.info.tagline}</p>
+                )}
+              </div>
+            </div>
+            {app.info?.description && (
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Description</p>
+                <p className="mt-1 text-sm" style={{ color: 'var(--color-text)' }}>{app.info.description}</p>
+              </div>
+            )}
+            {app.info?.marketingUrl && (
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Marketing Page</p>
+                {safeHttpUrl(app.info.marketingUrl) ? (
+                  <a href={safeHttpUrl(app.info.marketingUrl)} target="_blank" rel="noopener noreferrer"
+                    className="text-sm mt-1 break-all" style={{ color: 'var(--color-primary)' }}>
+                    {app.info.marketingUrl}
+                  </a>
+                ) : (
+                  // Saved before the http(s) rule existed — show it as inert text
+                  // rather than a link that would run whatever scheme it carries.
+                  <p className="text-sm mt-1 break-all" style={{ color: 'var(--color-warning)' }}>
+                    {app.info.marketingUrl} — not a valid http(s) URL, ignored
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>
+            Not configured — the info page falls back to the app name and store links.
+          </p>
+        )}
       </div>
 
       {/* App ID for link creation */}

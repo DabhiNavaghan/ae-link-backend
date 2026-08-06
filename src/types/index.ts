@@ -90,6 +90,23 @@ export interface IIosConfig {
   storeUrl: string;
 }
 
+/**
+ * Marketing copy for the app-info interstitial — the page a click lands on
+ * when store navigation is off and the link has no web destination to open.
+ * Everything is optional; the interstitial falls back to the app's name and
+ * its store URLs when a field is blank.
+ */
+export interface IAppInfo {
+  /** One line under the app name, e.g. "Discover Events anywhere, anytime". */
+  tagline?: string;
+  /** A sentence or two on why to install. */
+  description?: string;
+  /** Square app icon, shown at the top of the interstitial. */
+  iconUrl?: string;
+  /** The app's own landing page, linked as "learn more". */
+  marketingUrl?: string;
+}
+
 export interface IApp extends Document {
   tenantId: Types.ObjectId;
   name: string;
@@ -97,6 +114,7 @@ export interface IApp extends Document {
   apiKey: string;
   android?: IAndroidConfig;
   ios?: IIosConfig;
+  info?: IAppInfo;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -106,6 +124,7 @@ export interface CreateAppDto {
   name: string;
   android?: Partial<IAndroidConfig>;
   ios?: Partial<IIosConfig>;
+  info?: IAppInfo;
 }
 
 export interface UpdateAppDto {
@@ -113,6 +132,7 @@ export interface UpdateAppDto {
   slug?: string;
   android?: Partial<IAndroidConfig>;
   ios?: Partial<IIosConfig>;
+  info?: IAppInfo;
   isActive?: boolean;
 }
 
@@ -169,6 +189,29 @@ export interface ILinkParams {
   custom?: Record<string, any>;
 }
 
+/**
+ * Whether a click may end at the app store when the app is not installed,
+ * controlled separately for phones and for desktop browsers.
+ *
+ * Off means "never send this click to the store". The redirect resolves to the
+ * link's own web destination instead — the dynamic `deepLink` param when the
+ * click carries one, otherwise the stored destination, otherwise the static
+ * web override. With no web destination of any kind the click lands on the
+ * app-info interstitial rather than a dead end.
+ *
+ * Only ever consulted after the app declined the link, so a device that has
+ * the app installed opens natively regardless of these flags.
+ */
+export interface IStoreRedirect {
+  /** Android + iOS. Off → phones without the app stay on the web. */
+  mobile: boolean;
+  /** Desktop browsers. Off → no store listing hand-off; show the app info page. */
+  web: boolean;
+}
+
+/** The two audiences the store toggle is resolved for. */
+export type StorePlatform = 'mobile' | 'web';
+
 export interface IPlatformOverrides {
   android?: {
     url: string;
@@ -193,6 +236,7 @@ export interface ILink extends Document {
   linkType: LinkType;
   params: ILinkParams;
   platformOverrides: IPlatformOverrides;
+  storeRedirect: IStoreRedirect;
   isActive: boolean;
   expiresAt?: Date;
   clickCount: number;
@@ -423,6 +467,8 @@ export interface CreateLinkDto {
   linkType?: LinkType;
   params?: ILinkParams;
   platformOverrides?: IPlatformOverrides;
+  /** Both sides default to true. See IStoreRedirect. */
+  storeRedirect?: Partial<IStoreRedirect>;
   expiresAt?: string;
   shortCode?: string;
   createdBy?: ICreatedBy;
@@ -433,6 +479,7 @@ export interface UpdateLinkDto {
   destinationUrl?: string;
   params?: ILinkParams;
   platformOverrides?: IPlatformOverrides;
+  storeRedirect?: Partial<IStoreRedirect>;
   isActive?: boolean;
   expiresAt?: string;
 }

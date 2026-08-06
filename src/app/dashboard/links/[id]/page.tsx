@@ -20,6 +20,7 @@ interface LinkData {
   expiresAt?: string;
   params?: Record<string, any>;
   platformOverrides?: Record<string, any>;
+  storeRedirect?: { mobile?: boolean; web?: boolean };
   campaignId?: string;
   campaignName?: string;
   createdBy?: { name: string; email: string; avatarUrl?: string };
@@ -702,6 +703,45 @@ export default function LinkDetailPage() {
               </div>
             );
           }
+        })()}
+
+        {/* App store navigation — only surfaced when a side is switched off,
+            since that is what changes where a click without the app lands. */}
+        {(link.storeRedirect?.mobile === false || link.storeRedirect?.web === false) && (() => {
+          const hasWebDestination = Boolean(link.destinationUrl || link.platformOverrides?.web?.url);
+          const offOutcome = hasWebDestination
+            ? <>open this link on the web instead — each click&apos;s <code>deepLink</code> takes priority over the web override.</>
+            : <>land on the app info page (qr + store links), since this link has no web destination.</>;
+
+          const row = (label: string, on: boolean, audience: string) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase',
+                letterSpacing: '0.16em', padding: '4px 10px', minWidth: 48, textAlign: 'center',
+                border: `1px solid ${on ? 'var(--color-border-hover)' : 'var(--color-warning)'}`,
+                color: on ? 'var(--color-text-tertiary)' : 'var(--color-warning)',
+              }}>
+                {on ? 'on' : 'off'}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--color-text)' }}>{label}</strong> — {on
+                  ? <>{audience} without the app go to the store.</>
+                  : <>{audience} without the app {offOutcome}</>}
+              </span>
+            </div>
+          );
+
+          return (
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', marginBottom: 24 }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+                {nextSection('app store navigation')}
+              </div>
+              <div style={{ padding: '10px 20px' }}>
+                {row('android & ios', link.storeRedirect?.mobile !== false, 'phones')}
+                {row('web', link.storeRedirect?.web !== false, 'desktop visitors')}
+              </div>
+            </div>
+          );
         })()}
 
         {/* Platform Overrides */}

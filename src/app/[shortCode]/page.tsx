@@ -11,8 +11,11 @@ import { Logger } from '@/lib/logger';
 import { emitLiveEvent } from '@/lib/services/emit-live-event';
 import { getClientIp } from '@/lib/get-client-ip';
 import RedirectPage, { STORE_FALLBACK_PARAM } from '@/components/RedirectPage';
+import ResolverService, { isDeepLinkKey, isStoreRedirectKey } from '@/lib/services/resolver.service';
+import { safeHttpUrl } from '@/lib/utils/url';
 import { fetchOgMeta } from '@/lib/services/og-fetch.service';
-import { ClickChannel } from '@/types';
+import AppInterstitial, { APP_INFO_PARAM } from '@/components/AppInterstitial';
+import { ClickChannel, IAppInfo, StorePlatform } from '@/types';
 
 /**
  * Auto-detect channel from referer URL and UTM params
@@ -80,6 +83,11 @@ const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|wof
  * The `deepLink` query param becomes the destinationUrl when the link
  * itself has no destination stored. All other query params are merged
  * into the link's params and stored in the click record for analytics.
+ *
+ * When app-store navigation is switched off for the link (or for this click
+ * via `?no_app_redirect=1` / `?storeRedirect=0`), a device that does not have
+ * the app installed opens that same deep link on the web instead of going to
+ * the store. An installed app still intercepts the link natively first.
  */
 export default async function ResolvePage({
   params,
@@ -121,9 +129,10 @@ export default async function ResolvePage({
     const storedParams = linkData.params || {};
 
     // deepLink query param → becomes destinationUrl if link has none.
+    // Any spelling is accepted (deepLink, deeplink, deep_link, deep-link…).
     // If the value is a relative path (starts with /), reconstruct the
     // full URL using the referer origin or the link's stored destination.
-    let deepLinkUrl = queryParams.deepLink || queryParams.deep_link || queryParams.deeplink;
+    let deepLinkUrl = ResolverService.getDeepLinkParam(queryParams);
     if (deepLinkUrl && !deepLinkUrl.startsWith('http')) {
       // Try to get the origin from the referer header
       const earlyReferer = headers().get('referer') || '';
@@ -145,6 +154,14 @@ export default async function ResolvePage({
     // this is the core dynamic deep-linking feature.
     const effectiveDestinationUrl = deepLinkUrl || linkData.destinationUrl;
 
+    // Where a device without the app would land if the store is off. Preferring
+    // this click's dynamic deepLink over any static web override is the point:
+    // a dynamic link resolves somewhere different per click.
+    const webFallbackUrl = ResolverService.getWebFallbackUrl(
+      linkData,
+      deepLinkUrl
+    );
+
     // Merge stored params with query params (query overrides stored)
     // Map both snake_case and camelCase to our camelCase keys
     const paramMap: Record<string, string> = {
@@ -162,10 +179,16 @@ export default async function ResolvePage({
       ref: 'ref',
     };
 
+    // Note: the store-redirect override keys are deliberately NOT skipped —
+    // they stay in `custom` so analytics can still see that a click asked to
+    // bypass the store, and so the app receives them after a deferred match.
+    // The deep link is skipped under any spelling: it is the destination, not
+    // a tracking param, and it is already carried on its own.
     const skipKeys = new Set([
-      'deepLink', 'deep_link', 'deeplink', STORE_FALLBACK_PARAM,
+      STORE_FALLBACK_PARAM, APP_INFO_PARAM,
       ...Object.keys(paramMap),
     ]);
+    const isSkippedKey = (key: string) => skipKeys.has(key) || isDeepLinkKey(key);
     const mergedParams: Record<string, any> = { ...storedParams };
 
     // Apply known param overrides from query
@@ -179,7 +202,7 @@ export default async function ResolvePage({
     // Any remaining query params → store under custom
     const customFromUrl: Record<string, string> = {};
     for (const [qKey, qVal] of Object.entries(queryParams)) {
-      if (!skipKeys.has(qKey) && !paramMap[qKey] && qVal) {
+      if (!isSkippedKey(qKey) && !paramMap[qKey] && qVal) {
         customFromUrl[qKey] = qVal;
       }
     }
@@ -207,6 +230,9 @@ export default async function ResolvePage({
     };
     // Android package name — needed for intent:// URLs
     let androidPackage: string | undefined = 'com.amitech.allevents'; // default
+    // Marketing copy for the interstitial, when this link has an app attached.
+    let appName: string | undefined;
+    let appInfo: IAppInfo | undefined;
 
     if (linkData.appId) {
       const app = await AppModel.findById(linkData.appId).lean();
@@ -218,12 +244,96 @@ export default async function ResolvePage({
         if (app.android?.package) {
           androidPackage = app.android.package;
         }
+        appName = app.name;
+        appInfo = app.info;
       }
     } else if (tenant?.app) {
       storeUrls = {
         android: tenant.app.android?.storeUrl || storeUrls.android,
         ios: tenant.app.ios?.storeUrl || storeUrls.ios,
       };
+    }
+
+    // ── App-store navigation ──
+    // Phones and desktop are switched independently, and a query param on this
+    // click overrides whichever one applies. With the store off and nothing on
+    // the web to open, the click lands on the app-info page rather than being
+    // pushed to a store listing it was explicitly told not to use.
+    const storePlatform: StorePlatform = isMobile ? 'mobile' : 'web';
+    const storeRedirectEnabled = ResolverService.isStoreRedirectEnabled(
+      linkData,
+      queryParams,
+      storePlatform
+    );
+    // Store off and nothing on the web to open → the app info page is where
+    // this click ends up. *When* it gets there is decided below.
+    const needsAppInfoPage = !storeRedirectEnabled && !webFallbackUrl;
+
+    const origin = (() => {
+      const host = headersList.get('host') || 'smartlink.apps.allevents.app';
+      const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+      return `${isLocal ? 'http' : 'https'}://${host}`;
+    })();
+
+    // This same short link, minus the params that control *this* hop. The
+    // interstitial encodes it into its QR, so scanning replays the click —
+    // deep link, UTMs and all — through the normal flow on the phone. Carrying
+    // the control params across would make the phone skip its own app-open
+    // attempt, which is the one thing the scan is for.
+    const qrQuery = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (key === STORE_FALLBACK_PARAM || key === APP_INFO_PARAM) continue;
+      if (isStoreRedirectKey(key)) continue;
+      qrQuery.set(key, value);
+    }
+    const qrString = qrQuery.toString();
+    const smartLinkUrl = `${origin}/${shortCode}${qrString ? `?${qrString}` : ''}`;
+
+    // Where an app-open attempt lands when the app declines it.
+    const appInfoUrl = (() => {
+      const url = new URL(`${origin}/${shortCode}`);
+      for (const [key, value] of Object.entries(queryParams)) {
+        if (key === STORE_FALLBACK_PARAM) continue;
+        url.searchParams.set(key, value);
+      }
+      url.searchParams.set(APP_INFO_PARAM, '1');
+      return url.toString();
+    })();
+
+    // ── When to show the app info page rather than try the app first ──
+    // Trying the app costs nothing when it is not installed (the attempt just
+    // falls through), but skipping it strands every user who *does* have the
+    // app on a "get the app" screen. So the interstitial renders only once no
+    // app-open attempt is left to make:
+    //   · this load is already the fallback of one (_appinfo), or
+    //   · a browser bounced off our own intent (_slfb), or
+    //   · this device has no way to open the app from a web page at all.
+    // Android always has the intent path; iOS only when the link carries a
+    // custom scheme, since Universal Links get their chance before we load.
+    const isCustomScheme = (url?: string) => Boolean(url && !url.startsWith('http'));
+    const canAttemptAppOpen =
+      deviceInfo.os === 'android'
+        ? Boolean(androidPackage) || isCustomScheme(linkData.platformOverrides?.android?.url)
+        : deviceInfo.os === 'ios'
+          ? isCustomScheme(linkData.platformOverrides?.ios?.url)
+          : false;
+
+    const isAppInfoHop = queryParams[APP_INFO_PARAM] === '1';
+    const showInterstitial =
+      isAppInfoHop ||
+      (needsAppInfoPage && (!canAttemptAppOpen || isStoreFallback));
+
+    // When the app *can* still be tried, the redirect page runs as usual and
+    // simply falls back here instead of to a store it was told not to use.
+    const noAppFallbackUrl = needsAppInfoPage ? appInfoUrl : webFallbackUrl;
+
+    if (needsAppInfoPage) {
+      logger.info(
+        { shortCode, platform: storePlatform, showInterstitial, canAttemptAppOpen },
+        showInterstitial
+          ? 'Store navigation off with no web destination — serving app info page'
+          : 'Store navigation off with no web destination — trying the app first'
+      );
     }
 
     // Record click — include query params as metadata for analytics
@@ -243,7 +353,13 @@ export default async function ResolvePage({
       logger.debug({ shortCode }, 'Intent store fallback — skip click recording');
     }
 
-    if (!isBot && !isStoreFallback) try {
+    // Same reasoning as the store fallback: the load that fired the app-open
+    // attempt already recorded this click, and this is its second hop.
+    if (isAppInfoHop) {
+      logger.debug({ shortCode }, 'App info fallback hop — skip click recording');
+    }
+
+    if (!isBot && !isStoreFallback && !isAppInfoHop) try {
       const channel = detectChannel(
         referer,
         mergedParams.utmSource,
@@ -289,6 +405,11 @@ export default async function ResolvePage({
 
       const isDuplicate = Boolean(existingClick);
 
+      // With the store off, a mobile click that misses the app ends on the web
+      // just like a desktop one — recording it as a store redirect would count
+      // an install intent that can never happen.
+      const isStoreBoundClick = isMobile && storeRedirectEnabled;
+
       // Only the non-duplicate path consumes geo (the click document and the
       // live events). Skipping it here avoids an ipapi.co round trip — and a
       // slice of that provider's rate limit — on every suppressed hit.
@@ -308,7 +429,7 @@ export default async function ResolvePage({
           device: deviceInfo,
           geo,
           isAppInstalled: false,
-          actionTaken: isMobile ? 'store_redirect' : 'web_fallback',
+          actionTaken: isStoreBoundClick ? 'store_redirect' : 'web_fallback',
           ...(clickMetadata && { metadata: clickMetadata }),
         });
 
@@ -338,9 +459,13 @@ export default async function ResolvePage({
           channel,
           deepLink: deepLinkUrl || undefined,
           destinationUrl: effectiveDestinationUrl || linkData.destinationUrl || undefined,
-          redirectUrl: effectiveDestinationUrl
-            || linkData.destinationUrl
-            || (deviceInfo.os === 'ios' ? storeUrls.ios : storeUrls.android),
+          redirectUrl: storeRedirectEnabled
+            ? (effectiveDestinationUrl
+              || linkData.destinationUrl
+              || (deviceInfo.os === 'ios' ? storeUrls.ios : storeUrls.android))
+            // With the store off this is the web destination, or the app info
+            // page when the link has none.
+            : noAppFallbackUrl,
           referer: referer || undefined,
           ip,
         },
@@ -356,7 +481,7 @@ export default async function ResolvePage({
       // for a single recorded click.
       if (!isDuplicate) {
         emitLiveEvent({ ...eventBase, type: 'click' });
-        emitLiveEvent({ ...eventBase, type: isMobile ? 'store_redirect' : 'web_fallback' });
+        emitLiveEvent({ ...eventBase, type: isStoreBoundClick ? 'store_redirect' : 'web_fallback' });
       }
 
       logger.info(
@@ -371,6 +496,27 @@ export default async function ResolvePage({
       );
     } catch (err) {
       logger.error({ error: err }, 'Click recording failed');
+    }
+
+    // The app is either already installed and took the link, or there is no
+    // attempt left to make. Either way there is nothing to redirect to and the
+    // store is off limits, so show the app instead of a dead end.
+    if (showInterstitial) {
+      return (
+        <AppInterstitial
+          appName={appName}
+          info={appInfo}
+          storeUrls={storeUrls}
+          smartLinkUrl={smartLinkUrl}
+          deviceOS={deviceInfo.os}
+          linkId={link._id.toString()}
+          tenantId={link.tenantId.toString()}
+          clickId={clickId}
+          destinationUrl={effectiveDestinationUrl}
+          params={mergedParams}
+          isAppOpenFallback={isAppInfoHop}
+        />
+      );
     }
 
     return (
@@ -388,6 +534,8 @@ export default async function ResolvePage({
         storeUrls={storeUrls}
         androidPackage={androidPackage}
         isStoreFallback={isStoreFallback}
+        storeRedirectEnabled={storeRedirectEnabled}
+        webFallbackUrl={noAppFallbackUrl}
       />
     );
   } catch (error) {
@@ -405,11 +553,13 @@ function resolveDestinationUrl(
   linkData: any,
   searchParams: Record<string, string | string[] | undefined>
 ): string | undefined {
-  const get = (k: string) => {
-    const v = searchParams[k];
-    return Array.isArray(v) ? v[0] : v;
-  };
-  let deepLinkUrl = get('deepLink') || get('deep_link') || get('deeplink');
+  // Same any-spelling deep-link lookup as the page itself, so the social card
+  // and the landing page can never disagree about the destination.
+  const flat: Record<string, string> = {};
+  for (const [key, val] of Object.entries(searchParams)) {
+    if (val) flat[key] = Array.isArray(val) ? val[0] : val;
+  }
+  let deepLinkUrl = ResolverService.getDeepLinkParam(flat);
   if (deepLinkUrl && !deepLinkUrl.startsWith('http') && linkData?.destinationUrl) {
     try {
       const origin = new URL(linkData.destinationUrl).origin;
@@ -438,7 +588,14 @@ export async function generateMetadata({
   params: Params;
   searchParams: Record<string, string | string[] | undefined>;
 }) {
+  // A short link is a redirect endpoint, not a page. Keeping it out of search
+  // results also keeps whatever a click carried in its query string — deep
+  // links, user ids, coupon codes — from being indexed. Social scrapers build
+  // previews regardless of this, so sharing is unaffected.
+  const noIndex = { robots: { index: false, follow: false } };
+
   const fallback = {
+    ...noIndex,
     title: 'AllEvents',
     description: 'Opening link...',
   };
@@ -460,16 +617,38 @@ export async function generateMetadata({
     const og =
       isCrawler && destinationUrl ? await fetchOgMeta(destinationUrl) : {};
 
+    // With no destination to scrape and the store switched off, this link
+    // renders the app info page — so the card should describe the app rather
+    // than fall back to generic copy. Only reached when there is genuinely no
+    // destination, so it costs a query on app-promo links alone.
+    let appCard: { title?: string; description?: string; image?: string } = {};
+    if (!destinationUrl && linkData.appId && linkData.storeRedirect?.web === false) {
+      try {
+        const app = await AppModel.findById(linkData.appId).lean();
+        if (app) {
+          appCard = {
+            title: app.name,
+            description: app.info?.tagline || app.info?.description,
+            image: safeHttpUrl(app.info?.iconUrl),
+          };
+        }
+      } catch {
+        // Card copy is not worth failing metadata over.
+      }
+    }
+
     const title =
-      og.title || linkData.title || 'AllEvents';
+      og.title || appCard.title || linkData.title || 'AllEvents';
     const description =
       og.description ||
+      appCard.description ||
       (linkData.params?.action ? `${linkData.params.action}` : '') ||
       'Discover and book events on AllEvents';
-    const image = og.image;
+    const image = og.image || appCard.image;
     const canonical = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smartlink.apps.allevents.app'}/${params.shortCode}`;
 
     return {
+      ...noIndex,
       title,
       description,
       openGraph: {

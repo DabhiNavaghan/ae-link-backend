@@ -38,6 +38,10 @@ export class LinkService {
       linkType: dto.linkType,
       params: dto.params || {},
       platformOverrides: dto.platformOverrides || {},
+      storeRedirect: {
+        mobile: dto.storeRedirect?.mobile !== false,
+        web: dto.storeRedirect?.web !== false,
+      },
       isActive: true,
       expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
       ...(dto.createdBy && { createdBy: dto.createdBy }),
@@ -148,6 +152,14 @@ export class LinkService {
     }
     if (dto.platformOverrides !== undefined) {
       updateData.platformOverrides = dto.platformOverrides;
+    }
+    // Each side is set independently so a partial payload cannot silently
+    // reset the other half of the toggle back to its default.
+    if (dto.storeRedirect?.mobile !== undefined) {
+      updateData['storeRedirect.mobile'] = dto.storeRedirect.mobile;
+    }
+    if (dto.storeRedirect?.web !== undefined) {
+      updateData['storeRedirect.web'] = dto.storeRedirect.web;
     }
     if (dto.isActive !== undefined) {
       updateData.isActive = dto.isActive;
