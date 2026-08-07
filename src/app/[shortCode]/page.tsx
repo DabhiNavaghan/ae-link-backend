@@ -265,9 +265,17 @@ export default async function ResolvePage({
       queryParams,
       storePlatform
     );
-    // Store off and nothing on the web to open → the app info page is where
-    // this click ends up. *When* it gets there is decided below.
-    const needsAppInfoPage = !storeRedirectEnabled && !webFallbackUrl;
+    // Where this click ends up when the store is off. *When* it gets there is
+    // decided further down.
+    //
+    // Desktop and phones part ways here. Switching the store off for web means
+    // "a desktop visitor never leaves" — there is no app to open and no store
+    // worth sending them to, so the app page is the destination and its QR
+    // carries the click, deep link and all, across to their phone. A phone can
+    // actually use a web destination, so it still gets one when the link has
+    // it, and only falls through to the app page when it does not.
+    const needsAppInfoPage =
+      !storeRedirectEnabled && (storePlatform === 'web' || !webFallbackUrl);
 
     const origin = (() => {
       const host = headersList.get('host') || 'smartlink.apps.allevents.app';
@@ -505,6 +513,7 @@ export default async function ResolvePage({
       return (
         <AppInterstitial
           appName={appName}
+          appId={linkData.appId ? String(linkData.appId) : undefined}
           info={appInfo}
           storeUrls={storeUrls}
           smartLinkUrl={smartLinkUrl}

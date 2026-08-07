@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { generateQRCodeSVG } from '@/lib/utils/qr-code';
+import AppIcon from '@/components/AppIcon';
 
 interface AppInfo {
+  id: string;
   name: string;
   androidStoreUrl: string | null;
   iosStoreUrl: string | null;
+  tagline: string | null;
+  description: string | null;
+  marketingUrl: string | null;
+  hasIcon: boolean;
+  hasScreenshot: boolean;
 }
 
 function detectOS(): 'android' | 'ios' | 'other' {
@@ -67,11 +75,56 @@ function appendStoreParams(
   }
 }
 
+/** Apple's mark, drawn inline so the page needs no external assets. */
+function AppleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 14.25 3.51 5.31 9.05 5.03c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.36zM12.03 4.97C11.88 2.69 13.73.81 15.85.63c.29 2.58-2.34 4.5-3.82 4.34z" />
+    </svg>
+  );
+}
+
+function PlayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M3.18 1.6C3.06 1.8 3 2.05 3 2.36v19.28c0 .31.06.56.18.76l.07.07 10.8-10.8v-.25L3.25 1.53l-.07.07z" fill="#00A0FF" />
+      <path d="M17.64 15.28l-3.59-3.6v-.25l3.6-3.6.08.05 4.26 2.42c1.22.69 1.22 1.82 0 2.51l-4.26 2.42-.09.05z" fill="#FFBC00" />
+      <path d="M17.73 15.23l-3.68-3.68-10.87 10.87c.4.43 1.07.48 1.82.06l12.73-7.25z" fill="#FF3A44" />
+      <path d="M17.73 8.77L5 1.52C4.25 1.1 3.58 1.15 3.18 1.58l10.87 10.87 3.68-3.68z" fill="#00C852" />
+    </svg>
+  );
+}
+
+function StoreBadge({
+  href,
+  glyph,
+  line1,
+  line2,
+}: {
+  href: string;
+  glyph: React.ReactNode;
+  line1: string;
+  line2: string;
+}) {
+  return (
+    <a href={href} className="ae-badge">
+      {/* Fixed box so the Apple and Play marks — which fill their viewBoxes
+          differently — end up the same optical size next to the text. */}
+      <span className="ae-badge-glyph">{glyph}</span>
+      <span className="ae-badge-text">
+        <span className="ae-badge-line1">{line1}</span>
+        <span className="ae-badge-line2">{line2}</span>
+      </span>
+    </a>
+  );
+}
+
 export default function StoreRedirectPage() {
   const { slug }    = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const [app, setApp]     = useState<AppInfo | null>(null);
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'choose' | 'error'>('loading');
+  const [qrSvg, setQrSvg] = useState('');
 
   useEffect(() => {
     fetch(`/api/v1/apps/public/${slug}`)
@@ -79,22 +132,15 @@ export default function StoreRedirectPage() {
         if (!r.ok) throw new Error('not found');
         return r.json();
       })
-      .then((data) => {
-        const info: AppInfo = {
-          name: data.name,
-          androidStoreUrl: data.androidStoreUrl,
-          iosStoreUrl: data.iosStoreUrl,
-        };
-        setApp(info);
+      .then((data: AppInfo) => {
+        setApp(data);
 
         const os = detectOS();
-        const isIos = os === 'ios';
-
-        const androidUrl = info.androidStoreUrl
-          ? appendStoreParams(info.androidStoreUrl, searchParams, false)
+        const androidUrl = data.androidStoreUrl
+          ? appendStoreParams(data.androidStoreUrl, searchParams, false)
           : null;
-        const iosUrl = info.iosStoreUrl
-          ? appendStoreParams(info.iosStoreUrl, searchParams, true)
+        const iosUrl = data.iosStoreUrl
+          ? appendStoreParams(data.iosStoreUrl, searchParams, true)
           : null;
 
         if (os === 'android' && androidUrl) {
@@ -117,146 +163,133 @@ export default function StoreRedirectPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // ─── Shared shell ────────────────────────────────────────────────
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0a0a0a',
-        color: '#e5e5e5',
-        fontFamily: 'var(--font-mono, monospace)',
-        padding: '2rem',
-        gap: '1.5rem',
-        textAlign: 'center',
-      }}
-    >
-      {children}
-    </div>
-  );
+  // Only the desktop "choose" screen shows a QR — a phone that got this far is
+  // already holding the link. Generated client-side because this page has no
+  // server render to hang it off.
+  useEffect(() => {
+    if (status !== 'choose' || !app) return;
+    const logo = app.hasIcon
+      ? `<image href="/app-asset/${app.id}/icon" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" />`
+      : undefined;
+    generateQRCodeSVG(window.location.href, 190, logo)
+      .then(setQrSvg)
+      .catch(() => setQrSvg(''));
+  }, [status, app]);
+
+  const androidHref = app?.androidStoreUrl
+    ? appendStoreParams(app.androidStoreUrl, searchParams, false)
+    : null;
+  const iosHref = app?.iosStoreUrl
+    ? appendStoreParams(app.iosStoreUrl, searchParams, true)
+    : null;
 
   if (status === 'loading') {
     return (
-      <Shell>
-        <div style={{ fontSize: 13, color: '#666', letterSpacing: '0.08em' }}>loading...</div>
-      </Shell>
+      <div className="ae-page">
+        <div className="ae-status">loading...</div>
+      </div>
     );
   }
 
   if (status === 'error') {
     return (
-      <Shell>
-        <p style={{ fontSize: 13, color: '#ef4444' }}>app not found.</p>
-      </Shell>
+      <div className="ae-page">
+        <div className="ae-status ae-status-error">app not found.</div>
+      </div>
     );
   }
 
   if (status === 'redirecting') {
     return (
-      <Shell>
-        <p style={{ fontSize: 13, color: '#666', letterSpacing: '0.08em' }}>
-          redirecting to {app?.name}...
-        </p>
-        {app?.androidStoreUrl && (
-          <a
-            href={appendStoreParams(app.androidStoreUrl, searchParams, false)}
-            style={{ color: '#22c55e', fontSize: 12 }}
-          >
-            tap here if not redirected (Play Store)
-          </a>
-        )}
-        {app?.iosStoreUrl && (
-          <a
-            href={appendStoreParams(app.iosStoreUrl, searchParams, true)}
-            style={{ color: '#a3a3a3', fontSize: 12 }}
-          >
-            tap here if not redirected (App Store)
-          </a>
-        )}
-      </Shell>
+      <div className="ae-page">
+        <main className="ae-card">
+          {/* Quoted so the leading slashes read as the label they are. */}
+          <div className="ae-eyebrow">{'// opening the store'}</div>
+          <div className="ae-head">
+            <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={64} />
+            <div className="ae-head-text">
+              <h1 className="ae-name">{app?.name}</h1>
+              <p className="ae-tagline">taking you to the store…</p>
+            </div>
+          </div>
+          <div className="ae-badges">
+            {iosHref && (
+              <StoreBadge href={iosHref} glyph={<AppleGlyph />} line1="Download on the" line2="App Store" />
+            )}
+            {androidHref && (
+              <StoreBadge href={androidHref} glyph={<PlayGlyph />} line1="GET IT ON" line2="Google Play" />
+            )}
+          </div>
+          <p className="ae-hint">not redirected? use a button above.</p>
+        </main>
+      </div>
     );
   }
 
-  // choose — desktop or both stores available
+  // choose — desktop, or an app that ships on both stores
   return (
-    <Shell>
-      <p style={{ fontSize: 11, letterSpacing: '0.12em', color: '#666', textTransform: 'uppercase' }}>
-        download
-      </p>
-      <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#fff' }}>
-        {app?.name}
-      </h1>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-        {app?.androidStoreUrl && (
-          <a
-            href={appendStoreParams(app.androidStoreUrl, searchParams, false)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              border: '1px solid #22c55e',
-              color: '#22c55e',
-              textDecoration: 'none',
-              fontSize: 13,
-              letterSpacing: '0.06em',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = '#22c55e';
-              (e.currentTarget as HTMLElement).style.color = '#000';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = '#22c55e';
-            }}
-          >
-            <AndroidIcon /> Play Store
-          </a>
-        )}
-        {app?.iosStoreUrl && (
-          <a
-            href={appendStoreParams(app.iosStoreUrl, searchParams, true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              border: '1px solid #a3a3a3',
-              color: '#a3a3a3',
-              textDecoration: 'none',
-              fontSize: 13,
-              letterSpacing: '0.06em',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = '#a3a3a3';
-              (e.currentTarget as HTMLElement).style.color = '#000';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = '#a3a3a3';
-            }}
-          >
-            <AppleIcon /> App Store
-          </a>
-        )}
-      </div>
-    </Shell>
+    <div className="ae-page ae-page-wide">
+      <main className="ae-card">
+        {/* The eyebrow sits above the split so its rule spans the whole card —
+            stopping it at the first column left the header looking severed. */}
+        <div className="ae-eyebrow">{'// get the app'}</div>
+
+        <div className="ae-card-split">
+          <div className="ae-col">
+            <div className="ae-head">
+              <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={64} />
+              <div className="ae-head-text">
+                <h1 className="ae-name">{app?.name}</h1>
+                {app?.tagline && <p className="ae-tagline">{app.tagline}</p>}
+              </div>
+            </div>
+
+            {app?.description && <p className="ae-desc">{app.description}</p>}
+
+            <div className="ae-get">
+              {qrSvg && (
+                <div className="ae-qr-inline">
+                  <div className="ae-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                  <div className="ae-qr-label">scan to install</div>
+                </div>
+              )}
+              <div className="ae-badges ae-badges-stacked">
+                {iosHref && (
+                  <StoreBadge href={iosHref} glyph={<AppleGlyph />} line1="Download on the" line2="App Store" />
+                )}
+                {androidHref && (
+                  <StoreBadge href={androidHref} glyph={<PlayGlyph />} line1="GET IT ON" line2="Google Play" />
+                )}
+              </div>
+            </div>
+
+            {app?.marketingUrl && (
+              <a className="ae-more ae-more-left" href={app.marketingUrl} target="_blank" rel="noopener noreferrer">
+                learn more about {app.name} →
+              </a>
+            )}
+          </div>
+
+          {app?.hasScreenshot && (
+            <div className="ae-shot">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/app-asset/${app.id}/screenshot`}
+                alt=""
+                className="ae-shot-img"
+                loading="eager"
+                decoding="async"
+                // A missing brand shot should collapse the column rather than
+                // leave a broken frame next to the download buttons.
+                onError={(e) => {
+                  const col = (e.currentTarget.parentElement as HTMLElement | null);
+                  if (col) col.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
-
-const AndroidIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17.523 15.341c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.901.402.901.902-.401.902-.901.902zm-11.046 0c-.5 0-.902-.402-.902-.902s.402-.902.902-.902.902.402.902.902-.402.902-.902.902zm11.4-6.052l1.997-3.46a.416.416 0 00-.152-.567.416.416 0 00-.568.152L17.12 8.93c-1.46-.67-3.1-1.044-5.12-1.044s-3.66.374-5.12 1.044L4.846 5.414a.416.416 0 00-.568-.152.416.416 0 00-.152.567l1.997 3.46C2.688 11.186.343 14.654 0 18.76h24c-.343-4.106-2.688-7.574-6.123-9.471z" />
-  </svg>
-);
-
-const AppleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-  </svg>
-);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { smartLinkApi } from '@/lib/api';
 import { IApp } from '@/types';
 import { safeHttpUrl } from '@/lib/utils/url';
+import AppIcon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Link from 'next/link';
@@ -168,11 +169,13 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
         {app.info?.tagline || app.info?.description || app.info?.iconUrl || app.info?.marketingUrl ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              {safeHttpUrl(app.info?.iconUrl) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={safeHttpUrl(app.info?.iconUrl)} alt="" width={48} height={48}
-                  className="rounded-xl object-cover" style={{ flexShrink: 0 }} />
-              )}
+              <AppIcon
+                appId={String((app as any)._id)}
+                hasIcon={Boolean(safeHttpUrl(app.info?.iconUrl))}
+                name={app.name}
+                size={48}
+                className="rounded-xl object-cover shrink-0"
+              />
               <div>
                 <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{app.name}</p>
                 {app.info?.tagline && (

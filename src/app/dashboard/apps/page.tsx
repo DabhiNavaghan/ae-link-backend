@@ -288,6 +288,7 @@ function AppFormModal({
   const [infoTagline, setInfoTagline] = useState('');
   const [infoDescription, setInfoDescription] = useState('');
   const [infoIconUrl, setInfoIconUrl] = useState('');
+  const [infoScreenshotUrl, setInfoScreenshotUrl] = useState('');
   const [infoMarketingUrl, setInfoMarketingUrl] = useState('');
 
   // Populate fields when editing
@@ -304,6 +305,7 @@ function AppFormModal({
       setInfoTagline(editApp.info?.tagline || '');
       setInfoDescription(editApp.info?.description || '');
       setInfoIconUrl(editApp.info?.iconUrl || '');
+      setInfoScreenshotUrl(editApp.info?.screenshotUrl || '');
       setInfoMarketingUrl(editApp.info?.marketingUrl || '');
     } else {
       setName('');
@@ -317,6 +319,7 @@ function AppFormModal({
       setInfoTagline('');
       setInfoDescription('');
       setInfoIconUrl('');
+      setInfoScreenshotUrl('');
       setInfoMarketingUrl('');
     }
     setError(null);
@@ -350,6 +353,7 @@ function AppFormModal({
           tagline: infoTagline.trim(),
           description: infoDescription.trim(),
           iconUrl: infoIconUrl.trim(),
+          screenshotUrl: infoScreenshotUrl.trim(),
           marketingUrl: infoMarketingUrl.trim(),
         },
       };
@@ -519,6 +523,14 @@ function AppFormModal({
               onChange={(e) => setInfoIconUrl(e.target.value)}
               placeholder="https://cdn.example.com/app-icon.png"
               helperText="Square image. Falls back to the app's initial when blank"
+            />
+            <Input
+              label="Screenshot / Brand Image URL"
+              type="text"
+              value={infoScreenshotUrl}
+              onChange={(e) => setInfoScreenshotUrl(e.target.value)}
+              placeholder="https://cdn.example.com/app-devices.png"
+              helperText="Wide device mockup or hero shot, shown beside the download options"
             />
             <Input
               label="Marketing Page URL"
