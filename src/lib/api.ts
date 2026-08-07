@@ -7,6 +7,7 @@ import {
   ILink,
   DashboardOverview,
   LinkAnalytics,
+  AppVisitAnalytics,
   CampaignAnalytics,
   RegisterTenantDto,
   CreateAppDto,
@@ -527,6 +528,14 @@ export class SmartLinkApi {
     return response.data as LinkAnalytics;
   }
 
+  /** Store page traffic for one app — separate from link clicks. */
+  async getAppAnalytics(id: string, days = 30): Promise<AppVisitAnalytics> {
+    const response = await this.request<ApiResponse<AppVisitAnalytics>>(
+      `/analytics/apps/${id}?days=${days}`,
+      { method: 'GET' }
+    );
+    return response.data as AppVisitAnalytics;
+  }
 
   async getCampaignAnalytics(id: string): Promise<CampaignAnalytics> {
     const response = await this.request<ApiResponse<CampaignAnalytics>>(

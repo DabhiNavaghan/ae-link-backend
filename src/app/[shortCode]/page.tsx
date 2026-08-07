@@ -15,7 +15,7 @@ import ResolverService, { isDeepLinkKey, isStoreRedirectKey } from '@/lib/servic
 import { safeHttpUrl } from '@/lib/utils/url';
 import { fetchOgMeta } from '@/lib/services/og-fetch.service';
 import AppInterstitial, { APP_INFO_PARAM } from '@/components/AppInterstitial';
-import { ClickChannel, IAppInfo, StorePlatform } from '@/types';
+import { ActionTaken, ClickChannel, IAppInfo, StorePlatform } from '@/types';
 
 /**
  * Auto-detect channel from referer URL and UTM params
@@ -418,6 +418,15 @@ export default async function ResolvePage({
       // an install intent that can never happen.
       const isStoreBoundClick = isMobile && storeRedirectEnabled;
 
+      // Landing on the app info page is a different outcome from being sent to
+      // a web destination: nothing was opened, and the visitor is being asked
+      // to install. Recording both as web_fallback hid that entirely.
+      const outcome: ActionTaken = showInterstitial
+        ? 'app_info'
+        : isStoreBoundClick
+          ? 'store_redirect'
+          : 'web_fallback';
+
       // Only the non-duplicate path consumes geo (the click document and the
       // live events). Skipping it here avoids an ipapi.co round trip — and a
       // slice of that provider's rate limit — on every suppressed hit.
@@ -437,7 +446,7 @@ export default async function ResolvePage({
           device: deviceInfo,
           geo,
           isAppInstalled: false,
-          actionTaken: isStoreBoundClick ? 'store_redirect' : 'web_fallback',
+          actionTaken: outcome,
           ...(clickMetadata && { metadata: clickMetadata }),
         });
 
@@ -489,7 +498,7 @@ export default async function ResolvePage({
       // for a single recorded click.
       if (!isDuplicate) {
         emitLiveEvent({ ...eventBase, type: 'click' });
-        emitLiveEvent({ ...eventBase, type: isStoreBoundClick ? 'store_redirect' : 'web_fallback' });
+        emitLiveEvent({ ...eventBase, type: outcome });
       }
 
       logger.info(

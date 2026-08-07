@@ -5,10 +5,12 @@ import LinkModel from '@/lib/models/Link';
 import CampaignModel from '@/lib/models/Campaign';
 import DeferredLinkModel from '@/lib/models/DeferredLink';
 import InstallModel from '@/lib/models/Install';
+import AppVisitModel from '@/lib/models/AppVisit';
 import {
   LinkAnalytics,
   CampaignAnalytics,
   DashboardOverview,
+  AppVisitAnalytics,
 } from '@/types';
 import { Types } from 'mongoose';
 
@@ -30,6 +32,7 @@ export class AnalyticsService {
       clicks,
       devices,
       actions,
+      appInfoStats,
       uniqueIps,
       conversions,
       deferredStats,
@@ -60,10 +63,32 @@ export class AnalyticsService {
         { $group: { _id: '$device.type', count: { $sum: 1 } } },
       ]),
 
-      // Action breakdown (app_opened / store_redirect / web_fallback)
+      // Action breakdown (app_opened / store_redirect / web_fallback / app_info)
       ClickModel.aggregate([
         matchStage,
         { $group: { _id: '$actionTaken', count: { $sum: 1 } } },
+      ]),
+
+      // App info page views, split by whether the click carried a dynamic deep
+      // link. Without the split the number says how many people hit a dead end
+      // but not whether they were asking for something specific when they did.
+      ClickModel.aggregate([
+        { $match: { ...matchStage.$match, actionTaken: 'app_info' } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            withDeepLink: {
+              $sum: {
+                $cond: [
+                  { $ifNull: ['$metadata.deepLink', false] },
+                  1,
+                  0,
+                ],
+              },
+            },
+          },
+        },
       ]),
 
       // Unique clicks by device (IP + UserAgent combo = unique device)
@@ -297,6 +322,15 @@ export class AnalyticsService {
         appInstalled: actions.find((a: any) => a._id === 'app_installed')?.count || 0,
         storeRedirect: storeRedirectCount,
         webFallback: actions.find((a: any) => a._id === 'web_fallback')?.count || 0,
+        appInfo: actions.find((a: any) => a._id === 'app_info')?.count || 0,
+      },
+      // Visitors shown the app info page, and how many of them arrived asking
+      // for a specific destination via a dynamic deep link.
+      appInfoViews: {
+        total: appInfoStats[0]?.total || 0,
+        withDeepLink: appInfoStats[0]?.withDeepLink || 0,
+        withoutDeepLink:
+          (appInfoStats[0]?.total || 0) - (appInfoStats[0]?.withDeepLink || 0),
       },
       conversions: {
         total: totalConversions,
@@ -920,6 +954,92 @@ export class AnalyticsService {
         action: rc.action,
         channel: rc.channel,
       })),
+    };
+  }
+
+  /**
+   * Store page traffic for one app.
+   *
+   * Reads AppVisit rather than Click: these are visits to an app's own store
+   * page, which has no link behind it, so they are deliberately absent from
+   * every click figure.
+   */
+  static async getAppVisitAnalytics(
+    appId: string,
+    days = 30
+  ): Promise<AppVisitAnalytics> {
+    const appObjId = new Types.ObjectId(appId);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const match = { $match: { appId: appObjId, createdAt: { $gte: since } } };
+
+    const [total, unique, byOS, sentTo, sources, countries, trend] =
+      await Promise.all([
+        AppVisitModel.countDocuments({ appId: appObjId, createdAt: { $gte: since } }),
+
+        AppVisitModel.aggregate([
+          match,
+          { $group: { _id: { ip: '$ipAddress', ua: '$userAgent' } } },
+          { $count: 'unique' },
+        ]),
+
+        AppVisitModel.aggregate([
+          match,
+          { $group: { _id: '$device.os', count: { $sum: 1 } } },
+        ]),
+
+        AppVisitModel.aggregate([
+          match,
+          { $group: { _id: '$sentTo', count: { $sum: 1 } } },
+        ]),
+
+        AppVisitModel.aggregate([
+          { $match: { ...match.$match, 'utm.source': { $exists: true, $ne: null } } },
+          { $group: { _id: '$utm.source', visits: { $sum: 1 } } },
+          { $sort: { visits: -1 } },
+          { $limit: 10 },
+        ]),
+
+        AppVisitModel.aggregate([
+          { $match: { ...match.$match, 'geo.country': { $exists: true, $ne: null } } },
+          { $group: { _id: '$geo.country', visits: { $sum: 1 } } },
+          { $sort: { visits: -1 } },
+          { $limit: 8 },
+        ]),
+
+        AppVisitModel.aggregate([
+          match,
+          {
+            $group: {
+              _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+              visits: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
+      ]);
+
+    const os = (name: string) =>
+      byOS.find((o: any) => o._id === name)?.count || 0;
+    const to = (name: string) =>
+      sentTo.find((s: any) => s._id === name)?.count || 0;
+
+    return {
+      appId,
+      totalVisits: total,
+      uniqueVisits: unique[0]?.unique || 0,
+      byOS: {
+        android: os('android'),
+        ios: os('ios'),
+        other: total - os('android') - os('ios'),
+      },
+      sentTo: {
+        android: to('android'),
+        ios: to('ios'),
+        none: to('none'),
+      },
+      topSources: sources.map((s: any) => ({ source: s._id, visits: s.visits })),
+      topCountries: countries.map((c: any) => ({ country: c._id, visits: c.visits })),
+      trend: trend.map((t: any) => ({ date: t._id, visits: t.visits })),
     };
   }
 }

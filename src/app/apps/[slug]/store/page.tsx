@@ -119,6 +119,40 @@ function StoreBadge({
   );
 }
 
+/**
+ * Report the visit before handing off to the store.
+ *
+ * sendBeacon is the point: on mobile this page redirects immediately, and a
+ * normal fetch would be cancelled as the browser tears the page down. The
+ * server fills in IP, geo, device and referer; we only send what it cannot
+ * see — the UTMs from this URL and which store we chose.
+ */
+function recordVisit(slug: string, qs: URLSearchParams, sentTo: 'ios' | 'android' | 'none') {
+  try {
+    const payload = JSON.stringify({
+      sentTo,
+      utmSource: qs.get('utm_source') || undefined,
+      utmMedium: qs.get('utm_medium') || undefined,
+      utmCampaign: qs.get('utm_campaign') || undefined,
+      utmTerm: qs.get('utm_term') || undefined,
+      utmContent: qs.get('utm_content') || undefined,
+    });
+    const url = `/api/v1/apps/public/${encodeURIComponent(slug)}/visit`;
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+    } else {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {
+    // Never let analytics stop someone reaching the store.
+  }
+}
+
 export default function StoreRedirectPage() {
   const { slug }    = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
@@ -143,18 +177,26 @@ export default function StoreRedirectPage() {
           ? appendStoreParams(data.iosStoreUrl, searchParams, true)
           : null;
 
+        // Decide where this visit is going, record it, then go — the beacon
+        // has to be queued before the navigation starts.
+        let target: string | null = null;
+        let sentTo: 'ios' | 'android' | 'none' = 'none';
+
         if (os === 'android' && androidUrl) {
-          setStatus('redirecting');
-          window.location.href = androidUrl;
+          target = androidUrl; sentTo = 'android';
         } else if (os === 'ios' && iosUrl) {
-          setStatus('redirecting');
-          window.location.href = iosUrl;
+          target = iosUrl; sentTo = 'ios';
         } else if (androidUrl && !iosUrl) {
-          setStatus('redirecting');
-          window.location.href = androidUrl;
+          target = androidUrl; sentTo = 'android';
         } else if (iosUrl && !androidUrl) {
+          target = iosUrl; sentTo = 'ios';
+        }
+
+        recordVisit(slug, searchParams, sentTo);
+
+        if (target) {
           setStatus('redirecting');
-          window.location.href = iosUrl;
+          window.location.href = target;
         } else {
           setStatus('choose');
         }

@@ -45,6 +45,7 @@ function actionLabel(action: string) {
     case 'app_opened': return 'app opened';
     case 'store_redirect': return 'store redirect';
     case 'web_fallback': return 'web fallback';
+    case 'app_info': return 'app info page';
     default: return action || '—';
   }
 }

@@ -40,7 +40,9 @@ interface Analytics {
     appInstalled: number;
     storeRedirect: number;
     webFallback: number;
+    appInfo: number;
   };
+  appInfoViews?: { total: number; withDeepLink: number; withoutDeepLink: number };
   devices: Record<string, number>;
   channels: Array<{ channel: string; clicks: number }>;
   countries: Array<{ country: string; clicks: number }>;
@@ -455,12 +457,21 @@ export default function LinkDetailPage() {
               {nextSection('actions')}
             </div>
             <div style={{ padding: 20 }}>
-              {(analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.installs.total > 0) ? (
+              {(analytics.actions.appOpened > 0 || analytics.actions.storeRedirect > 0 || analytics.actions.webFallback > 0 || analytics.actions.appInfo > 0 || analytics.installs.total > 0) ? (
                 <>
                   {progressBar('app opened', analytics.actions.appOpened, analytics.totalClicks || 1, 'var(--color-primary)')}
                   {progressBar('store redirect', analytics.actions.storeRedirect, analytics.totalClicks || 1, 'var(--color-warning)')}
                   {progressBar('installs (from store)', analytics.installs.total, analytics.actions.storeRedirect || 1, 'var(--color-success, #22c55e)')}
                   {progressBar('web fallback', analytics.actions.webFallback, analytics.totalClicks || 1, 'var(--color-secondary)')}
+                  {progressBar('app info page', analytics.actions.appInfo, analytics.totalClicks || 1, 'var(--color-accent)')}
+                  {/* The split says whether those visitors were asking for a
+                      specific destination when they hit the app info page. */}
+                  {analytics.appInfoViews && analytics.appInfoViews.total > 0 && (
+                    <div style={{ marginTop: 6, paddingLeft: 12, borderLeft: '2px solid var(--color-border)' }}>
+                      {progressBar('↳ with deep link', analytics.appInfoViews.withDeepLink, analytics.appInfoViews.total || 1, 'var(--color-accent)')}
+                      {progressBar('↳ without deep link', analytics.appInfoViews.withoutDeepLink, analytics.appInfoViews.total || 1, 'var(--color-text-tertiary)')}
+                    </div>
+                  )}
                 </>
               ) : emptyState('no action data yet')}
             </div>

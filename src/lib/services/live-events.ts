@@ -24,6 +24,8 @@ export interface LiveEvent {
     | 'app_opened'
     | 'store_redirect'
     | 'web_fallback'
+    // Shown the app info page: nothing to open and the store was off limits.
+    | 'app_info'
     // Tracked product events and sign-ins, so the admin Live Tracking view
     // shows the whole funnel rather than stopping at install.
     | 'event'

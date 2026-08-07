@@ -2,15 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { smartLinkApi } from '@/lib/api';
-import { IApp } from '@/types';
+import { IApp, AppVisitAnalytics } from '@/types';
 import { safeHttpUrl } from '@/lib/utils/url';
 import AppIcon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Link from 'next/link';
 
+/** Matches the ranges offered on the Analytics page, so the two agree. */
+const VISIT_RANGES = [
+  { label: '7 days', days: 7 },
+  { label: '30 days', days: 30 },
+  { label: '90 days', days: 90 },
+];
+
 export default function AppDetailPage({ params }: { params: { id: string } }) {
   const [app, setApp] = useState<IApp | null>(null);
+  const [visits, setVisits] = useState<AppVisitAnalytics | null>(null);
+  const [visitDays, setVisitDays] = useState(30);
+  const [visitsLoading, setVisitsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +38,18 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
     };
     fetchApp();
   }, [params.id]);
+
+  // Re-fetched on its own whenever the range changes, so switching 7/30/90 days
+  // never re-loads the app config above it.
+  useEffect(() => {
+    setVisitsLoading(true);
+    // Traffic is supplementary — a failure here should not take the page down.
+    smartLinkApi
+      .getAppAnalytics(params.id, visitDays)
+      .then(setVisits)
+      .catch(() => setVisits(null))
+      .finally(() => setVisitsLoading(false));
+  }, [params.id, visitDays]);
 
   if (loading) {
     return (
@@ -158,6 +180,102 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Store page traffic — visits to /apps/:slug/store. These belong to the
+          app rather than to a link, so they appear in no click figure. */}
+      <div className="card p-6">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>Store Page</h2>
+          <div style={{ display: 'flex', border: '1px solid var(--color-border)' }}>
+            {VISIT_RANGES.map((r, i) => (
+              <button
+                key={r.days}
+                onClick={() => setVisitDays(r.days)}
+                style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 11, padding: '5px 12px',
+                  border: 'none', cursor: 'pointer',
+                  background: visitDays === r.days ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                  color: visitDays === r.days ? 'var(--color-bg)' : 'var(--color-text-secondary)',
+                  borderRight: i < VISIT_RANGES.length - 1 ? '1px solid var(--color-border)' : 'none',
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+          Visits to this app&rsquo;s public store link, and which store they were handed off to.
+        </p>
+
+        {visitsLoading ? (
+          <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>
+            Loading traffic…
+          </p>
+        ) : !visits ? (
+          <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>
+            Traffic could not be loaded.
+          </p>
+        ) : visits.totalVisits === 0 ? (
+          <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>
+            No visits in the last {visitDays} days.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'visits', value: visits.totalVisits },
+                { label: 'unique', value: visits.uniqueVisits },
+                { label: '→ app store', value: visits.sentTo.ios },
+                { label: '→ play store', value: visits.sentTo.android },
+              ].map((s) => (
+                <div key={s.label} className="p-3" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+                  <div className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>{s.value.toLocaleString()}</div>
+                  <div className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-tertiary)' }}>by platform</p>
+                {([
+                  ['ios', visits.byOS.ios],
+                  ['android', visits.byOS.android],
+                  ['other / desktop', visits.byOS.other],
+                ] as Array<[string, number]>).map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between text-sm py-1">
+                    <span style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <span className="font-mono" style={{ color: 'var(--color-text)' }}>{value.toLocaleString()}</span>
+                  </div>
+                ))}
+                {/* Nobody sent to a store means the page had no store URL to
+                    use, or the visitor stayed to choose. Worth seeing. */}
+                {visits.sentTo.none > 0 && (
+                  <div className="flex items-center justify-between text-sm py-1">
+                    <span style={{ color: 'var(--color-text-tertiary)' }}>stayed on the page</span>
+                    <span className="font-mono" style={{ color: 'var(--color-text-tertiary)' }}>{visits.sentTo.none.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-tertiary)' }}>top sources</p>
+                {visits.topSources.length === 0 ? (
+                  <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>no utm_source on these visits</p>
+                ) : (
+                  visits.topSources.slice(0, 5).map((s) => (
+                    <div key={s.source} className="flex items-center justify-between text-sm py-1">
+                      <span className="truncate mr-3" style={{ color: 'var(--color-text-secondary)' }}>{s.source}</span>
+                      <span className="font-mono" style={{ color: 'var(--color-text)' }}>{s.visits.toLocaleString()}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* App Info — the copy shown on the app info interstitial */}

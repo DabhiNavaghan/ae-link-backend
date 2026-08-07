@@ -137,17 +137,17 @@ export default async function AppInterstitial({
   }
 
   const marketingUrl = safeHttpUrl(info?.marketingUrl);
+  const hasScreenshot = Boolean(safeHttpUrl(info?.screenshotUrl)) && Boolean(appId);
   // A phone can only install from its own store; showing the other one is
   // noise. Desktop has no store of its own, so it gets both.
   const iosUrl = deviceOS === 'android' ? undefined : safeStoreUrl(storeUrls.ios);
   const androidUrl = deviceOS === 'ios' ? undefined : safeStoreUrl(storeUrls.android);
 
-  // The URL the QR encodes, shown as text so it can be read, typed or copied
-  // when a camera is not an option.
-  const displayLink = smartLinkUrl.replace(/^https?:\/\//, '');
-
   return (
-    <div className="ae-page">
+    // Same shell as the store page: the card widens and splits when there is a
+    // brand shot to fill the second column, and the extra width is also what
+    // lets the two store buttons sit side by side instead of stacking.
+    <div className="ae-page ae-page-wide">
       {/* Phones can still install from here, so keep them in the deferred
           match pool; desktop visitors never install and would only add
           false positives on a shared IP. Skipped when this load is an
@@ -164,45 +164,65 @@ export default async function AppInterstitial({
 
       <main className="ae-card">
         {/* Quoted so the leading slashes read as the label they are, not as a
-            stray JSX comment. */}
+            stray JSX comment. Sits above the split so its rule spans the card. */}
         <div className="ae-eyebrow">{'// get the app'}</div>
 
-        <div className="ae-head">
-          <AppIcon appId={appId} hasIcon={Boolean(iconUrl)} name={title} size={64} />
-          <div className="ae-head-text">
-            <h1 className="ae-name">{title}</h1>
-            {info?.tagline && <p className="ae-tagline">{info.tagline}</p>}
+        <div className="ae-card-split">
+          <div className="ae-col">
+            <div className="ae-head">
+              <AppIcon appId={appId} hasIcon={Boolean(iconUrl)} name={title} size={64} />
+              <div className="ae-head-text">
+                <h1 className="ae-name">{title}</h1>
+                {info?.tagline && <p className="ae-tagline">{info.tagline}</p>}
+              </div>
+            </div>
+
+            {info?.description && <p className="ae-desc">{info.description}</p>}
+
+            {/* Same arrangement as the store page: the QR sits beside the
+                buttons rather than above them, so scanning and tapping read as
+                two ways to do one thing. */}
+            <div className="ae-get">
+              {qrSvg && (
+                <div className="ae-qr-inline">
+                  <div className="ae-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                  <div className="ae-qr-label">scan to install</div>
+                </div>
+              )}
+
+              {(iosUrl || androidUrl) && (
+                <div className="ae-badges ae-badges-stacked">
+                  {iosUrl && (
+                    <StoreBadge href={iosUrl} glyph={<AppleGlyph />} line1="Download on the" line2="App Store" />
+                  )}
+                  {androidUrl && (
+                    <StoreBadge href={androidUrl} glyph={<PlayGlyph />} line1="GET IT ON" line2="Google Play" />
+                  )}
+                </div>
+              )}
+            </div>
+
+
+            {marketingUrl && (
+              <a className="ae-more" href={marketingUrl} target="_blank" rel="noopener noreferrer">
+                learn more about {title} →
+              </a>
+            )}
           </div>
+
+          {hasScreenshot && (
+            <div className="ae-shot">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/app-asset/${appId}/screenshot`}
+                alt=""
+                className="ae-shot-img"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+          )}
         </div>
-
-        {info?.description && <p className="ae-desc">{info.description}</p>}
-
-        {qrSvg && (
-          <div className="ae-qr-block">
-            <div className="ae-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-            <div className="ae-qr-label">scan to open in the app</div>
-            {/* Clamped to two lines in CSS; the title keeps the full value
-                reachable on hover for anyone who needs to read it. */}
-            <div className="ae-qr-url" title={smartLinkUrl}>{displayLink}</div>
-          </div>
-        )}
-
-        {(iosUrl || androidUrl) && (
-          <div className="ae-badges">
-            {iosUrl && (
-              <StoreBadge href={iosUrl} glyph={<AppleGlyph />} line1="Download on the" line2="App Store" />
-            )}
-            {androidUrl && (
-              <StoreBadge href={androidUrl} glyph={<PlayGlyph />} line1="GET IT ON" line2="Google Play" />
-            )}
-          </div>
-        )}
-
-        {marketingUrl && (
-          <a className="ae-more" href={marketingUrl} target="_blank" rel="noopener noreferrer">
-            learn more about {title} →
-          </a>
-        )}
       </main>
     </div>
   );

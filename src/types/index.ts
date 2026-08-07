@@ -116,6 +116,48 @@ export interface IAppInfo {
 /** The app-owned images served through the asset proxy. */
 export type AppAssetKind = 'icon' | 'screenshot';
 
+/** Where a store-page visitor was sent, if anywhere. */
+export type StoreSentTo = 'ios' | 'android' | 'none';
+
+/**
+ * A visit to an app's public store page (/apps/:slug/store).
+ *
+ * Kept apart from Click on purpose: a store page belongs to an app, not to a
+ * link, and Click.linkId is required. Folding these in would have made every
+ * per-link and per-tenant click figure include visits that were never link
+ * clicks, quietly shifting numbers people already rely on.
+ */
+export interface IAppVisit extends Document {
+  appId: Types.ObjectId;
+  tenantId: Types.ObjectId;
+  ipAddress: string;
+  userAgent: string;
+  referer?: string;
+  device: IDeviceInfo;
+  geo?: IGeoInfo;
+  /** Which store the page handed the visitor off to, if any. */
+  sentTo: StoreSentTo;
+  utm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    term?: string;
+    content?: string;
+  };
+  createdAt: Date;
+}
+
+export interface AppVisitAnalytics {
+  appId: string;
+  totalVisits: number;
+  uniqueVisits: number;
+  byOS: { android: number; ios: number; other: number };
+  sentTo: { android: number; ios: number; none: number };
+  topSources: Array<{ source: string; visits: number }>;
+  topCountries: Array<{ country: string; visits: number }>;
+  trend: Array<{ date: string; visits: number }>;
+}
+
 export interface IApp extends Document {
   tenantId: Types.ObjectId;
   name: string;
@@ -260,7 +302,20 @@ export interface ILink extends Document {
 
 export type DeviceOS = 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'other';
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
-export type ActionTaken = 'app_opened' | 'app_installed' | 'store_redirect' | 'web_fallback';
+/**
+ * How a click ended.
+ *
+ * `web_fallback` means the visitor was sent to a web URL; `app_info` means
+ * they were shown the app info page because there was nothing to send them to
+ * and the store was switched off. The two were once recorded identically,
+ * which made it impossible to tell a working redirect from a dead end.
+ */
+export type ActionTaken =
+  | 'app_opened'
+  | 'app_installed'
+  | 'store_redirect'
+  | 'web_fallback'
+  | 'app_info';
 export type ClickChannel = 'whatsapp' | 'email' | 'qr' | 'instagram' | 'sms' | 'push' | 'web' | 'direct' | 'app_link' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'other';
 
 export interface IDeviceInfo {
@@ -559,6 +614,14 @@ export interface LinkAnalytics {
     appInstalled: number;
     storeRedirect: number;
     webFallback: number;
+    /** Shown the app info page — nothing to open, store off limits. */
+    appInfo: number;
+  };
+  /** App info page views split by whether the click carried a deep link. */
+  appInfoViews: {
+    total: number;
+    withDeepLink: number;
+    withoutDeepLink: number;
   };
   conversions: {
     total: number;
