@@ -1,6 +1,6 @@
 {
   "name": "smartlink-backend",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "AE-LINK: Deep linking platform for AllEvents",
   "scripts": {
     "dev": "next dev",
