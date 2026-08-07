@@ -31,7 +31,7 @@ export async function GET(
       ? { $or: [{ slug }, { _id: new Types.ObjectId(slug) }], ...activeFilter }
       : { slug, ...activeFilter };
 
-    const app = await AppModel.findOne(query).select('name slug android ios').lean();
+    const app = await AppModel.findOne(query).select('name slug android ios info').lean();
 
     if (!app) {
       return applyCors(
@@ -40,11 +40,21 @@ export async function GET(
       );
     }
 
+    const info = (app as any).info || {};
     const response = NextResponse.json({
+      id: String((app as any)._id),
       name: app.name,
       slug: (app as any).slug,
       androidStoreUrl: (app as any).android?.storeUrl || null,
       iosStoreUrl: (app as any).ios?.storeUrl || null,
+      // Marketing copy for the store page. The imagery is referenced by app id
+      // through the asset proxy rather than by its raw CDN URL, so the page
+      // never depends on a third party loading — see /app-asset/[appId]/[kind].
+      tagline: info.tagline || null,
+      description: info.description || null,
+      marketingUrl: info.marketingUrl || null,
+      hasIcon: Boolean(info.iconUrl),
+      hasScreenshot: Boolean(info.screenshotUrl),
     });
     return applyCors(request, response);
   } catch {

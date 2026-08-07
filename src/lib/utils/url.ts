@@ -46,12 +46,15 @@ export function sanitizeStoredUrl(url?: string | null): string {
  * can never reach the href on the public interstitial. Applied on write, and
  * the interstitial guards again at render for rows saved before this existed.
  */
-export function sanitizeAppInfoUrls<T extends { iconUrl?: string; marketingUrl?: string }>(
-  info: T
-): T {
+export function sanitizeAppInfoUrls<
+  T extends { iconUrl?: string; screenshotUrl?: string; marketingUrl?: string }
+>(info: T): T {
   return {
     ...info,
     ...(info.iconUrl !== undefined && { iconUrl: sanitizeStoredUrl(info.iconUrl) }),
+    ...(info.screenshotUrl !== undefined && {
+      screenshotUrl: sanitizeStoredUrl(info.screenshotUrl),
+    }),
     ...(info.marketingUrl !== undefined && { marketingUrl: sanitizeStoredUrl(info.marketingUrl) }),
   };
 }

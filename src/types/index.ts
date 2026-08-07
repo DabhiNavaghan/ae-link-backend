@@ -103,9 +103,18 @@ export interface IAppInfo {
   description?: string;
   /** Square app icon, shown at the top of the interstitial. */
   iconUrl?: string;
+  /**
+   * A wide brand shot of the app — device mockups, a hero image, whatever the
+   * marketing page uses. Shown beside the download options so the page sells
+   * the app rather than just linking to it.
+   */
+  screenshotUrl?: string;
   /** The app's own landing page, linked as "learn more". */
   marketingUrl?: string;
 }
+
+/** The app-owned images served through the asset proxy. */
+export type AppAssetKind = 'icon' | 'screenshot';
 
 export interface IApp extends Document {
   tenantId: Types.ObjectId;

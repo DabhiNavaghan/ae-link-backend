@@ -41,6 +41,7 @@ const appSchema = new Schema<IApp>(
       tagline: { type: String, default: '' },
       description: { type: String, default: '' },
       iconUrl: { type: String, default: '' },
+      screenshotUrl: { type: String, default: '' },
       marketingUrl: { type: String, default: '' },
     },
     isActive: {

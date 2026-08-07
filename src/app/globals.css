@@ -505,3 +505,419 @@ body {
   padding: 5px 14px;
   font-size: 11px;
 }
+
+/* ─── App info page ─── */
+/* The public screen a short link lands on when app store navigation is off
+   and there is nothing to redirect to. Same tokens as the dashboard, so a
+   rebrand carries here without touching the component. */
+
+.ae-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--color-bg);
+  font-family: var(--font-body);
+}
+
+.ae-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  padding: 28px 28px 32px;
+}
+
+.ae-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-text-tertiary);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ae-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ae-icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.ae-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  border-color: transparent;
+}
+
+.ae-head-text {
+  min-width: 0;
+}
+
+.ae-name {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.ae-tagline {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.ae-desc {
+  margin: 18px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-tertiary);
+}
+
+.ae-qr-block {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+/* QR modules need a white field to stay scannable on a dark page. */
+.ae-qr {
+  display: inline-block;
+  padding: 10px;
+  background: #ffffff;
+  line-height: 0;
+}
+
+.ae-qr svg {
+  display: block;
+  width: 160px;
+  height: 160px;
+}
+
+.ae-qr-label {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-tertiary);
+}
+
+/* A deep link can make this URL arbitrarily long, and letting it run to four
+   or five lines pushes the store badges off the fold. Two lines then an
+   ellipsis — the QR is the thing meant to be used; this is for reference, and
+   the full value is on the element's title. */
+.ae-qr-url {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ae-badges {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ae-badge {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 185px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ae-badge:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
+}
+
+/* Sized to the two text lines beside it (~24px), so the mark reads as part of
+   the label rather than a small icon floating next to it. Both glyphs get the
+   same box because their paths fill their viewBoxes by different amounts. */
+.ae-badge-glyph {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+.ae-badge-glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ae-badge-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.ae-badge-line1 {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+
+.ae-badge-line2 {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  white-space: nowrap;
+}
+
+.ae-more {
+  display: block;
+  margin-top: 22px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  text-decoration: none;
+  text-align: center;
+}
+
+.ae-more:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* ─── Store page: the same system, widened for a brand shot ─── */
+
+/* With nothing in the second column the card stays the same compact width as
+   the app info page — stretching it to the full 900px just spreads the same
+   content thinner and blows the buttons out of proportion. */
+.ae-page-wide .ae-card {
+  max-width: 460px;
+}
+
+.ae-card-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+}
+
+/* The store card carries its own header above the split, so the eyebrow's rule
+   spans the full width rather than stopping at the first column. */
+.ae-page-wide .ae-eyebrow {
+  margin-bottom: 26px;
+}
+
+/* Only widen, and only go two-column, once a brand shot is there to fill it. */
+@media (min-width: 820px) {
+  .ae-page-wide .ae-card:has(.ae-shot) {
+    max-width: 900px;
+  }
+
+  .ae-card-split:has(.ae-shot) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+    gap: 36px;
+  }
+}
+
+.ae-col {
+  min-width: 0;
+}
+
+.ae-shot {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Brand shots are cut out against nothing, so on a flat card they read as
+   floating. A wide, very low-alpha wash in the brand's own colours seats them
+   without becoming a visible shape of its own. */
+.ae-shot::before {
+  content: '';
+  position: absolute;
+  inset: -12% -8%;
+  background:
+    radial-gradient(closest-side at 55% 45%, rgba(90, 229, 255, 0.10), transparent 72%),
+    radial-gradient(closest-side at 30% 70%, rgba(201, 255, 61, 0.06), transparent 70%);
+  pointer-events: none;
+}
+
+.ae-shot-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 440px;
+  object-fit: contain;
+  /* Hero artwork is usually drawn bleeding off the bottom of its own frame, so
+     it arrives already cropped. Fading the last stretch makes that crop look
+     deliberate instead of like the image was clipped by our layout. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent 99%);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent 99%);
+}
+
+/* Download options sit side by side: QR for a desktop camera, badges for a
+   click. On narrow screens the QR drops away and the badges take the width. */
+.ae-get {
+  margin-top: 24px;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ae-qr-inline {
+  flex: 0 0 auto;
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.ae-qr-inline .ae-qr svg {
+  width: 116px;
+  height: 116px;
+}
+
+.ae-qr-inline .ae-qr-label {
+  margin-top: 8px;
+}
+
+.ae-badges-stacked {
+  margin-top: 0;
+  flex: 1 1 185px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ae-badges-stacked .ae-badge {
+  flex: 0 0 auto;
+}
+
+.ae-more-left {
+  text-align: left;
+}
+
+.ae-hint {
+  margin: 18px 0 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.ae-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.ae-status-error {
+  color: var(--color-warning);
+}
+
+/* ─── App pages on a phone ─── */
+/* The card is the whole screen here, so it gets the width back from padding,
+   and the download block stacks and centres rather than trying to sit the QR
+   and the buttons side by side in ~300px. */
+@media (max-width: 560px) {
+  .ae-page {
+    padding: 20px 14px;
+    align-items: flex-start;
+  }
+
+  .ae-card {
+    padding: 22px 18px 26px;
+  }
+
+  .ae-eyebrow {
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+
+  .ae-head {
+    gap: 14px;
+  }
+
+  .ae-name {
+    font-size: 20px;
+  }
+
+  .ae-get {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .ae-qr-inline {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  /* The 185px flex-basis is a column width on desktop; once .ae-get stacks it
+     would become a 185px-tall row and open a dead gap under the QR. */
+  .ae-badges-stacked {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  /* Full width is easier to hit with a thumb than a 185px target. */
+  .ae-badge {
+    max-width: 260px;
+  }
+
+  .ae-more-left {
+    text-align: center;
+  }
+
+  .ae-shot-img {
+    max-height: 320px;
+  }
+}
