@@ -248,7 +248,7 @@ export default function StoreRedirectPage() {
           {/* Quoted so the leading slashes read as the label they are. */}
           <div className="ae-eyebrow">{'// opening the store'}</div>
           <div className="ae-head">
-            <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={64} />
+            <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={72} />
             <div className="ae-head-text">
               <h1 className="ae-name">{app?.name}</h1>
               <p className="ae-tagline">taking you to the store…</p>
@@ -279,7 +279,7 @@ export default function StoreRedirectPage() {
         <div className="ae-card-split">
           <div className="ae-col">
             <div className="ae-head">
-              <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={64} />
+              <AppIcon appId={app?.id} hasIcon={app?.hasIcon} name={app?.name || 'App'} size={72} />
               <div className="ae-head-text">
                 <h1 className="ae-name">{app?.name}</h1>
                 {app?.tagline && <p className="ae-tagline">{app.tagline}</p>}

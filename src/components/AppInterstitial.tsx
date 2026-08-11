@@ -170,7 +170,7 @@ export default async function AppInterstitial({
         <div className="ae-card-split">
           <div className="ae-col">
             <div className="ae-head">
-              <AppIcon appId={appId} hasIcon={Boolean(iconUrl)} name={title} size={64} />
+              <AppIcon appId={appId} hasIcon={Boolean(iconUrl)} name={title} size={72} />
               <div className="ae-head-text">
                 <h1 className="ae-name">{title}</h1>
                 {info?.tagline && <p className="ae-tagline">{info.tagline}</p>}
@@ -204,7 +204,7 @@ export default async function AppInterstitial({
 
 
             {marketingUrl && (
-              <a className="ae-more" href={marketingUrl} target="_blank" rel="noopener noreferrer">
+              <a className="ae-more ae-more-left" href={marketingUrl} target="_blank" rel="noopener noreferrer">
                 learn more about {title} →
               </a>
             )}

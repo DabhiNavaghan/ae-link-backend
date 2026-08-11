@@ -511,47 +511,85 @@ body {
    and there is nothing to redirect to. Same tokens as the dashboard, so a
    rebrand carries here without touching the component. */
 
+/* The dashboard's greys are tuned for dense, scannable tables read by an
+   operator who knows what they are looking at. These pages are the opposite:
+   one screen, read once, by a stranger, often outdoors on a phone. So they
+   get their own ramp — every step checked against the card (#14161B) at AA
+   or better — instead of borrowing --color-text-tertiary, which lands at
+   3.86:1 and was the single biggest readability complaint here. */
 .ae-page {
+  --ae-fg: #F1F3F7;        /* headings            — 15.6:1 */
+  --ae-fg-2: #C4CBD8;      /* body copy           — 11.3:1 */
+  --ae-fg-3: #98A1B2;      /* labels, eyebrows    —  7.1:1 */
+
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px;
-  background: var(--color-bg);
+  padding: 48px 24px;
+  background:
+    radial-gradient(1100px 560px at 50% -10%, rgba(201, 255, 61, 0.05), transparent 70%),
+    var(--color-bg);
   font-family: var(--font-body);
 }
 
 .ae-card {
+  position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 540px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-md);
-  padding: 32px 32px 36px;
+  box-shadow: var(--shadow-lg);
+  padding: 42px 44px 46px;
+}
+
+/* A hairline of brand across the top edge — enough to make the card read as
+   designed rather than as a default panel, without adding a coloured band
+   that competes with the app's own icon. */
+.ae-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-gradient-from), var(--color-gradient-to));
 }
 
 .ae-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--color-text-tertiary);
+  letter-spacing: 0.12em;
+  color: var(--ae-fg-3);
   padding-bottom: 18px;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Anchors the label to the card's left edge and picks up the accent from the
+   top rule, so the header reads as one mark instead of stray small text. */
+.ae-eyebrow::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 3px;
+  height: 12px;
+  background: var(--color-primary);
 }
 
 .ae-head {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .ae-icon {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   object-fit: cover;
   border: 1px solid var(--color-border);
 }
@@ -563,7 +601,7 @@ body {
   background: var(--color-primary);
   color: var(--color-bg);
   font-family: var(--font-heading);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   border-color: transparent;
 }
@@ -574,22 +612,28 @@ body {
 
 .ae-name {
   margin: 0;
-  font-size: 22px;
-  line-height: 1.2;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ae-fg);
 }
 
 .ae-tagline {
-  margin: 6px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ae-fg-2);
 }
 
+/* The card got wider for breathing room, not for longer lines — past roughly
+   65 characters the eye loses the start of the next line. Only bites in the
+   wide two-column layout; the compact card is already narrower than this. */
 .ae-desc {
-  margin: 20px 0 0;
-  font-size: 13px;
+  margin: 24px 0 0;
+  max-width: 64ch;
+  font-size: 15px;
   line-height: 1.7;
-  color: var(--color-text-tertiary);
+  color: var(--ae-fg-2);
 }
 
 .ae-qr-block {
@@ -610,58 +654,69 @@ body {
 
 .ae-qr svg {
   display: block;
-  width: 160px;
-  height: 160px;
+  width: 168px;
+  height: 168px;
 }
 
 .ae-qr-label {
-  margin-top: 14px;
+  margin-top: 12px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--color-text-tertiary);
+  letter-spacing: 0.1em;
+  color: var(--ae-fg-3);
 }
 
 .ae-badges {
-  margin-top: 24px;
+  margin-top: 26px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* Real store badges are ~50px tall for a reason — this is the one thing on the
+   page anyone taps, so it gets a thumb-sized target and text at button scale
+   rather than caption scale. */
 .ae-badge {
   flex: 0 1 auto;
   width: 100%;
-  max-width: 185px;
+  max-width: 220px;
+  min-height: 56px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 12px;
+  padding: 10px 18px;
   background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
+  border: 1px solid var(--color-border-hover);
+  color: var(--ae-fg);
   text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 .ae-badge:hover {
   background: var(--color-bg-hover);
-  border-color: var(--color-border-hover);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
-/* Sized to the two text lines beside it (~24px), so the mark reads as part of
-   the label rather than a small icon floating next to it. Both glyphs get the
+.ae-badge:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Sized to the two text lines beside it, so the mark reads as part of the
+   label rather than a small icon floating next to it. Both glyphs get the
    same box because their paths fill their viewBoxes by different amounts. */
 .ae-badge-glyph {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 
 .ae-badge-glyph svg {
@@ -678,48 +733,58 @@ body {
 }
 
 .ae-badge-line1 {
-  font-size: 8px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-tertiary);
+  letter-spacing: 0.06em;
+  color: var(--ae-fg-3);
 }
 
 .ae-badge-line2 {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   font-family: var(--font-heading);
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
+/* Stays a block so .ae-more-left can flip its alignment; the underline still
+   tracks the text rather than the full column. */
 .ae-more {
   display: block;
   margin-top: 26px;
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--color-primary);
-  text-decoration: none;
   text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
 }
 
 .ae-more:hover {
   color: var(--color-primary-hover);
-  text-decoration: underline;
+}
+
+.ae-more:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
 }
 
 /* ─── Store page: the same system, widened for a brand shot ─── */
 
-/* With nothing in the second column the card stays the same compact width as
-   the app info page — stretching it to the full 900px just spreads the same
-   content thinner and blows the buttons out of proportion. */
+/* With nothing in the second column the card stays close to the compact width
+   of the app info page — stretching it to the full wide layout just spreads the
+   same content thinner and blows the buttons out of proportion. */
 .ae-page-wide .ae-card {
-  max-width: 460px;
+  max-width: 600px;
 }
 
 .ae-card-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
+  gap: 32px;
   align-items: center;
 }
 
@@ -730,17 +795,27 @@ body {
 }
 
 /* Only widen, and only go two-column, once a brand shot is there to fill it. */
-@media (min-width: 820px) {
+@media (min-width: 1020px) {
   .ae-page-wide .ae-card:has(.ae-shot) {
-    max-width: 900px;
-    /* Padding that reads as generous at 460px looks tight once the card is
-       twice as wide, so the wide layout gets its own, larger frame. */
-    padding: 40px 44px 44px;
+    max-width: 1080px;
+    /* Padding that reads as generous at 600px looks tight once the card is
+       nearly twice as wide, so the wide layout gets its own, larger frame. */
+    padding: 52px 60px 56px;
+  }
+
+  /* More room to run means the headline can carry the extra weight the wide
+     layout needs to stay balanced against the brand shot. */
+  .ae-page-wide .ae-card:has(.ae-shot) .ae-name {
+    font-size: 34px;
+  }
+
+  .ae-page-wide .ae-card:has(.ae-shot) .ae-tagline {
+    font-size: 17px;
   }
 
   .ae-card-split:has(.ae-shot) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
-    gap: 48px;
+    gap: 64px;
   }
 
   .ae-page-wide .ae-card:has(.ae-shot) .ae-eyebrow {
@@ -779,7 +854,7 @@ body {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 440px;
+  max-height: 480px;
   object-fit: contain;
   /* Hero artwork is usually drawn bleeding off the bottom of its own frame, so
      it arrives already cropped. Fading the last stretch makes that crop look
@@ -791,37 +866,54 @@ body {
 /* Download options sit side by side: QR for a desktop camera, badges for a
    click. On narrow screens the QR drops away and the badges take the width. */
 .ae-get {
-  margin-top: 24px;
+  margin-top: 28px;
   display: flex;
   align-items: stretch;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
+/* Column flex so the QR centres vertically against the badges beside it.
+   align-items must be centre, not the default stretch: .ae-qr paints the white
+   field the code needs, and stretching it to the container width leaves a
+   white gutter beside the code and a panel too wide for the row to hold. */
 .ae-qr-inline {
   flex: 0 0 auto;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   text-align: center;
 }
 
 .ae-qr-inline .ae-qr svg {
-  width: 116px;
-  height: 116px;
+  width: 132px;
+  height: 132px;
 }
 
 .ae-qr-inline .ae-qr-label {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .ae-badges-stacked {
   margin-top: 0;
-  flex: 1 1 185px;
+  flex: 1 1 220px;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+/* The 220px cap is for the centred, side-by-side case and leaves a ragged edge
+   here, so these get a wider one — but not none: on the compact card there is
+   no QR to share the row with, and a badge run out to the full 500px stops
+   reading as a store badge and starts reading as a generic bar. Under the cap
+   they align left with the copy above, which is where the eye already is. */
+.ae-badges-stacked .ae-badge {
+  max-width: 340px;
 }
 
 .ae-badges-stacked .ae-badge {
@@ -833,21 +925,21 @@ body {
 }
 
 .ae-hint {
-  margin: 18px 0 0;
+  margin: 20px 0 0;
   font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ae-fg-3);
   text-align: center;
 }
 
 .ae-status {
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary);
+  color: var(--ae-fg-2);
 }
 
 .ae-status-error {
@@ -858,27 +950,46 @@ body {
 /* The card is the whole screen here, so it gets the width back from padding,
    and the download block stacks and centres rather than trying to sit the QR
    and the buttons side by side in ~300px. */
-@media (max-width: 560px) {
+@media (max-width: 650px) {
   .ae-page {
     padding: 20px 14px;
     align-items: flex-start;
   }
 
   .ae-card {
-    padding: 22px 18px 26px;
+    padding: 24px 20px 28px;
   }
 
   .ae-eyebrow {
     padding-bottom: 14px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
   }
 
   .ae-head {
     gap: 14px;
   }
 
+  /* AppIcon writes its size as an inline style, so the only way to shrink it
+     for a phone from here is to outrank that. */
+  .ae-icon {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  /* Down from 30px: the headline still leads, but an app with a long name has
+     to fit beside a 64px icon in ~300px without breaking to three lines. */
   .ae-name {
-    font-size: 20px;
+    font-size: 24px;
+  }
+
+  .ae-tagline {
+    font-size: 15px;
+  }
+
+  /* Body copy holds at 15px on purpose — this is the paragraph the complaint
+     was about, and a phone is where it is hardest to read. */
+  .ae-desc {
+    margin-top: 20px;
   }
 
   .ae-get {
@@ -892,16 +1003,21 @@ body {
     max-width: 220px;
   }
 
-  /* The 185px flex-basis is a column width on desktop; once .ae-get stacks it
-     would become a 185px-tall row and open a dead gap under the QR. */
+  /* The 220px flex-basis is a column width on desktop; once .ae-get stacks it
+     would become a 220px-tall row and open a dead gap under the QR. */
+  /* Back to centred: stretch is what fills the desktop column, but here the
+     badges are capped below the container width and would sit off to the left
+     of the QR they are stacked under. */
   .ae-badges-stacked {
     width: 100%;
     flex: 0 0 auto;
+    align-items: center;
   }
 
-  /* Full width is easier to hit with a thumb than a 185px target. */
-  .ae-badge {
-    max-width: 260px;
+  /* Full width is easier to hit with a thumb than a 220px target. */
+  .ae-badge,
+  .ae-badges-stacked .ae-badge {
+    max-width: 300px;
   }
 
   .ae-more-left {
