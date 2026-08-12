@@ -45,24 +45,43 @@ export default clerkMiddleware((auth, request: NextRequest) => {
 
   const host = request.headers.get('host') || '';
 
+  // Check store URL availability early for debugging
+  const isLinkHost = APP_LINK_HOSTS.has(host);
+  const storeUrl = isLinkHost ? APP_STORE_URL_MAP[host] : undefined;
+
+  // Debug: attach headers to help diagnose deployed behaviour
+  const debugHeaders: Record<string, string> = {
+    'X-Debug-Host': host,
+    'X-Debug-Path': request.nextUrl.pathname,
+    'X-Debug-AllowedHost': String(ALL_ALLOWED_HOSTS.has(host)),
+    'X-Debug-IsLinkHost': String(isLinkHost),
+    'X-Debug-LinkHostCount': String(APP_LINK_HOSTS.size),
+    'X-Debug-HasStoreUrl': storeUrl ? 'yes' : 'no',
+  };
+  const addDebug = (res: Response) => {
+    for (const [k, v] of Object.entries(debugHeaders)) {
+      res.headers.set(k, v);
+    }
+    return res;
+  };
+
   // Reject unknown hosts — use 404 to reduce fingerprinting surface
   if (!ALL_ALLOWED_HOSTS.has(host)) {
-    return new NextResponse('Not found', { status: 404 });
+    return addDebug(new NextResponse('Not found', { status: 404 }));
   }
 
   // ── Root on link hosts → redirect to app store page ──
-  if (request.nextUrl.pathname === '/' && APP_LINK_HOSTS.has(host)) {
-    const storeUrl = APP_STORE_URL_MAP[host];
+  if (request.nextUrl.pathname === '/' && isLinkHost) {
     if (storeUrl) {
-      return NextResponse.redirect(storeUrl, 302);
+      return addDebug(NextResponse.redirect(storeUrl, 302));
     }
     // Fallback: redirect to the platform-host app detail page
     const protocol = getProtocolForHost(host);
     const platformHost = 'smartlink.apps.allevents.app';
-    return NextResponse.redirect(
+    return addDebug(NextResponse.redirect(
       `${protocol}://${platformHost}`,
       302
-    );
+    ));
   }
 
   // ── Platform-only routes: redirect link hosts away ──
