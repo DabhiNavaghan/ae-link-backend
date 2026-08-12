@@ -45,43 +45,35 @@ export default clerkMiddleware((auth, request: NextRequest) => {
 
   const host = request.headers.get('host') || '';
 
-  // Check store URL availability early for debugging
+  // ── TEMPORARY: force-redirect both link hosts to prove middleware deploys ──
+  const FORCE_REDIRECT = true;
+  if (FORCE_REDIRECT && (host === 'organizer.aelinks.io' || host === 'allevents.aelinks.io')) {
+    const dest = host === 'organizer.aelinks.io'
+      ? 'https://smartlink.apps.allevents.app/apps/allevents-manager-app/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents-manager-app'
+      : 'https://smartlink.apps.allevents.app/apps/allevents-allevents/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents';
+    return NextResponse.redirect(dest, 302);
+  }
+
+  // ── ORIGINAL ROUTING LOGIC BELOW ──
+
   const isLinkHost = APP_LINK_HOSTS.has(host);
   const storeUrl = isLinkHost ? APP_STORE_URL_MAP[host] : undefined;
 
-  // Debug: attach headers to help diagnose deployed behaviour
-  const debugHeaders: Record<string, string> = {
-    'X-Debug-Host': host,
-    'X-Debug-Path': request.nextUrl.pathname,
-    'X-Debug-AllowedHost': String(ALL_ALLOWED_HOSTS.has(host)),
-    'X-Debug-IsLinkHost': String(isLinkHost),
-    'X-Debug-LinkHostCount': String(APP_LINK_HOSTS.size),
-    'X-Debug-HasStoreUrl': storeUrl ? 'yes' : 'no',
-  };
-  const addDebug = (res: Response) => {
-    for (const [k, v] of Object.entries(debugHeaders)) {
-      res.headers.set(k, v);
-    }
-    return res;
-  };
-
   // Reject unknown hosts — use 404 to reduce fingerprinting surface
   if (!ALL_ALLOWED_HOSTS.has(host)) {
-    return addDebug(new NextResponse('Not found', { status: 404 }));
+    return new NextResponse('Not found', { status: 404 });
   }
 
   // ── Root on link hosts → redirect to app store page ──
   if (request.nextUrl.pathname === '/' && isLinkHost) {
     if (storeUrl) {
-      return addDebug(NextResponse.redirect(storeUrl, 302));
+      return NextResponse.redirect(storeUrl, 302);
     }
-    // Fallback: redirect to the platform-host app detail page
     const protocol = getProtocolForHost(host);
-    const platformHost = 'smartlink.apps.allevents.app';
-    return addDebug(NextResponse.redirect(
-      `${protocol}://${platformHost}`,
+    return NextResponse.redirect(
+      `${protocol}://smartlink.apps.allevents.app`,
       302
-    ));
+    );
   }
 
   // ── Platform-only routes: redirect link hosts away ──
