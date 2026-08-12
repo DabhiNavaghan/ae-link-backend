@@ -24,7 +24,22 @@ function buildHostMap(): Record<string, string> {
   return map;
 }
 
+function buildStoreUrlMap(): Record<string, string> {
+  const map: Record<string, string> = {};
+
+  const alleventsStore = process.env.NEXT_PUBLIC_STORE_URL_allevents_aelinks_io;
+  if (alleventsStore) map['allevents.aelinks.io'] = alleventsStore;
+
+  const organizerStore = process.env.NEXT_PUBLIC_STORE_URL_organizer_aelinks_io;
+  if (organizerStore) map['organizer.aelinks.io'] = organizerStore;
+
+  // ▲ Match subdomain entries above ▲
+
+  return map;
+}
+
 export const APP_HOST_MAP: Readonly<Record<string, string>> = Object.freeze(buildHostMap());
+export const APP_STORE_URL_MAP: Readonly<Record<string, string>> = Object.freeze(buildStoreUrlMap());
 
 // Reverse: first host found per appId → primary hostname
 const primary: Record<string, string> = {};

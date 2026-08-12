@@ -5,7 +5,7 @@ import {
   ALL_ALLOWED_HOSTS,
   PLATFORM_HOSTS,
   APP_LINK_HOSTS,
-  APP_HOST_MAP,
+  APP_STORE_URL_MAP,
   getProtocolForHost,
 } from '@/lib/utils/domain-map';
 
@@ -52,11 +52,15 @@ export default clerkMiddleware((auth, request: NextRequest) => {
 
   // ── Root on link hosts → redirect to app store page ──
   if (request.nextUrl.pathname === '/' && APP_LINK_HOSTS.has(host)) {
-    const appId = APP_HOST_MAP[host];
-    const platformHost = 'smartlink.apps.allevents.app';
+    const storeUrl = APP_STORE_URL_MAP[host];
+    if (storeUrl) {
+      return NextResponse.redirect(storeUrl, 302);
+    }
+    // Fallback: redirect to the platform-host app detail page
     const protocol = getProtocolForHost(host);
+    const platformHost = 'smartlink.apps.allevents.app';
     return NextResponse.redirect(
-      `${protocol}://${platformHost}/apps/${appId}`,
+      `${protocol}://${platformHost}`,
       302
     );
   }
