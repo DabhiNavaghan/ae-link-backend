@@ -5,6 +5,7 @@ import { useAuth, SignInButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import './landing.css';
+import { version } from '../../package.json';
 
 export default function LandingPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -115,13 +116,13 @@ export default function LandingPage() {
         <div className="tl-container">
           <div className="tl-hero-meta reveal d1">
             <span><span className="live-dot" /> SYS / OPERATIONAL</span>
-            <span>VER / 1.0.0</span>
+            <span>VER / {version}</span>
             <span>UPTIME / 99.998%</span>
             <span>REGION / GLOBAL</span>
           </div>
 
           <h1 className="reveal d1">
-            <span>Route every</span><br />
+            <span>Route each</span><br />
             <span className="accent">tap.</span>{' '}
             <span className="stroke">Attribute</span><br />
             <span>
