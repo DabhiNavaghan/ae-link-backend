@@ -78,3 +78,21 @@ export function getPrimaryHostForApp(appId?: string | null): string {
 export function getProtocolForHost(host: string): 'http' | 'https' {
   return host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https';
 }
+
+export function isLinkHost(host: string): boolean {
+  return APP_LINK_HOSTS.has(normalizeHost(host));
+}
+
+/**
+ * The app-store page a link host falls back to: its root, and any path on it
+ * that does not resolve to a link. Undefined for the platform host, which has
+ * its own pages to show.
+ */
+export function getStoreUrlForHost(host: string): string | undefined {
+  return APP_STORE_URL_MAP[normalizeHost(host)];
+}
+
+/** Host header may carry a port (localhost:3000) or uppercase characters. */
+export function normalizeHost(host: string): string {
+  return host.trim().toLowerCase();
+}

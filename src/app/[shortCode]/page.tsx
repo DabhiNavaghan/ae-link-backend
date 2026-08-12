@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { getStoreUrlForHost } from '@/lib/utils/domain-map';
 import { connectDB } from '@/lib/mongodb';
 import LinkService from '@/lib/services/link.service';
 import ClickModel from '@/lib/models/Click';
@@ -75,6 +76,18 @@ const SYSTEM_PATHS = new Set([
 const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|map|txt|xml|json)$/i;
 
 /**
+ * redirect() and notFound() signal by throwing. The catch-all below must let
+ * those through instead of turning a deliberate redirect into a 404.
+ */
+function isNextControlFlowError(error: unknown): boolean {
+  const digest = (error as { digest?: unknown } | null)?.digest;
+  return (
+    typeof digest === 'string' &&
+    (digest.startsWith('NEXT_REDIRECT') || digest === 'NEXT_NOT_FOUND')
+  );
+}
+
+/**
  * Resolve short link and perform server-side click recording.
  *
  * Supports dynamic query-param deep links:
@@ -111,6 +124,11 @@ export default async function ResolvePage({
 
     if (!link) {
       logger.warn({ shortCode }, 'Link not found');
+      // A per-app link host has no pages of its own, so an unknown path there
+      // is not a dead end — it lands on that app's store page, same as the
+      // host root does. The platform host keeps its 404.
+      const storeUrl = getStoreUrlForHost(headers().get('host') || '');
+      if (storeUrl) redirect(storeUrl);
       notFound();
     }
 
@@ -557,6 +575,7 @@ export default async function ResolvePage({
       />
     );
   } catch (error) {
+    if (isNextControlFlowError(error)) throw error;
     logger.error({ error, shortCode: params.shortCode }, 'Resolve page error');
     notFound();
   }

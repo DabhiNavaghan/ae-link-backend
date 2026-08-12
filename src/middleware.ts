@@ -4,9 +4,10 @@ import type { NextRequest } from 'next/server';
 import {
   ALL_ALLOWED_HOSTS,
   PLATFORM_HOSTS,
-  APP_LINK_HOSTS,
-  APP_STORE_URL_MAP,
   getProtocolForHost,
+  getStoreUrlForHost,
+  isLinkHost,
+  normalizeHost,
 } from '@/lib/utils/domain-map';
 
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
@@ -43,35 +44,25 @@ export default clerkMiddleware((auth, request: NextRequest) => {
     return response;
   }
 
-  const host = request.headers.get('host') || '';
-
-  // ── TEMPORARY: force-redirect both link hosts to prove middleware deploys ──
-  const FORCE_REDIRECT = true;
-  if (FORCE_REDIRECT && (host === 'organizer.aelinks.io' || host === 'allevents.aelinks.io')) {
-    const dest = host === 'organizer.aelinks.io'
-      ? 'https://smartlink.apps.allevents.app/apps/allevents-manager-app/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents-manager-app'
-      : 'https://smartlink.apps.allevents.app/apps/allevents-allevents/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents';
-    return NextResponse.redirect(dest, 302);
-  }
-
-  // ── ORIGINAL ROUTING LOGIC BELOW ──
-
-  const isLinkHost = APP_LINK_HOSTS.has(host);
-  const storeUrl = isLinkHost ? APP_STORE_URL_MAP[host] : undefined;
+  const host = normalizeHost(request.headers.get('host') || '');
+  const onLinkHost = isLinkHost(host);
+  const storeUrl = getStoreUrlForHost(host);
 
   // Reject unknown hosts — use 404 to reduce fingerprinting surface
   if (!ALL_ALLOWED_HOSTS.has(host)) {
     return new NextResponse('Not found', { status: 404 });
   }
 
-  // ── Root on link hosts → redirect to app store page ──
-  if (request.nextUrl.pathname === '/' && isLinkHost) {
-    if (storeUrl) {
-      return NextResponse.redirect(storeUrl, 302);
-    }
+  // ── Root on a link host → that app's store page ──
+  // organizer.aelinks.io/ → the manager app's store page,
+  // allevents.aelinks.io/ → the allevents app's store page.
+  // Every other path stays on the link host and resolves as usual; only
+  // paths that turn out not to be links fall back to the store page, which
+  // app/not-found.tsx handles.
+  if (request.nextUrl.pathname === '/' && onLinkHost) {
     const protocol = getProtocolForHost(host);
     return NextResponse.redirect(
-      `${protocol}://smartlink.apps.allevents.app`,
+      storeUrl || `${protocol}://smartlink.apps.allevents.app`,
       302
     );
   }
