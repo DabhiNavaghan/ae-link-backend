@@ -35,7 +35,7 @@ function buildStoreUrlMap(): Record<string, string> {
   // Organizer app — replace SLUG with the actual organizer app slug
   const organizerStore = process.env.NEXT_PUBLIC_STORE_URL_organizer_aelinks_io;
   map['organizer.aelinks.io'] = organizerStore ||
-    'https://smartlink.apps.allevents.app/apps/organizer/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=organizer';
+    'https://smartlink.apps.allevents.app/apps/allevents-manager-app/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents-manager-app';
 
   // ▲ Add new subdomains with fallback store URLs here ▲
 
@@ -51,7 +51,12 @@ for (const [host, id] of Object.entries(APP_HOST_MAP)) {
   if (!primary[id]) primary[id] = host;
 }
 export const APP_PRIMARY_HOST: Readonly<Record<string, string>> = Object.freeze(primary);
-export const APP_LINK_HOSTS = new Set(Object.keys(APP_HOST_MAP));
+// Always-recognized link hosts (hardcoded so they work even if env vars are missing at build)
+const HARDCODED_LINK_HOSTS = ['organizer.aelinks.io', 'allevents.aelinks.io'];
+export const APP_LINK_HOSTS = new Set([
+  ...Object.keys(APP_HOST_MAP),
+  ...HARDCODED_LINK_HOSTS,
+]);
 
 export const PLATFORM_HOSTS = new Set([
   'smartlink.apps.allevents.app',
