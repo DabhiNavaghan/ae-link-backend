@@ -7,6 +7,7 @@ import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 import StoreRedirectToggles from '@/components/ui/StoreRedirectToggles';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 interface Campaign {
   _id: string;
@@ -358,8 +359,8 @@ export default function CreateLinkPage() {
     }
   };
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const smartLinkUrl = success ? `${origin}/${success.shortCode}` : '';
+  const host = getPrimaryHostForApp(formData.appId);
+  const smartLinkUrl = success ? `https://${host}/${success.shortCode}` : '';
 
   // ── Success screen ──
   if (success) {
@@ -547,7 +548,7 @@ export default function CreateLinkPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>smart link</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                    {origin}/{formData.shortCode || '‹auto›'}
+                    https://{host}/{formData.shortCode || '‹auto›'}
                   </div>
                   {formData.title && (
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 4 }}>

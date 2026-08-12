@@ -8,6 +8,7 @@ import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 import { setBreadcrumbTitle } from '@/components/ui/Breadcrumb';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 interface LinkData {
   _id: string;
@@ -23,6 +24,7 @@ interface LinkData {
   storeRedirect?: { mobile?: boolean; web?: boolean };
   campaignId?: string;
   campaignName?: string;
+  appId?: string;
   createdBy?: { name: string; email: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
@@ -133,8 +135,8 @@ export default function LinkDetailPage() {
       // Set breadcrumb title so it shows link name instead of ObjectId
       setBreadcrumbTitle(ld.title || ld.shortCode);
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
-      const deepLink = `${origin}/${(linkData as unknown as LinkData).shortCode}`;
+      const host = getPrimaryHostForApp(ld.appId);
+      const deepLink = `https://${host}/${(linkData as unknown as LinkData).shortCode}`;
       const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
 
@@ -160,8 +162,8 @@ export default function LinkDetailPage() {
 
   async function handleCopy() {
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
-      await copyToClipboard(`${origin}/${link?.shortCode}`);
+      const host = getPrimaryHostForApp(link?.appId);
+      await copyToClipboard(`https://${host}/${link?.shortCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -870,15 +872,15 @@ export default function LinkDetailPage() {
             </div>
             <div
               onClick={async () => {
-                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
-                await copyToClipboard(`${origin}/${link.shortCode}`);
+                const host = getPrimaryHostForApp(link.appId);
+                await copyToClipboard(`https://${host}/${link.shortCode}`);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
               style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               title="Click to copy link"
             >
-              {typeof window !== 'undefined' ? window.location.host : 'smartlink.apps.allevents.app'}/{link.shortCode}
+              {getPrimaryHostForApp(link.appId)}/{link.shortCode}
               <span style={{ fontSize: 10, color: copied ? 'var(--color-primary)' : 'var(--color-text-tertiary)', transition: 'color 0.2s' }}>
                 {copied ? '✓ copied' : '⧉'}
               </span>

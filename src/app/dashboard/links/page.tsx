@@ -7,6 +7,7 @@ import { copyToClipboard } from '@/lib/utils/slug';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 interface LinkItem {
   _id: string;
@@ -16,6 +17,7 @@ interface LinkItem {
   linkType: string;
   campaignId?: string;
   campaignName?: string;
+  appId?: string;
   clickCount: number;
   conversionCount?: number;
   isActive: boolean;
@@ -129,9 +131,10 @@ export default function LinksPage() {
     }
   }
 
-  async function handleCopyLink(shortCode: string) {
+  async function handleCopyLink(shortCode: string, appId?: string) {
     try {
-      const domain = typeof window !== 'undefined' ? window.location.origin : '';
+      const host = getPrimaryHostForApp(appId);
+      const domain = `https://${host}`;
       await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);
@@ -263,7 +266,7 @@ export default function LinksPage() {
                         {link.title || link.shortCode}
                       </Link>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
-                        {(typeof window !== 'undefined' ? window.location.host : 'smartlink.apps.allevents.app')}/{link.shortCode}
+                        {(getPrimaryHostForApp(link.appId))}/{link.shortCode}
                       </p>
                     </td>
                     <td className="px-6 py-4">
@@ -309,7 +312,7 @@ export default function LinksPage() {
                       <div className="flex items-center justify-end gap-1">
                         {/* Copy link */}
                         <button
-                          onClick={() => handleCopyLink(link.shortCode)}
+                          onClick={() => handleCopyLink(link.shortCode, link.appId)}
                           className="p-1.5 transition-colors hover-bg-secondary"
                           style={{ color: copiedCode === link.shortCode ? 'var(--color-success)' : 'var(--color-text-secondary)' }}
                           title="Copy link"

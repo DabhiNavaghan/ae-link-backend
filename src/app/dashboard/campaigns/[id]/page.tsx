@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs';
 import { formatDate, formatRelativeTime, copyToClipboard } from '@/lib/utils/slug';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 // Module-level cache — survives client-side navigation, cleared on hard refresh
 const pageCache = new Map<string, {
@@ -36,6 +37,7 @@ interface LinkItem {
   shortCode: string;
   destinationUrl: string;
   linkType: string;
+  appId?: string;
   clickCount: number;
   conversionCount?: number;
   createdAt: string;
@@ -226,9 +228,10 @@ export default function CampaignDetailPage() {
     }
   }
 
-  async function handleCopyLink(shortCode: string) {
+  async function handleCopyLink(shortCode: string, appId?: string) {
     try {
-      const domain = typeof window !== 'undefined' ? window.location.origin : '';
+      const host = getPrimaryHostForApp(appId);
+      const domain = `https://${host}`;
       await copyToClipboard(`${domain}/${shortCode}`);
       setCopiedCode(shortCode);
       setTimeout(() => setCopiedCode(null), 2000);
@@ -480,7 +483,7 @@ export default function CampaignDetailPage() {
                       </td>
                       <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                          <button onClick={() => handleCopyLink(link.shortCode)} className="btn-dashboard btn-dashboard-sm" style={{ fontSize: 10, padding: '3px 8px' }}>
+                          <button onClick={() => handleCopyLink(link.shortCode, link.appId)} className="btn-dashboard btn-dashboard-sm" style={{ fontSize: 10, padding: '3px 8px' }}>
                             {copiedCode === link.shortCode ? 'copied' : 'copy'}
                           </button>
                           <button onClick={() => setLinkDeleteConfirm(link._id)} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 8px', color: 'var(--color-warning)', background: 'transparent', border: '1px solid var(--color-warning)', cursor: 'pointer' }}>

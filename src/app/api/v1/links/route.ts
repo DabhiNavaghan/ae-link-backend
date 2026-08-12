@@ -9,6 +9,7 @@ import LinkService from '@/lib/services/link.service';
 import { CreateLinkDto } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 const logger = Logger.child({ route: 'links-list' });
 
@@ -140,10 +141,9 @@ export async function POST(request: NextRequest) {
 
     const link = await LinkService.createLink(auth.tenantId, body);
 
-    // Build full short link URL from request host
-    const host = request.headers.get('host') || 'smartlink.apps.allevents.app';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const linkUrl = `${protocol}://${host}/${link.shortCode}`;
+    // Build full short link URL using the app's primary domain
+    const host = getPrimaryHostForApp(link.appId?.toString());
+    const linkUrl = `https://${host}/${link.shortCode}`;
 
     const response = NextResponse.json(
       successResponse({ ...link.toJSON(), url: linkUrl }),

@@ -6,6 +6,7 @@ import { generateQRCodeSVG, SMARTLINK_LOGO_SVG } from '@/lib/utils/qr-code';
 import { smartLinkApi } from '@/lib/api';
 import { useDashboard } from '@/lib/context/DashboardContext';
 import StoreRedirectToggles from '@/components/ui/StoreRedirectToggles';
+import { getPrimaryHostForApp } from '@/lib/utils/domain-map';
 
 interface Campaign {
   _id: string;
@@ -199,8 +200,8 @@ export default function EditLinkPage() {
   async function generateQRCode() {
     if (!formData.destinationUrl) { setQrCodeUrl(''); return; }
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smartlink.apps.allevents.app';
-      const deepLink = formData.shortCode ? `${origin}/${formData.shortCode}` : formData.destinationUrl;
+      const host = getPrimaryHostForApp(formData.appId);
+      const deepLink = formData.shortCode ? `https://${host}/${formData.shortCode}` : formData.destinationUrl;
       const svg = await generateQRCodeSVG(deepLink, 200, SMARTLINK_LOGO_SVG);
       setQrCodeUrl(`data:image/svg+xml;base64,${btoa(svg)}`);
     } catch (err) { console.error('Failed to generate QR code', err); }
@@ -297,7 +298,7 @@ export default function EditLinkPage() {
     }
   };
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const host = getPrimaryHostForApp(formData.appId);
 
   if (pageLoading) {
     return (
@@ -405,7 +406,7 @@ export default function EditLinkPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>smart link</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                    {origin}/{formData.shortCode}
+                    https://{host}/{formData.shortCode}
                   </div>
                   {formData.title && (
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 4 }}>
