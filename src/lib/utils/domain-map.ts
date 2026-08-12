@@ -27,13 +27,17 @@ function buildHostMap(): Record<string, string> {
 function buildStoreUrlMap(): Record<string, string> {
   const map: Record<string, string> = {};
 
+  // Allevents app → https://smartlink.apps.allevents.app/apps/allevents-allevents/store?...
   const alleventsStore = process.env.NEXT_PUBLIC_STORE_URL_allevents_aelinks_io;
-  if (alleventsStore) map['allevents.aelinks.io'] = alleventsStore;
+  map['allevents.aelinks.io'] = alleventsStore ||
+    'https://smartlink.apps.allevents.app/apps/allevents-allevents/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents';
 
+  // Organizer app — replace SLUG with the actual organizer app slug
   const organizerStore = process.env.NEXT_PUBLIC_STORE_URL_organizer_aelinks_io;
-  if (organizerStore) map['organizer.aelinks.io'] = organizerStore;
+  map['organizer.aelinks.io'] = organizerStore ||
+    'https://smartlink.apps.allevents.app/apps/organizer/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=organizer';
 
-  // ▲ Match subdomain entries above ▲
+  // ▲ Add new subdomains with fallback store URLs here ▲
 
   return map;
 }
