@@ -9,6 +9,7 @@ import AppModel from '@/lib/models/App';
 import TenantModel from '@/lib/models/Tenant';
 import { CreateAppDto } from '@/types';
 import { sanitizeAppInfoUrls } from '@/lib/utils/url';
+import { sanitizeLinkDomains } from '@/lib/utils/domain-map.server';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import crypto from 'crypto';
@@ -173,6 +174,9 @@ export async function POST(request: NextRequest) {
       android: body.android || {},
       ios: body.ios || {},
       info: body.info ? sanitizeAppInfoUrls(body.info) : {},
+      // Sanitized on the way in, same as the PATCH path, so a typo cannot
+      // ship an over-broad host to every install of this app.
+      linkDomains: sanitizeLinkDomains(body.linkDomains),
     });
 
     await app.save();

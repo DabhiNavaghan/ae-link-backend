@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getLinkDomainsForPackages } from '@/lib/utils/domain-map';
 import { smartLinkApi } from '@/lib/api';
 import { IApp, AppVisitAnalytics } from '@/types';
 import { safeHttpUrl } from '@/lib/utils/url';
@@ -180,6 +181,60 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Link domains — what the SDK is told to treat as first-party at init.
+          Shown here so an integrator can confirm the list without reading a
+          response body. */}
+      <div className="card p-6">
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>Link Domains</h2>
+        <p className="text-sm mt-1 mb-4" style={{ color: 'var(--color-text-tertiary)' }}>
+          Handed to the SDK on <code className="font-mono">initialize()</code> and cached on device.
+          Derived from the app&apos;s package / bundle ID, so there is normally nothing to
+          set — apps never hardcode these.
+        </p>
+        {(() => {
+          const derived = getLinkDomainsForPackages([
+            app.android?.package,
+            app.ios?.bundleId,
+          ]);
+          const manual = (app.linkDomains || []).filter((d) => !derived.includes(d));
+          const all = [...derived, ...manual];
+
+          if (all.length === 0) {
+            return (
+              <p className="text-sm italic" style={{ color: 'var(--color-text-tertiary)' }}>
+                None — set an Android package or iOS bundle ID and the domain is derived
+                from it. Until then installs trust only the API base host, so short links
+                on your own domain are treated as external.
+              </p>
+            );
+          }
+
+          return (
+            <div className="flex flex-wrap gap-2">
+              {all.map((domain) => (
+                <span
+                  key={domain}
+                  className="font-mono text-sm px-2 py-1"
+                  style={{
+                    background: 'var(--color-bg-secondary)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text)',
+                  }}
+                  title={derived.includes(domain)
+                    ? 'Derived from the app identifier'
+                    : 'Added manually'}
+                >
+                  {domain}
+                  <span className="ml-2 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                    {derived.includes(domain) ? 'auto' : 'manual'}
+                  </span>
+                </span>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Store page traffic — visits to /apps/:slug/store. These belong to the

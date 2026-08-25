@@ -4,6 +4,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { smartLinkApi } from '@/lib/api';
+import { getLinkDomainsForPackages } from '@/lib/utils/domain-map';
 import { useDashboard } from '@/lib/context/DashboardContext';
 import { CreateAppDto, IApp, UpdateAppDto } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -290,6 +291,14 @@ function AppFormModal({
   const [infoIconUrl, setInfoIconUrl] = useState('');
   const [infoScreenshotUrl, setInfoScreenshotUrl] = useState('');
   const [infoMarketingUrl, setInfoMarketingUrl] = useState('');
+  const [linkDomains, setLinkDomains] = useState('');
+
+  // Mirrors what the backend will derive, so the form shows the real answer
+  // as the identifiers are typed rather than after a save.
+  const derivedDomains = getLinkDomainsForPackages([
+    androidPackage.trim(),
+    iosBundleId.trim(),
+  ]);
 
   // Populate fields when editing
   useEffect(() => {
@@ -307,6 +316,7 @@ function AppFormModal({
       setInfoIconUrl(editApp.info?.iconUrl || '');
       setInfoScreenshotUrl(editApp.info?.screenshotUrl || '');
       setInfoMarketingUrl(editApp.info?.marketingUrl || '');
+      setLinkDomains((editApp.linkDomains || []).join(', '));
     } else {
       setName('');
       setAndroidPackage('');
@@ -321,6 +331,7 @@ function AppFormModal({
       setInfoIconUrl('');
       setInfoScreenshotUrl('');
       setInfoMarketingUrl('');
+      setLinkDomains('');
     }
     setError(null);
   }, [editApp, isOpen]);
@@ -356,6 +367,12 @@ function AppFormModal({
           screenshotUrl: infoScreenshotUrl.trim(),
           marketingUrl: infoMarketingUrl.trim(),
         },
+        // Comma- or newline-separated in the field, a list on the wire. Sent
+        // even when empty so clearing the field actually removes the domains.
+        linkDomains: linkDomains
+          .split(/[\s,]+/)
+          .map((d) => d.trim())
+          .filter(Boolean),
       };
 
       if (isEdit) {
@@ -485,6 +502,39 @@ function AppFormModal({
               onChange={(e) => setIosStoreUrl(e.target.value)}
               placeholder="https://apps.apple.com/app/id488116646"
               helperText="Users without your app will be sent here"
+            />
+          </div>
+
+          {/* Link domains — handed to the SDK at init so an integrator never
+              hardcodes hosts in the app binary. */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                Link Domains
+              </h3>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                Derived from the identifiers above and served to the SDK at init, so
+                integrators never pass a domain list in code. Leave the field blank
+                unless this app&apos;s host does not follow the rule.
+              </p>
+            </div>
+            {derivedDomains.length > 0 && (
+              <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                Derived automatically:{' '}
+                {derivedDomains.map((d) => (
+                  <span key={d} className="font-mono ml-1" style={{ color: 'var(--color-text)' }}>
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
+            <Input
+              label="Additional domains (optional)"
+              type="text"
+              value={linkDomains}
+              onChange={(e) => setLinkDomains(e.target.value)}
+              placeholder="Leave blank in almost all cases"
+              helperText="Comma-separated, added on top of the derived host. A '*.' prefix matches the domain and its subdomains. The API base host is always trusted and never needs listing."
             />
           </div>
 

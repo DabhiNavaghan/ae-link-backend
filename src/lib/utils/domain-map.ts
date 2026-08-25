@@ -75,6 +75,95 @@ export function getPrimaryHostForApp(appId?: string | null): string {
   return 'smartlink.apps.allevents.app';
 }
 
+// ── Package/bundle id → link domain ─────────────────────────────────
+// The SDK is told which hosts serve its links at init. Nobody wants to
+// maintain that list per app, so it is *derived* from the identifier the app
+// already declares — `com.amitech.allevents` → `allevents.aelinks.io` — and
+// only the handful of apps whose domain does not follow the rule are named
+// explicitly below.
+
+/** Registrable domain every derived link host sits under. */
+export const LINK_DOMAIN_BASE =
+  process.env.NEXT_PUBLIC_LINK_DOMAIN_BASE || 'aelinks.io';
+
+/**
+ * Apps whose link host does not match their package id.
+ *
+ * Keep this as small as it can be: an entry here is a promise that a human
+ * remembers to update it. Everything absent is derived by the rule above.
+ */
+export const PACKAGE_LINK_DOMAIN_OVERRIDES: Readonly<Record<string, string>> =
+  Object.freeze({
+    // Ships as `alleventsorg`, but the domain in service is `organizer`.
+    'com.amitech.alleventsorg': `organizer.${LINK_DOMAIN_BASE}`,
+  });
+
+/**
+ * Build-variant labels stripped before deriving, so a debug flavor
+ * (`com.amitech.allevents.debug`) resolves to the same host as release
+ * rather than to `debug.aelinks.io`.
+ */
+const BUILD_VARIANT_LABELS = new Set([
+  'debug', 'dev', 'development', 'staging', 'stage',
+  'alpha', 'beta', 'qa', 'test', 'internal', 'release',
+]);
+
+/**
+ * The link host for an Android applicationId or iOS bundleId, or null when
+ * the identifier yields nothing usable as a hostname label.
+ *
+ * Pure and free of DB or env lookups so the dashboard can show the same
+ * answer the SDK will be served.
+ */
+export function getLinkDomainForPackage(
+  packageId?: string | null
+): string | null {
+  if (!packageId) return null;
+
+  const normalized = packageId.trim().toLowerCase();
+  if (PACKAGE_LINK_DOMAIN_OVERRIDES[normalized]) {
+    return PACKAGE_LINK_DOMAIN_OVERRIDES[normalized];
+  }
+
+  const labels = normalized.split('.').filter(Boolean);
+  // Drop trailing flavor labels, never the last remaining one — a bare
+  // `debug` as the whole identifier is malformed, not a variant.
+  while (labels.length > 1 && BUILD_VARIANT_LABELS.has(labels[labels.length - 1])) {
+    labels.pop();
+  }
+
+  // Re-check after stripping so a debug flavor of an overridden app
+  // (`com.amitech.alleventsorg.debug`) resolves to the override too, rather
+  // than falling through to the derived host.
+  const stripped = labels.join('.');
+  if (PACKAGE_LINK_DOMAIN_OVERRIDES[stripped]) {
+    return PACKAGE_LINK_DOMAIN_OVERRIDES[stripped];
+  }
+
+  const last = labels[labels.length - 1];
+  if (!last) return null;
+
+  // Hostname labels allow letters, digits and hyphens only. Underscores are
+  // legal in a package id, so map them across rather than dropping them.
+  const slug = last.replace(/_/g, '-').replace(/[^a-z0-9-]/g, '')
+    .replace(/^-+|-+$/g, '');
+  if (!slug || slug.length > 63) return null;
+
+  return `${slug}.${LINK_DOMAIN_BASE}`;
+}
+
+/** Every link host implied by an app's Android and iOS identifiers. */
+export function getLinkDomainsForPackages(
+  packageIds: Array<string | null | undefined>
+): string[] {
+  const out = new Set<string>();
+  for (const id of packageIds) {
+    const domain = getLinkDomainForPackage(id);
+    if (domain) out.add(domain);
+  }
+  return [...out];
+}
+
 export function getProtocolForHost(host: string): 'http' | 'https' {
   return host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https';
 }

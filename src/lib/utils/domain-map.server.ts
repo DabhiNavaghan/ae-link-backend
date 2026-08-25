@@ -1,5 +1,5 @@
 import AppModel from '@/lib/models/App';
-import { APP_HOST_MAP } from '@/lib/utils/domain-map';
+import { APP_HOST_MAP, getLinkDomainsForPackages } from '@/lib/utils/domain-map';
 
 export interface HostApp {
   _id: string;
@@ -98,9 +98,14 @@ export function sanitizeLinkDomains(raw: unknown): string[] {
  * The link hosts an SDK client authenticated for [appId] is allowed to know.
  *
  * Sources, unioned then sanitized:
- *   - `App.linkDomains` — the dashboard-managed list (authoritative)
- *   - `APP_HOST_MAP` — the existing env-var mapping, so deployments that have
- *     not populated the DB field yet keep working without a migration
+ *   - the host **derived from the app's own identifiers** — `android.package`
+ *     and `ios.bundleId`, e.g. `com.amitech.allevents` →
+ *     `allevents.aelinks.io`. This is the normal path: registering an app is
+ *     all it takes for its installs to be served the right domain.
+ *   - `App.linkDomains` — an optional manual addition, for a host the rule
+ *     cannot produce
+ *   - `APP_HOST_MAP` — the existing env-var mapping, so deployments already
+ *     relying on it keep working without a migration
  *
  * Returns an empty array when the app is unknown, which leaves the SDK
  * trusting only its configured `apiBaseUrl` host — the safe floor.
@@ -115,15 +120,114 @@ export async function getLinkDomainsForApp(
     .map(([host]) => host);
 
   let fromDb: string[] = [];
+  let derived: string[] = [];
   try {
-    const doc = await AppModel.findById(appId).select('linkDomains').lean();
-    if (doc && Array.isArray((doc as { linkDomains?: string[] }).linkDomains)) {
-      fromDb = (doc as { linkDomains?: string[] }).linkDomains as string[];
+    const doc = await AppModel.findById(appId)
+      .select('linkDomains android.package ios.bundleId')
+      .lean();
+    if (doc) {
+      const app = doc as {
+        linkDomains?: string[];
+        android?: { package?: string };
+        ios?: { bundleId?: string };
+      };
+      if (Array.isArray(app.linkDomains)) fromDb = app.linkDomains;
+      // The identifiers the app already declares imply its host, so a newly
+      // registered app is served the right domain with nothing to fill in.
+      derived = getLinkDomainsForPackages([
+        app.android?.package,
+        app.ios?.bundleId,
+      ]);
     }
   } catch {
     // Fall through to the env-derived list — a DB hiccup should degrade to
     // "fewer domains", never to "more".
   }
 
-  return sanitizeLinkDomains([...fromDb, ...fromEnv]);
+  return sanitizeLinkDomains([...fromDb, ...derived, ...fromEnv]);
+}
+
+/**
+ * Every link host owned by [tenantId], across all of its active apps.
+ *
+ * Used as the fallback when an SDK client authenticated with a tenant-level
+ * key that we could not narrow to a single app — an unregistered package
+ * name, or a launch that sent none. Without it those installs receive an
+ * empty list and silently classify every short link as external, which is
+ * the failure that pushes integrators into hardcoding `linkDomains`.
+ *
+ * Still tenant-scoped: the union never crosses a tenant boundary, so the
+ * guarantee that one tenant's hosts never reach another's app is unchanged.
+ * The cost of the wider list is only that an app may trust a sibling app's
+ * host — both belong to the same customer, and an unresolvable short code
+ * is rejected by `/api/v1/links/resolve` anyway.
+ */
+export async function getLinkDomainsForTenant(
+  tenantId?: string | null
+): Promise<string[]> {
+  if (!tenantId) return [];
+
+  try {
+    const docs = await AppModel.find({ tenantId, isActive: true })
+      .select('_id linkDomains android.package ios.bundleId')
+      .lean();
+
+    const appIds = new Set(docs.map((d) => d._id.toString()));
+
+    const apps = docs as Array<{
+      linkDomains?: string[];
+      android?: { package?: string };
+      ios?: { bundleId?: string };
+    }>;
+
+    const fromDb = apps.flatMap((a) =>
+      Array.isArray(a.linkDomains) ? a.linkDomains : []
+    );
+
+    const derived = getLinkDomainsForPackages(
+      apps.flatMap((a) => [a.android?.package, a.ios?.bundleId])
+    );
+
+    const fromEnv = Object.entries(APP_HOST_MAP)
+      .filter(([, id]) => appIds.has(id))
+      .map(([host]) => host);
+
+    return sanitizeLinkDomains([...fromDb, ...derived, ...fromEnv]);
+  } catch {
+    // A DB hiccup degrades to "fewer domains", never to "more".
+    return [];
+  }
+}
+
+/**
+ * The link hosts to hand an SDK client on init.
+ *
+ * Prefers the authenticated app's own list and widens to the tenant's full
+ * set only when that comes back empty, so a correctly registered app is
+ * never handed a sibling's hosts.
+ */
+export async function getLinkDomainsForSdk({
+  tenantId,
+  appId,
+  packageName,
+}: {
+  tenantId?: string | null;
+  appId?: string | null;
+  packageName?: string | null;
+}): Promise<string[]> {
+  const scoped = await getLinkDomainsForApp(appId);
+  if (scoped.length > 0) return scoped;
+
+  // Unresolved app — an unregistered package, or a launch that sent none.
+  // Widen to the tenant, and derive from the identifier the caller reported
+  // so an app that is not registered yet still classifies its own links.
+  // Deriving from a client-supplied id is safe: the rule is deterministic,
+  // the host still has to exist and serve the short code, and the OS only
+  // delivers links for hosts already declared in the app's manifest.
+  const tenantWide = await getLinkDomainsForTenant(tenantId);
+  const fromCaller = sanitizeLinkDomains(
+    getLinkDomainsForPackages([packageName])
+  );
+
+  return sanitizeLinkDomains([...tenantWide, ...fromCaller]);
 }

@@ -13,7 +13,7 @@ import LinkModel from '@/lib/models/Link';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { getClientIp } from '@/lib/get-client-ip';
-import { getLinkDomainsForApp } from '@/lib/utils/domain-map.server';
+import { getLinkDomainsForSdk } from '@/lib/utils/domain-map.server';
 import { hostMatchesLinkDomains } from '@/lib/utils/link-domain-match';
 import { liveEvents } from '@/lib/services/live-events';
 import { lookupGeo } from '@/lib/services/geo.service';
@@ -151,9 +151,17 @@ export async function POST(request: NextRequest) {
     let installType: 'first_install' | 'reinstall' | 'open';
 
     // ── Link domains for this app ──
-    // Scoped to the authenticated app: an SDK client never learns another
-    // tenant's hosts. Also used to classify launchUrl below.
-    const linkDomains = await getLinkDomainsForApp(resolvedAppId);
+    // Derived from the app's own package / bundle id, so an integrator never
+    // passes a domain list in code. Scoped to the authenticated app: an SDK
+    // client never learns another tenant's hosts. Falls back to the tenant's
+    // set when the package name matched no registered app, so an install
+    // still learns its domains instead of treating every short link as
+    // external. Also used to classify launchUrl below.
+    const linkDomains = await getLinkDomainsForSdk({
+      tenantId: auth.tenantId,
+      appId: resolvedAppId,
+      packageName,
+    });
 
     // Source info sent by SDK (from deep link URL if app was opened via a link).
     //
