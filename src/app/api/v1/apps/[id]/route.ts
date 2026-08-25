@@ -8,6 +8,7 @@ import { applyCors } from '@/lib/middleware/cors';
 import AppModel from '@/lib/models/App';
 import { UpdateAppDto } from '@/types';
 import { sanitizeAppInfoUrls } from '@/lib/utils/url';
+import { sanitizeLinkDomains } from '@/lib/utils/domain-map.server';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { Types } from 'mongoose';
@@ -165,6 +166,12 @@ export async function PUT(
         ...existingApp.info,
         ...body.info,
       });
+    }
+    if (body.linkDomains !== undefined) {
+      // Replaced wholesale, not merged — removing a domain has to be possible.
+      // Sanitized here so a typo cannot ship an over-broad host to every
+      // installed app; entries that fail validation are dropped silently.
+      updateData.linkDomains = sanitizeLinkDomains(body.linkDomains);
     }
 
     const updated = await AppModel.findByIdAndUpdate(

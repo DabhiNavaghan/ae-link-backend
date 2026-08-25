@@ -13,6 +13,8 @@ import LinkModel from '@/lib/models/Link';
 import { successResponse, Errors } from '@/utils/response';
 import { Logger } from '@/lib/logger';
 import { getClientIp } from '@/lib/get-client-ip';
+import { getLinkDomainsForApp } from '@/lib/utils/domain-map.server';
+import { hostMatchesLinkDomains } from '@/lib/utils/link-domain-match';
 import { liveEvents } from '@/lib/services/live-events';
 import { lookupGeo } from '@/lib/services/geo.service';
 
@@ -148,12 +150,24 @@ export async function POST(request: NextRequest) {
 
     let installType: 'first_install' | 'reinstall' | 'open';
 
-    // Source info sent by SDK (from deep link URL if app was opened via a link)
+    // ── Link domains for this app ──
+    // Scoped to the authenticated app: an SDK client never learns another
+    // tenant's hosts. Also used to classify launchUrl below.
+    const linkDomains = await getLinkDomainsForApp(resolvedAppId);
+
+    // Source info sent by SDK (from deep link URL if app was opened via a link).
+    //
+    // On the very first launch the SDK has no cached domain list yet, so it
+    // cannot tell whether launchUrl is one of ours and sends no launch* fields.
+    // Derive them here instead — the server always knows the domains, so
+    // first-install attribution does not depend on the SDK having been told.
+    const launchAttribution = deriveLaunchAttribution(launchUrl, linkDomains);
+
     const sourceFields = {
-      lastSource: launchSource || null,
-      lastMedium: launchMedium || null,
-      lastCampaign: launchCampaign || null,
-      lastLinkId: launchLinkId || null,
+      lastSource: launchSource || launchAttribution.source,
+      lastMedium: launchMedium || launchAttribution.medium,
+      lastCampaign: launchCampaign || launchAttribution.campaign,
+      lastLinkId: launchLinkId || launchAttribution.linkId,
       lastLaunchUrl: launchUrl || null,
     };
 
@@ -306,6 +320,9 @@ export async function POST(request: NextRequest) {
         config: {
           matchThreshold: tenant?.settings?.matchThreshold || 75,
           fingerprintTtlHours: tenant?.settings?.fingerprintTtlHours || 6,
+          // Hosts the SDK should treat as first-party SmartLinks. Scoped to
+          // this app so the list is not baked into the shipped binary.
+          linkDomains,
         },
       }),
       { status: 200 }
@@ -321,4 +338,40 @@ export async function POST(request: NextRequest) {
     );
     return applyCors(request, errorRes);
   }
+}
+
+/**
+ * Pull attribution out of a launch URL, but only when its host is one of this
+ * app's own link domains. An external URL that happens to carry `utm_source`
+ * must never be credited as a SmartLink launch.
+ */
+function deriveLaunchAttribution(
+  launchUrl: unknown,
+  linkDomains: string[]
+): { source: string | null; medium: string | null; campaign: string | null; linkId: string | null } {
+  const empty = { source: null, medium: null, campaign: null, linkId: null };
+  if (typeof launchUrl !== 'string' || !launchUrl) return empty;
+
+  let url: URL;
+  try {
+    url = new URL(launchUrl);
+  } catch {
+    return empty;
+  }
+
+  if (!hostMatchesLinkDomains(url.hostname, linkDomains)) return empty;
+
+  const q = url.searchParams;
+  const segments = url.pathname.split('/').filter(Boolean);
+  const shortCode =
+    segments.length === 1 && /^[a-zA-Z0-9]{4,15}$/.test(segments[0])
+      ? segments[0]
+      : null;
+
+  return {
+    source: q.get('utm_source') || q.get('utmSource'),
+    medium: q.get('utm_medium') || q.get('utmMedium'),
+    campaign: q.get('utm_campaign') || q.get('utmCampaign'),
+    linkId: shortCode,
+  };
 }
