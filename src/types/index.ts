@@ -166,6 +166,17 @@ export interface IApp extends Document {
   android?: IAndroidConfig;
   ios?: IIosConfig;
   info?: IAppInfo;
+  /**
+   * Hosts that serve this app's short links, e.g. `organizer.aelinks.io`.
+   *
+   * Handed to the SDK at init so it can tell its own links from external
+   * ones without shipping the list inside the app binary. Scoped per app on
+   * purpose: an SDK client only ever learns the domains of the app whose API
+   * key it authenticated with, never another tenant's.
+   *
+   * A `*.` prefix matches the domain and all of its subdomains.
+   */
+  linkDomains?: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -176,6 +187,7 @@ export interface CreateAppDto {
   android?: Partial<IAndroidConfig>;
   ios?: Partial<IIosConfig>;
   info?: IAppInfo;
+  linkDomains?: string[];
 }
 
 export interface UpdateAppDto {
@@ -184,6 +196,7 @@ export interface UpdateAppDto {
   android?: Partial<IAndroidConfig>;
   ios?: Partial<IIosConfig>;
   info?: IAppInfo;
+  linkDomains?: string[];
   isActive?: boolean;
 }
 

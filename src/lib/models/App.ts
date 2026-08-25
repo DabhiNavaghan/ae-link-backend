@@ -44,6 +44,13 @@ const appSchema = new Schema<IApp>(
       screenshotUrl: { type: String, default: '' },
       marketingUrl: { type: String, default: '' },
     },
+    // Hosts that serve this app's short links (e.g. organizer.aelinks.io).
+    // Sent to the SDK at init so the domain list is not baked into the app
+    // binary and stays scoped to this app. `*.` prefix = domain + subdomains.
+    linkDomains: {
+      type: [String],
+      default: [],
+    },
     isActive: {
       type: Boolean,
       default: true,
