@@ -169,7 +169,7 @@ GET    /api/v1/tenants              # Get tenant info
 ## File Structure
 
 ```
-backend/
+web-app/
 ├── package.json              # Dependencies and scripts
 ├── tsconfig.json             # TypeScript configuration
 ├── next.config.js            # Next.js configuration
@@ -314,7 +314,7 @@ endpoint reference.
 - ✅ Custom app configuration per tenant (Android/iOS store URLs, package names, SHA-256)
 - ✅ Configurable settings per tenant: `fingerprintTtlHours`, `matchThreshold`, `attributionWindowDays`, `requireSignedRevenue`
 - ✅ Per-tenant event policy: retention, trait allowlist, name cardinality ceiling
-- ✅ Two dashboards: `backend/` (tenant-facing, scoped to own data) and `admin/` (staff, cross-tenant)
+- ✅ Two dashboards: `web-app/` (tenant-facing, scoped to own data) and `admin/` (staff, cross-tenant)
 
 ### 7. Production Ready
 - ✅ TypeScript strict mode

@@ -56,7 +56,7 @@ Tenant  (AllEvents)                    ← the company/account
 **Auth tiering:** A tenant key lives only on the customer's backend and can do the sensitive things — enumerate or name individual end users, erase an identity, sign revenue events. An `app_…` key ships inside the mobile binary and is deliberately weaker. `TeamMember` is the people inside a tenant.
 
 **Two dashboards:**
-- `backend/` — the tenant-facing dashboard. A customer sees only their own data.
+- `web-app/` — the tenant-facing dashboard. A customer sees only their own data.
 - `admin/` — your internal staff view, deliberately cross-tenant. `/admin/links`, `/admin/tenants`, `/admin/end-users` span every customer.
 
 A tenant is created by `POST /api/v1/tenants` with a name + domain, which mints the key pair.
