@@ -1,10 +1,20 @@
 import AppModel from '@/lib/models/App';
-import { APP_HOST_MAP, getLinkDomainsForPackages } from '@/lib/utils/domain-map';
+import {
+  APP_HOST_MAP,
+  getLinkDomainsForPackages,
+  resolveHostAlias,
+} from '@/lib/utils/domain-map';
 
 export interface HostApp {
   _id: string;
   name: string;
-  android?: { package?: string; sha256?: string; storeUrl?: string };
+  android?: {
+    package?: string;
+    sha256?: string;
+    debugSha256?: string;
+    allowLoginCreds?: boolean;
+    storeUrl?: string;
+  };
   ios?: { bundleId?: string; teamId?: string; appId?: string; storeUrl?: string };
 }
 
@@ -12,9 +22,16 @@ export interface HostApp {
  * Resolve an inbound Host header to the app it represents (or null).
  * Used by well-known routes to scope association files to one app.
  * Server-only — relies on Mongoose, cannot run in Edge middleware.
+ *
+ * Debug hosts resolve here too — they need association files like any other
+ * host. They are kept out of the SDK-facing helpers below, not out of this one.
  */
 export async function getAppByHost(host: string): Promise<HostApp | null> {
-  const appId = APP_HOST_MAP[host];
+  // resolveHostAlias lowercases and trims (a Host header can carry a port or
+  // uppercase characters, either of which would miss the map and silently
+  // produce an empty association file) and maps a debug host onto the
+  // production host it stands in for.
+  const appId = APP_HOST_MAP[resolveHostAlias(host)];
   if (!appId) return null;
   try {
     const doc = await AppModel.findById(appId).lean();
@@ -25,6 +42,8 @@ export async function getAppByHost(host: string): Promise<HostApp | null> {
       android: doc.android ? {
         package: doc.android.package,
         sha256: doc.android.sha256,
+        debugSha256: doc.android.debugSha256,
+        allowLoginCreds: doc.android.allowLoginCreds,
         storeUrl: doc.android.storeUrl,
       } : undefined,
       ios: doc.ios ? {
@@ -106,6 +125,12 @@ export function sanitizeLinkDomains(raw: unknown): string[] {
  *     cannot produce
  *   - `APP_HOST_MAP` — the existing env-var mapping, so deployments already
  *     relying on it keep working without a migration
+ *
+ * Debug hosts are deliberately **not** a source, and cannot become one: they
+ * are aliases in `domain-map.ts` and never appear in `APP_HOST_MAP`, so the
+ * reverse scan below cannot emit one. Handing a debug host to a release
+ * install would give it a domain it has no way to verify. A debug build learns
+ * its host from `debugLinkDomains` in the SDK instead.
  *
  * Returns an empty array when the app is unknown, which leaves the SDK
  * trusting only its configured `apiBaseUrl` host — the safe floor.

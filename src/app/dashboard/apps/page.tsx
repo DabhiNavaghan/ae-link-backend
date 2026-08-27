@@ -281,6 +281,8 @@ function AppFormModal({
   const [name, setName] = useState('');
   const [androidPackage, setAndroidPackage] = useState('');
   const [androidSha256, setAndroidSha256] = useState('');
+  const [androidDebugSha256, setAndroidDebugSha256] = useState('');
+  const [androidAllowLoginCreds, setAndroidAllowLoginCreds] = useState(false);
   const [androidStoreUrl, setAndroidStoreUrl] = useState('');
   const [iosBundleId, setIosBundleId] = useState('');
   const [iosTeamId, setIosTeamId] = useState('');
@@ -306,6 +308,8 @@ function AppFormModal({
       setName(editApp.name || '');
       setAndroidPackage(editApp.android?.package || '');
       setAndroidSha256(editApp.android?.sha256 || '');
+      setAndroidDebugSha256(editApp.android?.debugSha256 || '');
+      setAndroidAllowLoginCreds(editApp.android?.allowLoginCreds ?? false);
       setAndroidStoreUrl(editApp.android?.storeUrl || '');
       setIosBundleId(editApp.ios?.bundleId || '');
       setIosTeamId(editApp.ios?.teamId || '');
@@ -321,6 +325,8 @@ function AppFormModal({
       setName('');
       setAndroidPackage('');
       setAndroidSha256('');
+      setAndroidDebugSha256('');
+      setAndroidAllowLoginCreds(false);
       setAndroidStoreUrl('');
       setIosBundleId('');
       setIosTeamId('');
@@ -352,6 +358,8 @@ function AppFormModal({
         android: {
           package: androidPackage.trim(),
           sha256: androidSha256.trim(),
+          debugSha256: androidDebugSha256.trim(),
+          allowLoginCreds: androidAllowLoginCreds,
           storeUrl: androidStoreUrl.trim(),
         },
         ios: {
@@ -451,8 +459,31 @@ function AppFormModal({
               value={androidSha256}
               onChange={(e) => setAndroidSha256(e.target.value)}
               placeholder="23:C6:3D:23:1E:87:..."
-              helperText="Terminal: ./gradlew signingReport"
+              helperText="Release signing certs, comma-separated. Play App Signing needs both the upload key and the Play signing key."
             />
+            <Input
+              label="Debug SHA256 Fingerprint"
+              type="text"
+              value={androidDebugSha256}
+              onChange={(e) => setAndroidDebugSha256(e.target.value)}
+              placeholder="EC:0C:0E:BE:37:5A:..."
+              helperText="Served only on this app's debug link host, never on a production one. Terminal: ./gradlew signingReport"
+            />
+            <label className="flex items-start gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={androidAllowLoginCreds}
+                onChange={(e) => setAndroidAllowLoginCreds(e.target.checked)}
+              />
+              <span>
+                Share saved logins
+                <span className="block text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                  Adds the <code>get_login_creds</code> relation, so Google Smart Lock and
+                  Autofill can offer credentials saved on the web in the app.
+                </span>
+              </span>
+            </label>
             <Input
               label="Play Store URL"
               type="text"

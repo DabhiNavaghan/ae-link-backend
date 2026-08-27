@@ -123,6 +123,15 @@ export default function AppDetailPage({ params }: { params: { id: string } }) {
                     {app.android?.sha256 || 'Not set'}
                   </code>
                 </div>
+                {/* Served only on a debug link host, so a release build can
+                    never verify against it and a debug build can never verify
+                    against the production host. */}
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Debug SHA256 Fingerprint</p>
+                  <code className="text-xs p-2 rounded mt-1 block overflow-x-auto" style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>
+                    {app.android?.debugSha256 || 'Not set'}
+                  </code>
+                </div>
                 <div>
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Store URL</p>
                   {app.android?.storeUrl ? (

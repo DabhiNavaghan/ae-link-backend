@@ -26,7 +26,20 @@ const appSchema = new Schema<IApp>(
     },
     android: {
       package: { type: String, default: '' },
+      // Release signing certificates. Comma-separated when there is more than
+      // one — Play App Signing means the upload key and the Play signing key
+      // differ, and assetlinks.json has to name both or one of the two builds
+      // silently fails verification.
       sha256: { type: String, default: '' },
+      // Debug signing certificate(s), served only on a debug link host. Keeping
+      // these out of `sha256` is what stops a debug build verifying itself
+      // against the production domain.
+      debugSha256: { type: String, default: '' },
+      // Grants delegate_permission/common.get_login_creds alongside
+      // handle_all_urls. That relation is what lets Google Smart Lock and
+      // Autofill share saved credentials between the site and the app; an app
+      // that has it and loses it stops offering saved logins, silently.
+      allowLoginCreds: { type: Boolean, default: false },
       storeUrl: { type: String, default: '' },
     },
     ios: {

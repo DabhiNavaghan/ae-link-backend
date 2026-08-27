@@ -3,7 +3,8 @@ import { headers } from 'next/headers';
 import { connectDB } from '@/lib/mongodb';
 import AppModel from '@/lib/models/App';
 import { getAppByHost } from '@/lib/utils/domain-map.server';
-import { PLATFORM_HOSTS } from '@/lib/utils/domain-map';
+import { PLATFORM_HOSTS, normalizeHost } from '@/lib/utils/domain-map';
+import { cacheHeaderForHost } from '@/lib/utils/asset-links';
 import { Logger } from '@/lib/logger';
 
 const logger = Logger.child({ route: 'aasa' });
@@ -20,7 +21,9 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     await connectDB();
-    const host = headers().get('host') || '';
+    // The Host header can carry a port or uppercase characters; either would
+    // miss the host maps and silently serve an empty association file.
+    const host = normalizeHost(headers().get('host') || '');
 
     if (PLATFORM_HOSTS.has(host)) {
       const apps = await AppModel.find({
@@ -42,7 +45,7 @@ export async function GET() {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          'Cache-Control': cacheHeaderForHost(host),
         },
       });
     }
@@ -56,7 +59,11 @@ export async function GET() {
         JSON.stringify({ applinks: { details: [] } }),
         {
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+          'Content-Type': 'application/json',
+          // Never let a transient failure get cached as "this app claims nothing".
+          'Cache-Control': 'no-store',
+        },
         }
       );
     }
@@ -78,7 +85,7 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        'Cache-Control': cacheHeaderForHost(host),
       },
     });
   } catch (error) {
@@ -87,7 +94,11 @@ export async function GET() {
       JSON.stringify({ applinks: { details: [] } }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Never let a transient failure get cached as "this app claims nothing".
+          'Cache-Control': 'no-store',
+        },
       }
     );
   }

@@ -19,6 +19,15 @@ function buildHostMap(): Record<string, string> {
   const organizerId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_organizer_aelinks_io;
   if (organizerId) map['organizer.aelinks.io'] = organizerId;
 
+  // Live tunnel hosts on navaghandabhi.dev. They serve the same apps as the
+  // aelinks.io production hosts, so they publish the release certificates —
+  // unlike the debug aliases below, which are kept out of this map.
+  const alleventsTunnelId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_allevents_navaghandabhi_dev;
+  if (alleventsTunnelId) map['allevents.navaghandabhi.dev'] = alleventsTunnelId;
+
+  const organizerTunnelId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_alleventsorg_navaghandabhi_dev;
+  if (organizerTunnelId) map['alleventsorg.navaghandabhi.dev'] = organizerTunnelId;
+
   // ▲ Add new subdomains here ▲
 
   return map;
@@ -37,15 +46,64 @@ function buildStoreUrlMap(): Record<string, string> {
   map['organizer.aelinks.io'] = organizerStore ||
     'https://smartlink.apps.allevents.app/apps/allevents-manager-app/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents-manager-app';
 
+  // Live tunnel hosts mirror the aelinks.io store pages.
+  map['allevents.navaghandabhi.dev'] =
+    process.env.NEXT_PUBLIC_STORE_URL_allevents_navaghandabhi_dev ||
+    map['allevents.aelinks.io'];
+  map['alleventsorg.navaghandabhi.dev'] =
+    process.env.NEXT_PUBLIC_STORE_URL_alleventsorg_navaghandabhi_dev ||
+    map['organizer.aelinks.io'];
+
   // ▲ Add new subdomains with fallback store URLs here ▲
 
+  // Debug hosts show the same store page as the production host they alias —
+  // a debug link that misses still has to send the tester somewhere sensible.
+  for (const [debugHost, productionHost] of Object.entries(DEBUG_HOST_ALIASES)) {
+    if (map[productionHost]) map[debugHost] = map[productionHost];
+  }
+
   return map;
+}
+
+// ── Debug-only hosts ────────────────────────────────────────────────
+// Hosts that only ever exist in debug builds. Each one is an *alias* of the
+// production host it shadows, rather than a second host → appId entry, for two
+// reasons.
+//
+// It cannot leak. Two things reverse-scan APP_HOST_MAP and neither may ever
+// see a debug host:
+//   - APP_PRIMARY_HOST below, which picks the host every dashboard and API
+//     response builds a link URL on. A debug host there would put production
+//     links on a debug domain.
+//   - getLinkDomainsForApp() / getLinkDomainsForTenant() in
+//     domain-map.server.ts, which tell the SDK which hosts to trust. A debug
+//     host there would be handed to *release* installs at /api/v1/sdk/init.
+// An alias never names an appId, so there is no path by which either could
+// emit one.
+//
+// And it needs no new env var. NEXT_PUBLIC_* is inlined at build time, and
+// this repo has been bitten twice by a host that silently stopped resolving
+// because its variable was absent from the build (9f9f8be, d836c60) —
+// HARDCODED_LINK_HOSTS below exists for exactly that reason. An alias inherits
+// whatever its production sibling already resolves to, so a debug host is
+// broken only when the production one already is.
+const DEBUG_HOST_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  // No entries yet. navaghandabhi.dev hosts are live tunnel hosts, not debug
+  // aliases, so they stay out of this map and publish release certificates.
+});
+
+/** The production host a debug host stands in for; any other host unchanged. */
+export function resolveHostAlias(host: string): string {
+  const normalized = normalizeHost(host);
+  return DEBUG_HOST_ALIASES[normalized] || normalized;
 }
 
 export const APP_HOST_MAP: Readonly<Record<string, string>> = Object.freeze(buildHostMap());
 export const APP_STORE_URL_MAP: Readonly<Record<string, string>> = Object.freeze(buildStoreUrlMap());
 
-// Reverse: first host found per appId → primary hostname
+// Reverse: first host found per appId → primary hostname.
+// Deliberately built from APP_HOST_MAP alone — a debug host must never become
+// the host a production link URL is generated on.
 const primary: Record<string, string> = {};
 for (const [host, id] of Object.entries(APP_HOST_MAP)) {
   if (!primary[id]) primary[id] = host;
@@ -53,9 +111,13 @@ for (const [host, id] of Object.entries(APP_HOST_MAP)) {
 export const APP_PRIMARY_HOST: Readonly<Record<string, string>> = Object.freeze(primary);
 // Always-recognized link hosts (hardcoded so they work even if env vars are missing at build)
 const HARDCODED_LINK_HOSTS = ['organizer.aelinks.io', 'allevents.aelinks.io'];
+/** Link hosts that only debug builds ever see. */
+export const DEBUG_LINK_HOSTS = new Set(Object.keys(DEBUG_HOST_ALIASES));
+
 export const APP_LINK_HOSTS = new Set([
   ...Object.keys(APP_HOST_MAP),
   ...HARDCODED_LINK_HOSTS,
+  ...DEBUG_LINK_HOSTS,
 ]);
 
 export const PLATFORM_HOSTS = new Set([
@@ -170,6 +232,15 @@ export function getProtocolForHost(host: string): 'http' | 'https' {
 
 export function isLinkHost(host: string): boolean {
   return APP_LINK_HOSTS.has(normalizeHost(host));
+}
+
+/**
+ * True for a host that only debug builds are meant to reach. The association
+ * files served on one carry the *debug* signing certificate, so a release
+ * build can never verify it — which is the point.
+ */
+export function isDebugLinkHost(host: string): boolean {
+  return DEBUG_LINK_HOSTS.has(normalizeHost(host));
 }
 
 /**

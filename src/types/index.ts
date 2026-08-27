@@ -22,6 +22,8 @@ export interface IAppConfig {
   android?: {
     package: string;
     sha256: string;
+    debugSha256?: string;
+    allowLoginCreds?: boolean;
     storeUrl: string;
   };
   ios?: {
@@ -79,7 +81,12 @@ export interface ITenant extends Document {
 
 export interface IAndroidConfig {
   package: string;
+  /** Release signing certificates. Comma-separated when there is more than one. */
   sha256: string;
+  /** Debug signing certificates. Served only on a debug link host. */
+  debugSha256?: string;
+  /** Also grant `get_login_creds`, so Smart Lock / Autofill can share saved logins. */
+  allowLoginCreds?: boolean;
   storeUrl: string;
 }
 
