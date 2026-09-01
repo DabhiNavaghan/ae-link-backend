@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth, SignInButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
+import HeroFlow from '@/components/landing/HeroFlow';
 import './landing.css';
 import { version } from '../../package.json';
 
@@ -121,89 +122,45 @@ export default function LandingPage() {
             <span>REGION / GLOBAL</span>
           </div>
 
-          <h1 className="reveal d1">
-            <span>Route each</span><br />
-            <span className="accent">tap.</span>{' '}
-            <span className="stroke">Attribute</span><br />
-            <span>
-              every <span className="tl-magenta">install.</span>
-            </span>
-          </h1>
+          <div className="tl-hero-grid">
+            <div className="tl-hero-copy">
+              <h1 className="reveal d1">
+                <span>Route each</span><br />
+                <span className="accent">tap.</span>{' '}
+                <span className="stroke">Attribute</span><br />
+                <span>
+                  every <span className="tl-magenta">install.</span>
+                </span>
+              </h1>
 
-          <div className="tl-hero-row">
-            <div className="reveal d3">
-              <p className="tl-hero-sub">
+              <p className="tl-hero-sub reveal d2">
                 <strong>SmartLink</strong> is the link layer for modern apps. Deep links,
                 deferred deep links, and attribution -- engineered for product teams who
                 refuse to lose users between web and app.{' '}
                 <strong>One SDK. Every platform. Zero dropped sessions.</strong>
               </p>
-              <div className="tl-hero-actions">
+
+              <div className="tl-hero-actions reveal d3">
                 <Link href="/sign-up" className="tl-btn tl-btn-primary">
                   &rarr; Start free
                 </Link>
                 <a href="#code" className="tl-btn">
-                  View SDK &nearr;
+                  View SDK ↗
                 </a>
                 <a href="#pricing" className="tl-btn">
                   See pricing
                 </a>
               </div>
+
+              <div className="tl-hero-proof reveal d3">
+                <span><b>118ms</b> median resolve</span>
+                <span><b>99.99%</b> routing accuracy</span>
+                <span><b>5 min</b> to first link</span>
+              </div>
             </div>
 
-            {/* Hero terminal */}
-            <div className="tl-terminal reveal d4">
-              <div className="tl-terminal-bar">
-                <div className="dots">
-                  <span /><span /><span />
-                </div>
-                <div className="title">trail link &bull; routing engine</div>
-                <div className="title">[ live ]</div>
-              </div>
-              <div className="tl-terminal-body">
-                <div className="term-line">
-                  <span className="term-prompt">$</span>
-                  <span className="term-cmd">
-                    smartlink resolve{' '}
-                    <span className="term-str">&quot;trl.lk/launch&quot;</span>
-                  </span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out dim">{'// resolving routes...'}</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; device:</span>
-                  <span className="term-key">Android 14 &middot; Pixel</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; install:</span>
-                  <span className="term-key">true</span>
-                  <span className="term-status">DETECTED</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; route:</span>
-                  <span className="term-str">&quot;/events/music-fest-42&quot;</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; campaign:</span>
-                  <span className="term-str">&quot;summer-launch-ig&quot;</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; latency:</span>
-                  <span className="term-num">
-                    118<span style={{ color: 'var(--tl-muted)' }}>ms</span>
-                  </span>
-                </div>
-                <div className="term-line">
-                  <span className="term-out">&rarr; status:</span>
-                  <span className="term-str">200 OK</span>
-                  <span className="term-status">OPENED</span>
-                </div>
-                <div className="term-line">
-                  <span className="term-prompt">$</span>
-                  <span className="cursor-blink" />
-                </div>
-              </div>
+            <div className="tl-hero-visual reveal d4">
+              <HeroFlow />
             </div>
           </div>
         </div>
@@ -232,26 +189,34 @@ export default function LandingPage() {
       {/* ============= STATS ============= */}
       <div className="tl-stats">
         <div className="tl-container">
+          <div className="tl-stats-head">
+            <span className="lead">Routing engine // measured</span>
+            <span>rolling 30 days &middot; all regions</span>
+          </div>
           <div className="tl-stats-grid">
             <div className="tl-stat">
+              <div className="tl-stat-idx">01</div>
               <div className="tl-stat-num">
                 <em>118</em><span className="unit">ms</span>
               </div>
               <div className="tl-stat-label">Median resolve</div>
             </div>
             <div className="tl-stat">
+              <div className="tl-stat-idx">02</div>
               <div className="tl-stat-num">
                 <em>99.99</em><span className="unit">%</span>
               </div>
               <div className="tl-stat-label">Routing accuracy</div>
             </div>
             <div className="tl-stat">
+              <div className="tl-stat-idx">03</div>
               <div className="tl-stat-num">
                 <em>6</em><span className="unit">hr</span>
               </div>
               <div className="tl-stat-label">Fingerprint TTL</div>
             </div>
             <div className="tl-stat">
+              <div className="tl-stat-idx">04</div>
               <div className="tl-stat-num">
                 <em>60</em><span className="unit">pt</span>
               </div>
@@ -273,7 +238,7 @@ export default function LandingPage() {
             </h2>
           </div>
           <div className="tl-steps">
-            <div className="tl-step">
+            <div className="tl-step" data-n="01">
               <div className="tl-step-num">STEP_01 / generate</div>
               <h3 className="tl-step-title">
                 Create a <em>trail</em> link.
@@ -295,7 +260,7 @@ export default function LandingPage() {
                 </svg>
               </div>
             </div>
-            <div className="tl-step">
+            <div className="tl-step" data-n="02">
               <div className="tl-step-num">STEP_02 / route</div>
               <h3 className="tl-step-title">
                 Open <em>anywhere</em>, intelligently.
@@ -319,7 +284,7 @@ export default function LandingPage() {
                 </svg>
               </div>
             </div>
-            <div className="tl-step">
+            <div className="tl-step" data-n="03">
               <div className="tl-step-num">STEP_03 / attribute</div>
               <h3 className="tl-step-title">
                 Know <em>exactly</em> what worked.
@@ -537,6 +502,60 @@ export default function LandingPage() {
               <Link href="/sign-up" className="tl-btn tl-btn-primary">
                 &rarr; Browse SDK reference
               </Link>
+              {/* Live resolve trace */}
+              <div className="tl-terminal reveal d4">
+                <div className="tl-terminal-bar">
+                  <div className="dots">
+                    <span /><span /><span />
+                  </div>
+                  <div className="title">trail link &bull; routing engine</div>
+                  <div className="title">[ live ]</div>
+                </div>
+                <div className="tl-terminal-body">
+                  <div className="term-line">
+                    <span className="term-prompt">$</span>
+                    <span className="term-cmd">
+                      smartlink resolve{' '}
+                      <span className="term-str">&quot;trl.lk/launch&quot;</span>
+                    </span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out dim">{'// resolving routes...'}</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; device:</span>
+                    <span className="term-key">Android 14 &middot; Pixel</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; install:</span>
+                    <span className="term-key">true</span>
+                    <span className="term-status">DETECTED</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; route:</span>
+                    <span className="term-str">&quot;/events/music-fest-42&quot;</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; campaign:</span>
+                    <span className="term-str">&quot;summer-launch-ig&quot;</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; latency:</span>
+                    <span className="term-num">
+                      118<span style={{ color: 'var(--tl-muted)' }}>ms</span>
+                    </span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-out">&rarr; status:</span>
+                    <span className="term-str">200 OK</span>
+                    <span className="term-status">OPENED</span>
+                  </div>
+                  <div className="term-line">
+                    <span className="term-prompt">$</span>
+                    <span className="cursor-blink" />
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <div className="tl-lang-tabs">
@@ -917,7 +936,7 @@ export default function LandingPage() {
                 <li><a href="#code">SDK reference</a></li>
                 <li><a href="#">API status</a></li>
                 <li><a href="#">Changelog</a></li>
-                <li><a href="#">GitHub &nearr;</a></li>
+                <li><a href="#">GitHub ↗</a></li>
               </ul>
             </div>
             <div className="tl-footer-col">
