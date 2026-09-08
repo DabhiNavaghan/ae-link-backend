@@ -12,7 +12,10 @@ import ConversionModel from '@/lib/models/Conversion';
 import ClickModel from '@/lib/models/Click';
 import FingerprintModel from '@/lib/models/Fingerprint';
 import LinkModel from '@/lib/models/Link';
-import MatchAttemptModel, { IEvaluatedCandidate } from '@/lib/models/MatchAttempt';
+import MatchAttemptModel, {
+  IEvaluatedCandidate,
+  matchAttemptExpiry,
+} from '@/lib/models/MatchAttempt';
 import type { ScoredCandidate } from '@/lib/services/fingerprint.service';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { FingerprintData } from '@/types';
@@ -23,8 +26,15 @@ import { getClientIp } from '@/lib/get-client-ip';
 
 const logger = Logger.child({ route: 'deferred-match' });
 
-/** How many scored candidates to persist per attempt. */
-const MAX_PERSISTED_CANDIDATES = 10;
+/**
+ * How many scored candidates to persist per attempt.
+ *
+ * Kept deliberately small: the candidates array is ~90% of a stored document
+ * (each carries a full per-signal breakdown), and this slice is always taken
+ * from a best-first list, so the tail is losers nobody reads. Debugging a bad
+ * attribution needs the winner and the couple of near misses it beat.
+ */
+const MAX_PERSISTED_CANDIDATES = 3;
 
 /**
  * Persist the full decision so the admin match-analysis view can explain any
@@ -52,9 +62,22 @@ async function recordMatchAttempt(input: {
   try {
     const best = input.candidates[0];
 
-    const persisted: IEvaluatedCandidate[] = input.candidates
+    // Candidates arrive best-first, so the head of the list is what a human
+    // reads. The winner is normally in it — but not always: selectedIndex is
+    // the first candidate that both cleared the threshold AND had a pending
+    // DeferredLink, so a better-scoring candidate without one pushes the
+    // winner further down. Keep it explicitly, or a matched attempt would
+    // persist with nothing marked `selected`.
+    const keptIndices = input.candidates
       .slice(0, MAX_PERSISTED_CANDIDATES)
-      .map((c, i) => ({
+      .map((_, i) => i);
+    if (input.selectedIndex >= MAX_PERSISTED_CANDIDATES) {
+      keptIndices.push(input.selectedIndex);
+    }
+
+    const persisted: IEvaluatedCandidate[] = keptIndices.map((i) => {
+      const c = input.candidates[i];
+      return {
         fingerprintId: c.fingerprint._id as any,
         linkId: c.fingerprint.linkId as any,
         clickId: c.fingerprint.clickId as any,
@@ -65,7 +88,8 @@ async function recordMatchAttempt(input: {
         rejectedReason: c.details.rejectedReason,
         selected: i === input.selectedIndex,
         clickedAt: c.fingerprint.createdAt,
-      }));
+      };
+    });
 
     await MatchAttemptModel.create({
       tenantId: input.tenantId,
@@ -88,6 +112,7 @@ async function recordMatchAttempt(input: {
       country: input.country,
       city: input.city,
       durationMs: Date.now() - input.startedAt,
+      expiresAt: matchAttemptExpiry(input.reason),
     });
   } catch (err) {
     logger.warn({ error: String(err) }, 'Failed to record match attempt');

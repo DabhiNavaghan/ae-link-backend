@@ -10,6 +10,12 @@ import { IMatchSignal } from '@/types';
  * This collection keeps the full decision — the app fingerprint, the candidates
  * considered, and the per-signal breakdown for each — long enough to debug
  * attribution. It is written on every match attempt, matched or not.
+ *
+ * RETENTION: every row carries an `expiresAt` written at insert time and a TTL
+ * index that reaps it, following the same pattern as `Event` and `Fingerprint`.
+ * The window is short and flat — see DEFAULT_RETENTION_DAYS below. At ~2k
+ * attempts a day and ~90% of them noise, this collection outgrows every other
+ * one in the system if left to accumulate.
  */
 
 /** One candidate click evaluated during a match attempt. */
@@ -73,6 +79,57 @@ export interface IMatchAttempt extends Document {
   /** Server-side duration of the match call, milliseconds. */
   durationMs?: number;
   createdAt: Date;
+  /** Reaped by the TTL index once passed. Set by `matchAttemptExpiry()`. */
+  expiresAt: Date;
+}
+
+/**
+ * How long a match attempt is kept, in days.
+ *
+ * Flat across every outcome — nothing survives past this window, matched or
+ * not. Match attempts are debugging material for a live report; once a week
+ * has passed the click and fingerprint they reference are long gone anyway
+ * (Fingerprint and DeferredLink self-delete within hours), so an older row
+ * cannot be fully reconstructed regardless.
+ *
+ * Overridable per deployment with MATCH_ATTEMPT_RETENTION_DAYS: a single
+ * number to move the flat window ("14"), or comma-separated reason:days pairs
+ * to carve out exceptions ("matched:30"), where `default` covers everything
+ * unnamed. Raising it is the only way any row lives past the value below.
+ */
+const DEFAULT_RETENTION_DAYS = 7;
+
+function resolveRetention(raw: string | undefined): Record<string, number> {
+  if (!raw?.trim()) return { default: DEFAULT_RETENTION_DAYS };
+
+  // A bare number just moves the flat window.
+  const flat = Number(raw.trim());
+  if (Number.isFinite(flat) && flat > 0) return { default: flat };
+
+  const parsed: Record<string, number> = { default: DEFAULT_RETENTION_DAYS };
+  for (const pair of raw.split(',')) {
+    const [key, value] = pair.split(':').map((p) => p.trim());
+    const days = Number(value);
+    if (key && Number.isFinite(days) && days > 0) parsed[key] = days;
+  }
+  return parsed;
+}
+
+export const RETENTION_DAYS: Record<string, number> = resolveRetention(
+  process.env.MATCH_ATTEMPT_RETENTION_DAYS
+);
+
+/** Longest window in force — what the collection is sized against. */
+export const MAX_RETENTION_DAYS = Math.max(...Object.values(RETENTION_DAYS));
+
+/**
+ * The `expiresAt` for an attempt. Every write must set this: a row without it
+ * is invisible to the TTL index and lives forever, which is the exact failure
+ * this replaced.
+ */
+export function matchAttemptExpiry(reason: string, from: Date = new Date()): Date {
+  const days = RETENTION_DAYS[reason] ?? RETENTION_DAYS.default;
+  return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 const matchSignalSchema = new Schema<IMatchSignal>(
@@ -136,6 +193,16 @@ const matchAttemptSchema = new Schema<IMatchAttempt>(
     country: String,
     city: String,
     durationMs: Number,
+    // Required so a write that forgets it fails loudly instead of leaking a
+    // row past the TTL index. `default` covers documents built outside
+    // recordMatchAttempt(); `reason` is always set by the time this runs.
+    expiresAt: {
+      type: Date,
+      required: true,
+      default: function (this: IMatchAttempt) {
+        return matchAttemptExpiry(this.reason);
+      },
+    },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
@@ -147,11 +214,33 @@ matchAttemptSchema.index({ outcome: 1, createdAt: -1 });
 // "Near miss" queries — attempts that scored well but lost.
 matchAttemptSchema.index({ outcome: 1, bestConfidence: -1 });
 
-// Retain for 90 days. Long enough to investigate a reported attribution gap,
-// short enough that the collection stays cheap.
+// Retention. expiresAt is written per row from RETENTION_DAYS, so the window
+// can be changed — or given per-reason exceptions — without touching indexes.
+//
+// NOTE: this replaces an earlier flat `{ createdAt: 1 }` TTL of 90 days. Mongo
+// will not change the options on an existing index, so the old one has to be
+// dropped before this is created — see the migration in scripts/.
+matchAttemptSchema.index(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0, name: 'match_attempt_ttl' }
+);
+
+// Backstop. A TTL index simply skips a document that lacks the indexed field,
+// so anything written without `expiresAt` — an older build still rolling out,
+// a future insert path that bypasses recordMatchAttempt() — would otherwise
+// live forever, which is the failure this whole change exists to prevent.
+// Mongo allows several TTL indexes on one collection and honours whichever
+// comes due first. The margin is one day: enough that this never fires before
+// the real policy and truncates an intended window, small enough that an
+// orphan row cannot meaningfully outlive the retention promise.
+export const BACKSTOP_RETENTION_DAYS = MAX_RETENTION_DAYS + 1;
+
 matchAttemptSchema.index(
   { createdAt: 1 },
-  { expireAfterSeconds: 60 * 60 * 24 * 90 }
+  {
+    expireAfterSeconds: BACKSTOP_RETENTION_DAYS * 24 * 60 * 60,
+    name: 'match_attempt_ttl_backstop',
+  }
 );
 
 const MatchAttemptModel: Model<IMatchAttempt> =
