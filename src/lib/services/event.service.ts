@@ -5,6 +5,7 @@ import { Logger } from '@/lib/logger';
 import { liveEvents } from '@/lib/services/live-events';
 import { resolveAttributionBatch } from './event-attribution.service';
 import { ensureDefinitions } from './event-definition.service';
+import { getDefaultEventRetentionDays } from './system-settings.service';
 import {
   getDeviceStates,
   incrementIdentityCounters,
@@ -80,10 +81,17 @@ export async function getTenantPolicy(tenantId: string): Promise<TenantEventPoli
     logger.warn({ error: String(err), tenantId }, 'Policy load failed — using defaults');
   }
 
+  // Retention resolves tenant → admin panel → code default. The admin value
+  // is the platform-wide knob; a tenant that has its own number keeps it.
+  const adminRetentionDays = await getDefaultEventRetentionDays();
+
   const policy: TenantEventPolicy = {
     attributionWindowDays:
       settings.attributionWindowDays || DEFAULT_ATTRIBUTION_WINDOW_DAYS,
-    retentionDays: settings.eventRetentionDays || DEFAULT_EVENT_RETENTION_DAYS,
+    retentionDays:
+      settings.eventRetentionDays ||
+      adminRetentionDays ||
+      DEFAULT_EVENT_RETENTION_DAYS,
     maxEventNames: settings.maxEventNames || LIMITS.EVENT_NAME_CARDINALITY_MAX,
     requireSignedRevenue: settings.requireSignedRevenue === true,
     allowedTraitKeys: settings.allowedTraitKeys?.length

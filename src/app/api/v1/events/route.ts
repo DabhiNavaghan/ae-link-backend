@@ -6,6 +6,7 @@ import { authenticateIngest } from '@/lib/middleware/ingest-auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { applyCors, handleCorsPreFlight } from '@/lib/middleware/cors';
 import { ingestEvents } from '@/lib/services/event.service';
+import { isEventTrackingEnabled } from '@/lib/services/system-settings.service';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { getClientIp } from '@/lib/get-client-ip';
 import { successResponse, errorResponse, Errors } from '@/utils/response';
@@ -161,6 +162,33 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     );
+  }
+
+  // ── Platform kill switch (admin → Settings → Event tracking) ──
+  // Answered with 200, not an error: the SDK treats 200/207 as "the server
+  // saw this batch" and drops it from its queue, which is exactly what we
+  // want — no retries, no backoff, no queue growing on the device. The
+  // `trackingEnabled: false` marker tells an up-to-date SDK to stop queueing
+  // at all until its next init; an older SDK simply sees an empty result set.
+  // Nothing is written and nothing is emitted to the live feed.
+  if (!(await isEventTrackingEnabled())) {
+    logger.info(
+      { tenantId: auth.context.tenantId, dropped: events.length },
+      'Event batch dropped — event tracking is disabled platform-wide'
+    );
+    const res = NextResponse.json(
+      successResponse({
+        results: [],
+        accepted: 0,
+        rejected: 0,
+        duplicates: 0,
+        dropped: events.length,
+        trackingEnabled: false,
+      }),
+      { status: 200 }
+    );
+    res.headers.set('X-RateLimit-Remaining', String(remaining));
+    return applyCors(request, res);
   }
 
   try {

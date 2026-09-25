@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 /**
  * Migrate `matchattempts` from a flat 90-day TTL on `createdAt` to a tiered,
- * per-row TTL on `expiresAt`.
+ * per-row TTL on `expiresAt`, and keep the backstop index sized to the
+ * retention ceiling.
+ *
+ * Re-run it whenever BACKSTOP_RETENTION_DAYS changes in MatchAttempt.ts. The
+ * admin panel restamps rows itself when the window is changed there, so a
+ * run is not needed for day-to-day changes — only for index changes.
  *
  * Two things Mongo will not do on its own, hence this script:
  *   1. `createIndex` refuses to change `expireAfterSeconds` on an existing
@@ -23,27 +28,35 @@ const path = require('path');
 const fs = require('fs');
 const { MongoClient } = require('mongodb');
 
-// Mirrors src/lib/models/MatchAttempt.ts. Reads the same env var so a
-// deployment that moved the window gets its existing rows restamped to match
-// instead of keeping whatever the previous run wrote.
+// Mirrors src/lib/models/MatchAttempt.ts. The window resolves the same way
+// the API resolves it at write time — admin panel first, then the env var,
+// then the code default — so a deployment that moved the window gets its
+// existing rows restamped to match instead of keeping whatever the previous
+// run wrote.
 const DEFAULT_RETENTION_DAYS = 7;
+
+// Must match MATCH_ATTEMPT_MAX_RETENTION_DAYS in src/lib/models/SystemSettings.ts.
+const MAX_RETENTION_DAYS = 30;
+const capDays = (d) => Math.min(d, MAX_RETENTION_DAYS);
 
 function resolveRetention(raw) {
   if (!raw || !raw.trim()) return { default: DEFAULT_RETENTION_DAYS };
 
   const flat = Number(raw.trim());
-  if (Number.isFinite(flat) && flat > 0) return { default: flat };
+  if (Number.isFinite(flat) && flat > 0) return { default: capDays(flat) };
 
   const parsed = { default: DEFAULT_RETENTION_DAYS };
   for (const pair of raw.split(',')) {
     const [key, value] = pair.split(':').map((p) => p.trim());
     const days = Number(value);
-    if (key && Number.isFinite(days) && days > 0) parsed[key] = days;
+    if (key && Number.isFinite(days) && days > 0) parsed[key] = capDays(days);
   }
   return parsed;
 }
 
-const RETENTION_DAYS = resolveRetention(process.env.MATCH_ATTEMPT_RETENTION_DAYS);
+// Filled in main() once the admin document has been read; the env var is
+// only the fallback.
+let RETENTION_DAYS = resolveRetention(process.env.MATCH_ATTEMPT_RETENTION_DAYS);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -51,8 +64,10 @@ const OLD_TTL_INDEX = 'createdAt_1';
 const NEW_TTL_INDEX = 'match_attempt_ttl';
 const BACKSTOP_INDEX = 'match_attempt_ttl_backstop';
 
-// Must match BACKSTOP_RETENTION_DAYS in src/lib/models/MatchAttempt.ts.
-const BACKSTOP_DAYS = Math.max(...Object.values(RETENTION_DAYS)) + 1;
+// Must match BACKSTOP_RETENTION_DAYS in src/lib/models/MatchAttempt.ts. Sized
+// against the ceiling, not the current window, so the admin can move the
+// window without another index rebuild.
+const BACKSTOP_DAYS = MAX_RETENTION_DAYS + 1;
 
 function loadUri() {
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
@@ -78,6 +93,22 @@ async function main() {
 
   const before = await col.estimatedDocumentCount();
   console.log(`  documents: ${before}`);
+
+  // ── 0. Which window is in force ─────────────────────────────────────────
+  // The admin panel's value overrides the environment outright, flat across
+  // every reason, exactly as recordMatchAttempt() applies it.
+  const settings = await client.db().collection('systemsettings').findOne({ _id: 'global' });
+  const adminDays = Number(settings?.matchAttempts?.retentionDays);
+  if (Number.isFinite(adminDays) && adminDays > 0) {
+    RETENTION_DAYS = { default: capDays(Math.round(adminDays)) };
+    console.log(`  window: ${RETENTION_DAYS.default}d (admin panel)`);
+  } else {
+    console.log(
+      `  window: ${JSON.stringify(RETENTION_DAYS)} (${
+        process.env.MATCH_ATTEMPT_RETENTION_DAYS ? 'MATCH_ATTEMPT_RETENTION_DAYS' : 'code default'
+      })`
+    );
+  }
 
   // ── 1. Stamp expiresAt on every row ─────────────────────────────────────
   // Restamps unconditionally rather than only filling gaps: a row written

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model, Document } from 'mongoose';
 import { IMatchSignal } from '@/types';
+import { MATCH_ATTEMPT_MAX_RETENTION_DAYS } from '@/lib/models/SystemSettings';
 
 /**
  * A durable record of one `/api/v1/deferred/match` call.
@@ -13,7 +14,9 @@ import { IMatchSignal } from '@/types';
  *
  * RETENTION: every row carries an `expiresAt` written at insert time and a TTL
  * index that reaps it, following the same pattern as `Event` and `Fingerprint`.
- * The window is short and flat — see DEFAULT_RETENTION_DAYS below. At ~2k
+ * The window is short and flat — see DEFAULT_RETENTION_DAYS below — and the
+ * admin panel can move it at runtime (Settings → Data retention), which
+ * `recordMatchAttempt()` reads through system-settings.service.ts. At ~2k
  * attempts a day and ~90% of them noise, this collection outgrows every other
  * one in the system if left to accumulate.
  */
@@ -92,44 +95,70 @@ export interface IMatchAttempt extends Document {
  * (Fingerprint and DeferredLink self-delete within hours), so an older row
  * cannot be fully reconstructed regardless.
  *
- * Overridable per deployment with MATCH_ATTEMPT_RETENTION_DAYS: a single
- * number to move the flat window ("14"), or comma-separated reason:days pairs
- * to carve out exceptions ("matched:30"), where `default` covers everything
- * unnamed. Raising it is the only way any row lives past the value below.
+ * Three layers, highest priority first:
+ *   1. The admin panel (SystemSettings.matchAttempts.retentionDays), read at
+ *      write time by recordMatchAttempt() and passed in as `overrideDays`.
+ *   2. MATCH_ATTEMPT_RETENTION_DAYS in the environment: a single number to
+ *      move the flat window ("14"), or comma-separated reason:days pairs to
+ *      carve out exceptions ("matched:30"), where `default` covers everything
+ *      unnamed.
+ *   3. DEFAULT_RETENTION_DAYS below.
+ *
+ * Every layer is capped at MATCH_ATTEMPT_MAX_RETENTION_DAYS, because the
+ * backstop index is sized against that ceiling and would otherwise truncate a
+ * longer window silently.
  */
 const DEFAULT_RETENTION_DAYS = 7;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function capDays(days: number): number {
+  return Math.min(days, MATCH_ATTEMPT_MAX_RETENTION_DAYS);
+}
 
 function resolveRetention(raw: string | undefined): Record<string, number> {
   if (!raw?.trim()) return { default: DEFAULT_RETENTION_DAYS };
 
   // A bare number just moves the flat window.
   const flat = Number(raw.trim());
-  if (Number.isFinite(flat) && flat > 0) return { default: flat };
+  if (Number.isFinite(flat) && flat > 0) return { default: capDays(flat) };
 
   const parsed: Record<string, number> = { default: DEFAULT_RETENTION_DAYS };
   for (const pair of raw.split(',')) {
     const [key, value] = pair.split(':').map((p) => p.trim());
     const days = Number(value);
-    if (key && Number.isFinite(days) && days > 0) parsed[key] = days;
+    if (key && Number.isFinite(days) && days > 0) parsed[key] = capDays(days);
   }
   return parsed;
 }
 
+/** Env-driven policy. The admin setting, when present, overrides all of it. */
 export const RETENTION_DAYS: Record<string, number> = resolveRetention(
   process.env.MATCH_ATTEMPT_RETENTION_DAYS
 );
 
-/** Longest window in force — what the collection is sized against. */
+/** Longest env-configured window in force. */
 export const MAX_RETENTION_DAYS = Math.max(...Object.values(RETENTION_DAYS));
 
 /**
  * The `expiresAt` for an attempt. Every write must set this: a row without it
  * is invisible to the TTL index and lives forever, which is the exact failure
  * this replaced.
+ *
+ * `overrideDays` is the admin-panel value. When given it wins outright — a
+ * flat window for every reason — so an operator lowering it in the UI sees
+ * exactly that number, not a per-reason exception from the environment.
  */
-export function matchAttemptExpiry(reason: string, from: Date = new Date()): Date {
-  const days = RETENTION_DAYS[reason] ?? RETENTION_DAYS.default;
-  return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
+export function matchAttemptExpiry(
+  reason: string,
+  from: Date = new Date(),
+  overrideDays?: number
+): Date {
+  const days =
+    overrideDays !== undefined && Number.isFinite(overrideDays) && overrideDays > 0
+      ? capDays(overrideDays)
+      : RETENTION_DAYS[reason] ?? RETENTION_DAYS.default;
+  return new Date(from.getTime() + days * DAY_MS);
 }
 
 const matchSignalSchema = new Schema<IMatchSignal>(
@@ -230,10 +259,18 @@ matchAttemptSchema.index(
 // a future insert path that bypasses recordMatchAttempt() — would otherwise
 // live forever, which is the failure this whole change exists to prevent.
 // Mongo allows several TTL indexes on one collection and honours whichever
-// comes due first. The margin is one day: enough that this never fires before
-// the real policy and truncates an intended window, small enough that an
-// orphan row cannot meaningfully outlive the retention promise.
-export const BACKSTOP_RETENTION_DAYS = MAX_RETENTION_DAYS + 1;
+// comes due first. It is sized against the hard ceiling rather than the
+// current window, so the admin can move the window anywhere up to
+// MATCH_ATTEMPT_MAX_RETENTION_DAYS without an index rebuild; the one-day
+// margin means it never fires before the real policy and truncates an
+// intended window. The trade is that an orphan row (no expiresAt) can outlive
+// a short window by up to a month — acceptable, since such rows only exist
+// during a rollout of an older build.
+//
+// NOTE: earlier builds derived this from the env window (7 + 1 = 8 days). A
+// deployment carrying that index must run scripts/migrate-matchattempt-ttl.js
+// once, or any admin window above 7 days is cut short at 8.
+export const BACKSTOP_RETENTION_DAYS = MATCH_ATTEMPT_MAX_RETENTION_DAYS + 1;
 
 matchAttemptSchema.index(
   { createdAt: 1 },

@@ -17,6 +17,7 @@ import MatchAttemptModel, {
   matchAttemptExpiry,
 } from '@/lib/models/MatchAttempt';
 import type { ScoredCandidate } from '@/lib/services/fingerprint.service';
+import { getMatchAttemptRetentionDays } from '@/lib/services/system-settings.service';
 import { lookupGeo } from '@/lib/services/geo.service';
 import { FingerprintData } from '@/types';
 import { successResponse, Errors } from '@/utils/response';
@@ -61,6 +62,10 @@ async function recordMatchAttempt(input: {
 }): Promise<void> {
   try {
     const best = input.candidates[0];
+
+    // Admin-set window, if any. Read per write (cached) so a change in the
+    // panel applies to the very next attempt without a restart.
+    const retentionDays = await getMatchAttemptRetentionDays();
 
     // Candidates arrive best-first, so the head of the list is what a human
     // reads. The winner is normally in it — but not always: selectedIndex is
@@ -112,7 +117,7 @@ async function recordMatchAttempt(input: {
       country: input.country,
       city: input.city,
       durationMs: Date.now() - input.startedAt,
-      expiresAt: matchAttemptExpiry(input.reason),
+      expiresAt: matchAttemptExpiry(input.reason, new Date(), retentionDays),
     });
   } catch (err) {
     logger.warn({ error: String(err) }, 'Failed to record match attempt');

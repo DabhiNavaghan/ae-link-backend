@@ -804,6 +804,27 @@ are **dropped** and reported in `warnings`. Use `identify` traits instead.
 
 Events store `country` and `city`, never the IP address.
 
+**When event tracking is switched off** (Admin → Settings), the batch is
+dropped without being stored and the endpoint answers `200`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [],
+    "accepted": 0,
+    "rejected": 0,
+    "duplicates": 0,
+    "dropped": 3,
+    "trackingEnabled": false
+  }
+}
+```
+
+An SDK that sees `trackingEnabled: false` discards its queue and stops
+sending until its next `/sdk/init` says tracking is on. `/sdk/init` carries
+the same switch as `config.eventTrackingEnabled`.
+
 ---
 
 #### Identify a User

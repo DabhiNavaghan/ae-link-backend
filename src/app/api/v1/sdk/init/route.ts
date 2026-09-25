@@ -17,6 +17,7 @@ import { getLinkDomainsForSdk } from '@/lib/utils/domain-map.server';
 import { hostMatchesLinkDomains } from '@/lib/utils/link-domain-match';
 import { liveEvents } from '@/lib/services/live-events';
 import { lookupGeo } from '@/lib/services/geo.service';
+import { isEventTrackingEnabled } from '@/lib/services/system-settings.service';
 
 const logger = Logger.child({ route: 'sdk-init' });
 
@@ -316,6 +317,7 @@ export async function POST(request: NextRequest) {
 
     // ── Get tenant settings ──
     const tenant = await TenantModel.findById(auth.tenantId).lean();
+    const eventTrackingEnabled = await isEventTrackingEnabled();
 
     const response = NextResponse.json(
       successResponse({
@@ -331,6 +333,11 @@ export async function POST(request: NextRequest) {
           // Hosts the SDK should treat as first-party SmartLinks. Scoped to
           // this app so the list is not baked into the shipped binary.
           linkDomains,
+          // Platform-wide switch from the admin panel. When false the SDK
+          // does not start its tracking service, so nothing is queued on the
+          // device and /api/v1/events is never called. The endpoint drops
+          // batches regardless — this just saves the round trip.
+          eventTrackingEnabled,
         },
       }),
       { status: 200 }
