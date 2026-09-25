@@ -19,15 +19,6 @@ function buildHostMap(): Record<string, string> {
   const organizerId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_organizer_aelinks_io;
   if (organizerId) map['organizer.aelinks.io'] = organizerId;
 
-  // Live tunnel hosts on navaghandabhi.dev. They serve the same apps as the
-  // aelinks.io production hosts, so they publish the release certificates —
-  // unlike the debug aliases below, which are kept out of this map.
-  const alleventsTunnelId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_allevents_navaghandabhi_dev;
-  if (alleventsTunnelId) map['allevents.navaghandabhi.dev'] = alleventsTunnelId;
-
-  const organizerTunnelId = process.env.NEXT_PUBLIC_DOMAIN_APP_ID_alleventsorg_navaghandabhi_dev;
-  if (organizerTunnelId) map['alleventsorg.navaghandabhi.dev'] = organizerTunnelId;
-
   // ▲ Add new subdomains here ▲
 
   return map;
@@ -45,14 +36,6 @@ function buildStoreUrlMap(): Record<string, string> {
   const organizerStore = process.env.NEXT_PUBLIC_STORE_URL_organizer_aelinks_io;
   map['organizer.aelinks.io'] = organizerStore ||
     'https://smartlink.apps.allevents.app/apps/allevents-manager-app/store?utm_source=smartlink&utm_medium=store-link&utm_campaign=allevents-manager-app';
-
-  // Live tunnel hosts mirror the aelinks.io store pages.
-  map['allevents.navaghandabhi.dev'] =
-    process.env.NEXT_PUBLIC_STORE_URL_allevents_navaghandabhi_dev ||
-    map['allevents.aelinks.io'];
-  map['alleventsorg.navaghandabhi.dev'] =
-    process.env.NEXT_PUBLIC_STORE_URL_alleventsorg_navaghandabhi_dev ||
-    map['organizer.aelinks.io'];
 
   // ▲ Add new subdomains with fallback store URLs here ▲
 
@@ -88,8 +71,8 @@ function buildStoreUrlMap(): Record<string, string> {
 // whatever its production sibling already resolves to, so a debug host is
 // broken only when the production one already is.
 const DEBUG_HOST_ALIASES: Readonly<Record<string, string>> = Object.freeze({
-  // No entries yet. navaghandabhi.dev hosts are live tunnel hosts, not debug
-  // aliases, so they stay out of this map and publish release certificates.
+  // No entries yet. A debug host belongs here — never in APP_HOST_MAP above —
+  // so it can never be handed to a release install by getLinkDomainsForApp().
 });
 
 /** The production host a debug host stands in for; any other host unchanged. */
