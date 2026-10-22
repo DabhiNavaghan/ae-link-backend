@@ -451,15 +451,18 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'clicks',
-          localField: '_id',
-          foreignField: 'linkId',
+          let: { lid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$linkId', '$$lid'] } } },
+            { $count: 'n' },
+          ],
           as: 'clicks',
         },
       },
       {
         $group: {
           _id: '$linkType',
-          clicks: { $sum: { $size: '$clicks' } },
+          clicks: { $sum: { $ifNull: [{ $arrayElemAt: ['$clicks.n', 0] }, 0] } },
           conversions: { $sum: 1 },
         },
       },
@@ -471,8 +474,11 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'clicks',
-          localField: '_id',
-          foreignField: 'linkId',
+          let: { lid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$linkId', '$$lid'] } } },
+            { $count: 'n' },
+          ],
           as: 'clicks',
         },
       },
@@ -482,6 +488,7 @@ export class AnalyticsService {
           let: { lid: '$_id' },
           pipeline: [
             { $match: { $expr: { $eq: ['$linkId', '$$lid'] }, deferredLinkId: { $exists: true, $ne: null } } },
+            { $count: 'n' },
           ],
           as: 'conversions',
         },
@@ -489,8 +496,8 @@ export class AnalyticsService {
       {
         $project: {
           shortCode: 1,
-          clicks: { $size: '$clicks' },
-          conversions: { $size: '$conversions' },
+          clicks: { $ifNull: [{ $arrayElemAt: ['$clicks.n', 0] }, 0] },
+          conversions: { $ifNull: [{ $arrayElemAt: ['$conversions.n', 0] }, 0] },
         },
       },
       { $sort: { clicks: -1 } },
@@ -624,6 +631,7 @@ export class AnalyticsService {
           let: { lid: '$_id' },
           pipeline: [
             { $match: { $expr: { $eq: ['$linkId', '$$lid'] }, deferredLinkId: { $exists: true, $ne: null } } },
+            { $count: 'n' },
           ],
           as: 'conversions',
         },
@@ -642,7 +650,7 @@ export class AnalyticsService {
           shortCode: 1,
           destinationUrl: 1,
           clicks: '$clickCount',
-          conversions: { $size: '$conversions' },
+          conversions: { $ifNull: [{ $arrayElemAt: ['$conversions.n', 0] }, 0] },
           campaignName: { $arrayElemAt: ['$campaign.name', 0] },
         },
       },
@@ -689,6 +697,7 @@ export class AnalyticsService {
           let: { linkIds: '$links._id' },
           pipeline: [
             { $match: { $expr: { $in: ['$linkId', '$$linkIds'] }, deferredLinkId: { $exists: true, $ne: null } } },
+            { $count: 'n' },
           ],
           as: 'allConversions',
         },
@@ -699,7 +708,7 @@ export class AnalyticsService {
           status: 1,
           linkCount: 1,
           clicks: '$totalClicks',
-          conversions: { $size: '$allConversions' },
+          conversions: { $ifNull: [{ $arrayElemAt: ['$allConversions.n', 0] }, 0] },
           metadata: 1,
         },
       },

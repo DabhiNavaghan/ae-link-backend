@@ -1,0 +1,5 @@
+- Uses Cloudflare Tunnel (cloudflared) to expose local dev apps on a public custom domain. Confidence: 0.7
+- Serves per-app deep-link well-known files (Apple AASA and Android assetlinks.json) under per-app subdomains/subpaths. Confidence: 0.6
+- Wants changes tightly scoped to the requested domain/feature; explicitly asks not to touch other domains, tunnels, or unrelated config. Confidence: 0.8
+- Prefers exactness on identifiers: verify domain/hostname spellings and account ownership against the user's actual setup before acting, and treat the user's "already added/configured" claims as correct until checked. Confidence: 0.6
+- Deploys production from the `main` branch (main is the live branch) and does feature work on separate branches with uncommitted working-tree changes; wants a clear view of what is live vs. still-local. Confidence: 0.7
